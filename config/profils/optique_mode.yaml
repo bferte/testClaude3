@@ -1,8 +1,12 @@
 # =====================================================================
-#  Règles de contrôle des catalogues fournisseurs
+#  Profil de règles : catalogues OPTIQUE / MODE (CSV à plat)
 #  Ce fichier est modifiable par un utilisateur métier (Bloc-notes).
 #  Après modification, relancer l'analyse : aucune programmation requise.
+#  Le profil est choisi automatiquement selon les colonnes du fichier ;
+#  il peut aussi être forcé dans l'interface.
 # =====================================================================
+nom: Optique / mode (CSV)
+par_defaut: true
 
 # ---------------------------------------------------------------------
 # Colonnes attendues
@@ -56,8 +60,24 @@ colonnes_ignorees: []
 # ---------------------------------------------------------------------
 cle_unique: [reference, couleur, taille]
 
+# Colonnes dont chaque valeur doit être unique (un EAN = un seul article)
+colonnes_uniques: [ean]
+
+# Codes-barres à contrôler (longueur + clé de contrôle GTIN/EAN)
+#   strict: true  -> toute valeur doit être un EAN valide
+#   strict: false -> seules les valeurs entièrement numériques de 8 à 14 chiffres sont contrôlées
+colonnes_gtin:
+  - {colonne: ean, strict: true}
+
 # Colonnes à analyser en tant que prix
 colonnes_prix: [prix_achat, prix_vente]
+
+# Les prix atypiques sont recherchés au sein de groupes d'articles comparables
+groupement_prix: [marque]
+
+# Gravité d'une colonne facultative partiellement vide, d'un prix nul ou négatif
+severite_facultatif_vide: mineur
+severite_prix_nul: critique
 
 # Dépendances fonctionnelles : une valeur de la 1re colonne doit toujours
 # correspondre à une seule valeur de la 2e colonne.

@@ -1,6 +1,6 @@
 # Contrôle qualité des catalogues fournisseurs (POC)
 
-Outil local pour analyser un catalogue fournisseur CSV **avant** son intégration dans le système d'information :
+Outil local pour analyser un catalogue fournisseur (CSV ou Excel multi-onglets) **avant** son intégration dans le système d'information :
 champs manquants, doublons, EAN invalides, prix incohérents, marques mal orthographiées, références recodifiées,
 différences avec la version précédente… Il produit un **score qualité sur 100**, un verdict et un rapport
 Excel / HTML. Une IA locale (facultative) rédige la synthèse et propose des corrections.
@@ -26,16 +26,28 @@ puis l'application s'ouvre dans le navigateur :
 3. consulter le score, les anomalies et les lignes concernées ; télécharger le rapport Excel ou HTML ;
 4. onglet **Assistant IA** : synthèse des risques, propositions de corrections, recherche d'incohérences.
 
-Pour essayer : utiliser les fichiers du dossier `exemples/`.
+Pour essayer : utiliser les fichiers du dossier `exemples/` :
+- `catalogue_actuel.csv` / `catalogue_precedent.csv` : catalogue optique à plat ;
+- `audition_actuel.xlsx` / `audition_precedent.xlsx` : classeur audition multi-onglets
+  (Audioprothèses, Accessoires, Couleurs, Associations) au format fournisseur.
 
 ### Sans interface
-Glisser-déposer un fichier CSV sur **`controler.bat`** : les rapports `<fichier>_controle.html` et
+Glisser-déposer un fichier CSV ou Excel sur **`controler.bat`** : les rapports `<fichier>_controle.html` et
 `.xlsx` sont créés à côté du CSV et le rapport HTML s'ouvre.
 
 ## Adapter les règles
-Tout se règle dans **`config/regles.yaml`** (Bloc-notes) : colonnes attendues et leurs noms possibles chez
-les fournisseurs, champs obligatoires, clé d'unicité d'un article, dépendances (un code couleur = un libellé),
-seuils de détection, pondération du score, modèle d'IA.
+Les règles sont dans des **profils** (`config/profils/*.yaml`, modifiables avec le Bloc-notes), un par famille
+de catalogues. Le profil est choisi automatiquement d'après les colonnes et onglets du fichier, ou forcé dans
+l'interface (`--profil` en ligne de commande) :
+- `optique_mode.yaml` : catalogue CSV à plat (référence, EAN, marque, couleur, taille, prix) ;
+- `audition.yaml` : classeur Excel audition (en-tête sur 2 lignes, listes de valeurs lues dans l'en-tête,
+  référentiel Couleurs, onglet Associations, suppressions déclarées par `Action = 2`). Calibré sur un
+  vrai catalogue réputé correct : 97/100, sans anomalie critique (voir [docs/PROPOSITION.md](docs/PROPOSITION.md#7-calibrage-sur-un-vrai-catalogue-audition-juin-2026)).
+
+Un profil décrit les colonnes attendues et leurs noms possibles chez les fournisseurs, les champs obligatoires
+(éventuellement par onglet), les identifiants uniques, les listes de valeurs, les règles entre colonnes
+(ex. date de fin ≥ date de début), les seuils de détection, la pondération du score et le modèle d'IA.
+Pour une nouvelle famille de catalogues : copier un profil, changer son `nom`, l'adapter.
 
 ## Pour les développeurs
 
@@ -45,7 +57,8 @@ python -m pytest                     # tests
 streamlit run app.py                 # interface
 python -m catalogue_qc.cli exemples/catalogue_actuel.csv \
     --precedent exemples/catalogue_precedent.csv --html rapport.html --excel rapport.xlsx [--ia]
-python exemples/generer_exemples.py  # régénère les catalogues d'exemple
+python exemples/generer_exemples.py            # régénère les catalogues optique d'exemple
+python exemples/generer_exemple_audition.py    # régénère les classeurs audition d'exemple
 ```
 
 Code retour de la ligne de commande : `0` intégrable, `1` à vérifier, `2` bloquant.

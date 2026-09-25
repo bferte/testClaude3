@@ -105,7 +105,7 @@ class ClientOllama:
         n = min(self.lignes_echantillon, len(cat.df))
         echantillon = cat.df.sample(n, random_state=1).reset_index().to_csv(sep=";", index=False)
         return self.demander(
-            f"Voici un échantillon de {n} lignes d'un catalogue fournisseur (colonne « ligne » = numéro de ligne).\n\n"
+            f"Voici un échantillon de {n} lignes du tableau « {cat.nom} » d'un catalogue fournisseur (colonne « ligne » = numéro de ligne).\n\n"
             f"{echantillon}\n"
             "Les contrôles classiques (champs vides, doublons, EAN, prix) ont déjà été faits. "
             "Cherche uniquement des incohérences de SENS, par exemple : libellé qui contredit la couleur, "
@@ -120,8 +120,9 @@ class ClientOllama:
 def contexte_anomalies(res: ResultatAnalyse, nb_exemples: int = 3) -> str:
     """Résumé compact des anomalies (le modèle ne reçoit jamais le fichier complet)."""
     lignes = [
-        f"Fichier : {res.catalogue.nom_fichier}, {res.stats['lignes']} lignes, "
+        f"Fichier : {res.nom_fichier}, {res.stats['lignes']} lignes, "
         f"{res.stats.get('nb_references') or '?'} références, {res.stats.get('nb_marques') or '?'} marques.",
+        f"Onglets : {res.stats['lignes_par_onglet']}. Profil de règles : {res.classeur.profil}.",
         f"Comparé à la version précédente : {'oui' if res.precedent else 'non'}.",
         f"Score qualité : {res.score}/100. Verdict des règles : {res.verdict}.",
         "",

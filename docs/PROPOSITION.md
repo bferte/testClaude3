@@ -20,7 +20,7 @@ Ce document répond au cadrage du POC. Le prototype décrit ici est dans ce dép
  │  │ 5. Score        pondération par sévérité et volume         │  │
  │  │ 6. Rapports     Excel détaillé + HTML autonome             │  │
  │  └────────────────────────┬──────────────────────────────────┘  │
- │        config/regles.yaml │ (règles modifiables par le métier)   │
+ │   config/profils/*.yaml   │ (règles modifiables par le métier)   │
  │                           ▼ (optionnel)                          │
  │            Ollama  http://localhost:11434  (Mistral, Llama…)     │
  └──────────────────────────────────────────────────────────────────┘
@@ -32,7 +32,7 @@ Ce document répond au cadrage du POC. Le prototype décrit ici est dans ce dép
    déterministes, reproductibles et auditables. L'IA intervient en aval sur un résumé des anomalies :
    elle rédige, explique et propose, mais ne modifie rien.
 2. **Configuration hors code.** Colonnes attendues, synonymes d'en-têtes, champs obligatoires, clé
-   d'unicité, seuils et pondération du score sont dans `config/regles.yaml`, modifiable avec le Bloc-notes.
+   d'unicité, seuils et pondération du score sont dans un **profil** (`config/profils/*.yaml`), modifiable avec le Bloc-notes. Un profil par famille de catalogues (optique CSV, audition Excel…), choisi automatiquement selon les colonnes et onglets du fichier.
 3. **Un moteur, deux interfaces.** La même fonction `analyser()` sert l'interface web (utilisateurs métier)
    et la ligne de commande (automatisation, traitement par lot, futur branchement dans une chaîne d'intégration).
 4. **Tout reste local.** Interface liée à `localhost` uniquement, télémétrie Streamlit désactivée, client IA
@@ -66,7 +66,7 @@ interne (Streamlit derrière l'authentification de l'entreprise) avec un serveur
 
 | Étape | Contenu | Durée indicative | Livrable |
 |---|---|---|---|
-| **0. Cadrage** | Récupérer 3 à 5 catalogues réels (dont des cas ayant fait échouer une intégration), lister les colonnes et règles SI | 2-3 j | `regles.yaml` réaliste |
+| **0. Cadrage** | Récupérer 3 à 5 catalogues réels (dont des cas ayant fait échouer une intégration), lister les colonnes et règles SI | 2-3 j | profil réaliste |
 | **1. Socle** ✅ | Lecture robuste des CSV, contrôles déterministes, score, rapport Excel/HTML | 1 sem. | Ligne de commande |
 | **2. Interface** ✅ | Streamlit, tableau de bord, détail des anomalies, lanceur Windows | 3-4 j | `lancer.bat` |
 | **3. Comparaison N/N-1** ✅ | Ajouts, suppressions, recodifications, variations de prix, changement de format | 3-4 j | Onglet « Évolution » |
@@ -127,7 +127,7 @@ Classement issu de la conception du prototype (à confirmer sur vos données à 
 
 **Pistes IA pour la suite** (hors POC) :
 - mapping automatique des en-têtes inconnus vers les colonnes attendues (le LLM propose, l'utilisateur valide,
-  le synonyme est ajouté à `regles.yaml`) ;
+  le synonyme est ajouté au profil) ;
 - embeddings locaux (`nomic-embed-text` via Ollama) pour rapprocher les libellés d'un référentiel interne ;
 - classification automatique des produits dans la nomenclature interne.
 
@@ -140,12 +140,13 @@ Classement issu de la conception du prototype (à confirmer sur vos données à 
 ├── app.py                    Interface web locale (Streamlit)
 ├── lancer.bat                Double-clic : installe au premier lancement puis ouvre l'application
 ├── controler.bat             Glisser-déposer d'un CSV : génère les rapports HTML + Excel
-├── config/regles.yaml        Règles métier et seuils (modifiable sans programmer)
+├── config/profils/           Un profil de règles par famille de catalogues (optique_mode.yaml, audition.yaml)
 ├── catalogue_qc/
-│   ├── chargement.py         Encodage, séparateur, synonymes d'en-têtes
+│   ├── chargement.py         CSV / Excel multi-onglets, en-tête sur 2 lignes, listes de valeurs, choix du profil
 │   ├── controles.py          Contrôles déterministes
 │   ├── detection.py          Détection "intelligente" (similarité, formats, statistiques)
 │   ├── comparaison.py        Comparaison avec la version précédente
+│   ├── referentiels.py       Contrôles entre onglets (couleurs, associations, codes uniques)
 │   ├── analyse.py            Orchestration, score, verdict
 │   ├── rapport.py            Exports Excel et HTML
 │   ├── ia_locale.py          Client Ollama (local uniquement) et prompts
@@ -158,3 +159,37 @@ Classement issu de la conception du prototype (à confirmer sur vos données à 
 
 **Ajouter un contrôle** : écrire une fonction `(catalogue, config) -> list[Anomalie]` et l'ajouter à la liste
 `CONTROLES` dans `analyse.py`. Elle apparaît automatiquement dans le score, l'interface et les rapports.
+
+## 7. Calibrage sur un vrai catalogue Audition (juin 2026)
+
+Un export fournisseur réel, réputé correct, a servi à calibrer le profil `audition.yaml` : classeur Excel de
+6 onglets (Audioprothèses 1 631 lignes, Embouts 14, Accessoires audio 670, Piles 1, Couleurs 52,
+Associations 59 378). Le fichier n'est pas versionné ; un exemple fictif au même format est fourni
+(`exemples/audition_*.xlsx`).
+
+**Ce que le format apporte** : les listes de valeurs autorisées sont écrites dans l'en-tête des colonnes
+(`Bluetooth / Non : 0 / Oui : 1`, `Type / BTE : Derrière l'oreille / RIC : …`). L'outil les lit et contrôle
+automatiquement plus de 40 colonnes codifiées, sans rien configurer. S'y ajoutent les contrôles entre onglets :
+codes couleur présents dans le référentiel Couleurs, liens de l'onglet Associations vers des articles existants
+et non supprimés, unicité des codes entre onglets, suppressions déclarées (`Action = 2`) ou non déclarées.
+
+**Faux positifs éliminés pendant le calibrage** (le premier passage donnait 50/100) :
+
+| Constat sur le fichier réel | Réglage |
+|---|---|
+| `Vente = 0` sur 347 appareils (prix public non communiqué) → aurait déclenché « PV < PA » | `zero_equivaut_vide` sur `prix_vente` |
+| `0` utilisé comme « non renseigné » hors liste (ex. *Unité de quantité*) | `valeurs_neutres: ["0"]` |
+| Colonnes facultatives entièrement vides dans un onglet (couleur d'un embout) | ignorées ; partiellement vides = information |
+| Couleur, gamme, classe de remboursement exigées sur tous les onglets | obligation limitée à `onglets: [Audioprothèses]` |
+| Codes fabricant non EAN (`732-07-303-03`) contrôlés comme EAN | contrôle GTIN uniquement sur les codes à 8/12-14 chiffres |
+| Tiroirs à pile (4,20 €) vs chargeurs (199 €) signalés « erreur d'unité » | prix comparés par marque **et** type ; « erreur d'unité » seulement si le prix ×/÷ 10/100/1000 retombe dans la fourchette du groupe |
+| Doubles espaces internes dans les libellés | seuls les espaces en début/fin sont signalés |
+
+**Résultat : 97/100 – INTÉGRABLE**, 0 critique. Restent, à confirmer par le métier :
+- *Majeur* : 4 accessoires avec un prix d'achat de 0 € (bouchons de couleur, tube) — gratuits ou oubli ?
+- *Mineur* : 21 prix statistiquement atypiques (ex. filtres par 100 à 74 € quand la médiane est à 5,80 €) ;
+  1 produit sous deux références avec un libellé identique (`COLOUR PLUG SET, 1 PCS`).
+- *Info* : 522 appareils sans accessoire associé ; 7 appareils sans date de début de validité.
+
+Test de non-régression : `CATALOGUE_AUDITION_REEL=chemin/fichier.xlsx python -m pytest` vérifie qu'un
+catalogue correct reste sans anomalie critique et au-dessus de 90/100.

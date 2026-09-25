@@ -1,0 +1,198 @@
+# =====================================================================
+#  Profil de règles : catalogues AUDITION (classeur Excel multi-onglets)
+#  Modèle : export fournisseur « Audioprothèses / Embouts / Accessoires
+#  audio / Piles / Couleurs / Associations », en-tête sur 2 lignes
+#  (groupe Général/Technique/Commercial + nom de colonne avec, pour les
+#  colonnes codifiées, la liste des valeurs autorisées).
+#  Calibré sur un catalogue réel réputé correct (juin 2026).
+# =====================================================================
+nom: Audition (Excel multi-onglets)
+
+# Onglets contenant des articles (sert aussi à reconnaître le format)
+onglets_articles: [Audioprothèses, Embouts, Accessoires audio, Piles]
+onglets_ignores: []
+
+# ---------------------------------------------------------------------
+# Colonnes contrôlées (voir le profil optique pour la syntaxe)
+#   onglets : limite l'obligation à certains onglets
+#   zero_equivaut_vide : la valeur 0 signifie « non renseigné »
+# ---------------------------------------------------------------------
+colonnes:
+  reference:
+    obligatoire: critique
+    synonymes: [code_produit_fabricant]
+  code_commande:
+    obligatoire: critique
+    synonymes: []
+  libelle:
+    obligatoire: critique
+    synonymes: [nom_du_produit]
+  marque:
+    obligatoire: critique
+    synonymes: []
+  fabricant:
+    obligatoire: majeur
+    synonymes: [code_fabricant]
+  distributeur:
+    obligatoire: majeur
+    synonymes: [code_du_distributeur]
+  gamme:
+    obligatoire: majeur
+    onglets: [Audioprothèses]
+    synonymes: []
+  type:
+    obligatoire: majeur
+    onglets: [Audioprothèses, Accessoires audio]
+    synonymes: []
+  couleur:
+    obligatoire: majeur
+    onglets: [Audioprothèses]
+    synonymes: [code_de_la_couleur]
+  libelle_couleur:
+    obligatoire: majeur
+    onglets: [Audioprothèses]
+    synonymes: [nom_de_la_couleur]
+  classe_remboursement:
+    obligatoire: majeur
+    onglets: [Audioprothèses]
+    synonymes: [classe_de_remboursement]
+  prix_achat:
+    obligatoire: critique
+    synonymes: [achat]
+  prix_vente:
+    obligatoire: non
+    zero_equivaut_vide: true      # « Vente = 0 » = pas de prix public communiqué
+    synonymes: [vente]
+  tva:
+    obligatoire: majeur
+    synonymes: [vate_rate, vat_rate, taux_tva]
+  eco_tax:
+    obligatoire: non
+    synonymes: [eco_taxe, ecotaxe]
+  action:
+    obligatoire: majeur
+    synonymes: []
+  date_debut_validite:
+    obligatoire: non
+    synonymes: [date_de_debut_de_validite]
+  date_fin_validite:
+    obligatoire: non
+    synonymes: [date_de_fin_de_validite]
+  date_creation:
+    obligatoire: non
+    synonymes: [date_de_creation]
+  date_modification:
+    obligatoire: non
+    synonymes: [date_de_modification]
+
+# Colonnes du modèle fournisseur : présentes normalement, non signalées.
+# Toute AUTRE colonne sera signalée comme « inattendue » (changement de modèle).
+colonnes_connues: [
+  Nom du fabricant, Nom du distributeur, Code enseigne, Code produit public, Code modèle, Code alternatif,
+  Code interne, Numéro de série, Collection, Type d'amplification, Nombre de canaux, Alimentation, Sortie,
+  Gain total, Consommation en veille, Consommation fonctionnelle, Nb. de configurations, Perte auditive,
+  Côté écouteur, Puissance écouteur, Micrologiciel, Bluetooth, Anti-larsen, Réducteur d'acouphène, Bobine T,
+  Synchronisation binaurale, Directivité microphonique, Apprentissage de sonie, Réducteur de réverbération,
+  Réducteur de bruit du vent, Gestion de l'environnement, Bande passante élargie >= 6000Hz, Piles,
+  Prix additionnel (non configuré), Prix additionnel (non configuré) (2), Description du produit,
+  Durée de garantie fabricant, Famille, Télétransmission, Disponible en dépôt, Durée du dépôt,
+  Documentation technique, Petite image, Image de face, Image droite, Image gauche, Image de dessus,
+  Image de dessous, Caractéristiques essentielles, Origine garantie, Type de bouchons d'oreilles,
+  Type d'utilisation, Type de moule, Matériau, Forme, Côté, Origine, Longueur du tube, Puissance du casque,
+  Nb. unité par emballage, Volume ou quantité par unité, Unité de quantité, Nb. emballages par carton,
+  Description du conditionnement, Vendu seul, Type de pile personnalisé, Format de la pile, Type de la pile,
+  Rechargeable,
+]
+
+# ---------------------------------------------------------------------
+# Listes de valeurs : lues automatiquement dans l'en-tête du fichier
+# (ex. « Bluetooth / Non : 0 / Oui : 1 »). Rien à saisir ici.
+# ---------------------------------------------------------------------
+enumerations:
+  controle: true
+  valeurs_neutres: ["0"]          # 0 = « non renseigné » dans ce modèle (ex. Unité de quantité)
+
+# Listes complémentaires définies par le métier
+valeurs_autorisees:
+  tva: ["5,5", "20", "10", "2,1"]
+
+cle_unique: [reference]
+colonnes_uniques: [code_commande]
+colonnes_gtin:
+  - {colonne: reference, strict: false}   # certains codes fabricant sont des EAN-13, d'autres des codes internes
+colonnes_prix: [prix_achat, prix_vente]
+colonnes_dates: [date_debut_validite, date_fin_validite, date_creation, date_modification]
+
+# Gravité d'un prix nul ou négatif. « majeur » car un accessoire peut être fourni
+# gratuitement : à confirmer par le métier.
+severite_prix_nul: majeur
+
+# Colonne facultative partiellement remplie : simple information dans ce modèle
+# (ex. « Vente » n'est communiqué que pour une partie des appareils)
+severite_facultatif_vide: info
+
+# Les prix sont comparés entre articles de même marque ET de même type
+# (un chargeur et un dôme n'ont pas le même ordre de prix)
+groupement_prix: [marque, type]
+
+dependances:
+  - [couleur, libelle_couleur]
+  - [gamme, marque]
+
+# Règles de comparaison entre deux colonnes d'une même ligne (nombres ou dates)
+comparaisons:
+  - {gauche: eco_tax, operateur: "<=", droite: prix_achat, severite: majeur,
+     message: "Éco-contribution supérieure au prix d'achat"}
+  - {gauche: date_debut_validite, operateur: "<=", droite: date_fin_validite, severite: majeur,
+     message: "Date de fin de validité antérieure à la date de début"}
+  - {gauche: date_creation, operateur: "<=", droite: date_modification, severite: mineur,
+     message: "Date de modification antérieure à la date de création"}
+
+# Suppressions déclarées : un article retiré doit être envoyé avec Action = 2
+action:
+  colonne: action
+  suppression: "2"
+
+controle_format: []
+
+# ---------------------------------------------------------------------
+# Onglets de référence et contrôles croisés entre onglets
+# (noms de colonnes normalisés : minuscules, sans accents, _ )
+# ---------------------------------------------------------------------
+referentiels:
+  couleurs:
+    onglet: Couleurs
+    code: code_de_la_couleur
+    libelle: nom_de_la_couleur
+  associations:
+    onglet: Associations
+    liens:
+      - {colonne: audioprothese_code_produit, libelle: audioprothese_nom_du_produit,
+         onglets: [Audioprothèses]}
+      - {colonne: accessoire_audio_code_produit, libelle: accessoire_audio_nom_du_produit,
+         onglets: [Accessoires audio, Embouts, Piles]}
+    articles_sans_association: [Audioprothèses]   # signalé pour information
+
+seuils:
+  similarite_marques: 88
+  zscore_aberrant: 4.5
+  facteur_erreur_unite: 30
+  format_part_dominante: 0.80
+  variation_prix_pct: 30
+  suppressions_majeur_pct: 1
+  ajouts_majeur_pct: 30
+  exemples_max: 200
+
+score:
+  critique: {base: 4,   facteur: 1.0, plafond: 25}
+  majeur:   {base: 1.5, facteur: 0.5, plafond: 10}
+  mineur:   {base: 0.5, facteur: 0.1, plafond: 3}
+  info:     {base: 0,   facteur: 0,   plafond: 0}
+
+ia:
+  active: true
+  url: http://localhost:11434
+  modele: mistral
+  temperature: 0.2
+  timeout_s: 300
+  lignes_echantillon: 40

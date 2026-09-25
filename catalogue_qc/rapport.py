@@ -16,6 +16,7 @@ def tableau_synthese(res: ResultatAnalyse) -> pd.DataFrame:
     return pd.DataFrame([{
         "Sévérité": LIBELLES_SEVERITE[a.severite],
         "Catégorie": a.categorie,
+        "Onglet": a.onglet or "",
         "Anomalie": a.titre,
         "Nombre": a.nb,
         "Lignes touchées": a.lignes_touchees,
@@ -28,9 +29,9 @@ def vers_excel(res: ResultatAnalyse) -> bytes:
     tampon = io.BytesIO()
     with pd.ExcelWriter(tampon, engine="openpyxl") as xl:
         entete = pd.DataFrame({
-            "Indicateur": ["Fichier", "Comparé à", "Date d'analyse", "Lignes", "Score qualité", "Verdict",
+            "Indicateur": ["Fichier", "Profil de règles", "Comparé à", "Date d'analyse", "Lignes", "Score qualité", "Verdict",
                            "Anomalies critiques", "Anomalies majeures", "Anomalies mineures"],
-            "Valeur": [res.catalogue.nom_fichier, res.precedent.nom_fichier if res.precedent else "-",
+            "Valeur": [res.nom_fichier, res.classeur.profil, res.precedent.nom_fichier if res.precedent else "-",
                        datetime.now().strftime("%d/%m/%Y %H:%M"), res.stats["lignes"], f"{res.score}/100",
                        res.verdict, res.nb("critique"), res.nb("majeur"), res.nb("mineur")],
         })
@@ -44,6 +45,12 @@ def vers_excel(res: ResultatAnalyse) -> bytes:
                 largeur = max(len(str(c.value or "")) for c in colonne[:200])
                 feuille.column_dimensions[colonne[0].column_letter].width = min(max(10, largeur + 2), 80)
     return tampon.getvalue()
+
+
+def _detail_onglets(res: ResultatAnalyse) -> str:
+    if len(res.stats["lignes_par_onglet"]) < 2:
+        return ""
+    return " : " + ", ".join(f"{n} {v}" for n, v in res.stats["lignes_par_onglet"].items())
 
 
 def vers_html(res: ResultatAnalyse, texte_ia: str | None = None) -> str:
@@ -73,7 +80,7 @@ def vers_html(res: ResultatAnalyse, texte_ia: str | None = None) -> str:
              "<p class='note'>Texte généré automatiquement : à valider par un expert.</p>"
     comparaison = f" &middot; comparé à <b>{e(res.precedent.nom_fichier)}</b>" if res.precedent else ""
     return f"""<!doctype html><html lang="fr"><head><meta charset="utf-8">
-<title>Contrôle catalogue - {e(res.catalogue.nom_fichier)}</title>
+<title>Contrôle catalogue - {e(res.nom_fichier)}</title>
 <style>
 body{{font-family:Segoe UI,Arial,sans-serif;margin:24px auto;max-width:1200px;color:#222;padding:0 16px}}
 .score{{font-size:48px;font-weight:700;color:{couleur_score}}}
@@ -86,7 +93,8 @@ table.ex th,table.ex td{{border:1px solid #ddd;padding:3px 6px;text-align:left;w
 table.ex th{{background:#f5f5f5}} .ia{{white-space:pre-wrap;background:#f7f9fc;padding:12px;border-radius:6px}}
 </style></head><body>
 <h1>Rapport de contrôle du catalogue</h1>
-<p><b>{e(res.catalogue.nom_fichier)}</b> ({res.stats['lignes']} lignes){comparaison}
+<p><b>{e(res.nom_fichier)}</b> ({res.stats['lignes']} lignes{e(_detail_onglets(res))}){comparaison}
+&middot; profil « {e(res.classeur.profil)} »
 &middot; {datetime.now().strftime('%d/%m/%Y %H:%M')}</p>
 <div class="tuiles">
 <div class="tuile">Qualité du catalogue<div class="score">{res.score}/100</div>{e(res.verdict)}</div>

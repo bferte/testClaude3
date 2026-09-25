@@ -26,6 +26,15 @@ def en_nombre(s: pd.Series) -> pd.Series:
     return pd.to_numeric(t, errors="coerce")
 
 
+def en_date(s: pd.Series) -> pd.Series:
+    """Accepte AAAA-MM-JJ [hh:mm:ss] et JJ/MM/AAAA ; NaT si illisible."""
+    t = nettoyer(s)
+    iso = pd.to_datetime(t, format="%Y-%m-%d %H:%M:%S", errors="coerce")
+    for fmt in ("%Y-%m-%d", "%d/%m/%Y", "%d/%m/%Y %H:%M:%S", "%d-%m-%Y"):
+        iso = iso.fillna(pd.to_datetime(t, format=fmt, errors="coerce"))
+    return iso
+
+
 def sans_accents(texte: str) -> str:
     return unicodedata.normalize("NFKD", texte).encode("ascii", "ignore").decode()
 

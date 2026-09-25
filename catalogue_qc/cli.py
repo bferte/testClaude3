@@ -12,17 +12,18 @@ import sys
 from pathlib import Path
 
 from .analyse import analyser
-from .chargement import lire_csv
+from .chargement import lire_classeur
 from .ia_locale import ClientOllama, IAIndisponible
-from .modele import charger_config
+from .modele import charger_config, charger_profils
 from .rapport import vers_excel, vers_html
 
 
 def main(argv: list[str] | None = None) -> int:
-    p = argparse.ArgumentParser(description="Contrôle qualité d'un catalogue fournisseur CSV")
-    p.add_argument("actuel", help="Catalogue à contrôler (CSV)")
-    p.add_argument("--precedent", help="Version précédente du catalogue (CSV)")
-    p.add_argument("--config", help="Fichier de règles (défaut : config/regles.yaml)")
+    p = argparse.ArgumentParser(description="Contrôle qualité d'un catalogue fournisseur (CSV ou Excel)")
+    p.add_argument("actuel", help="Catalogue à contrôler (CSV ou Excel)")
+    p.add_argument("--precedent", help="Version précédente du catalogue (CSV ou Excel)")
+    p.add_argument("--config", help="Fichier de règles (défaut : choix automatique dans config/profils)")
+    p.add_argument("--profil", help="Nom du profil à utiliser : " + " | ".join(charger_profils()))
     p.add_argument("--html", help="Chemin du rapport HTML à générer")
     p.add_argument("--excel", help="Chemin du rapport Excel à générer")
     p.add_argument("--ia", action="store_true", help="Ajouter une synthèse rédigée par l'IA locale (Ollama)")
@@ -30,11 +31,13 @@ def main(argv: list[str] | None = None) -> int:
 
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8")
-    config = charger_config(args.config)
-    res = analyser(
-        lire_csv(args.actuel, config), config,
-        lire_csv(args.precedent, config) if args.precedent else None,
-    )
+    profils = charger_profils()
+    if args.profil and args.profil not in profils:
+        p.error(f"profil inconnu « {args.profil} » ; choix possibles : {', '.join(profils)}")
+    config = charger_config(args.config) if args.config else profils.get(args.profil)
+    actuel, config = lire_classeur(args.actuel, config)
+    precedent = lire_classeur(args.precedent, config)[0] if args.precedent else None
+    res = analyser(actuel, config, precedent)
     print(res.synthese_texte())
 
     texte_ia = None

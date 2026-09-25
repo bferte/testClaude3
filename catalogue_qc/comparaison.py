@@ -111,9 +111,10 @@ def comparer(cat: Catalogue, prec: Catalogue, config: dict) -> list[Anomalie]:
     if len(supprimes):
         pct = 100 * len(supprimes) / max(len(p), 1)
         sev = "majeur" if pct > seuils["suppressions_majeur_pct"] else "mineur"
+        declare = " sans être déclaré(s) supprimé(s) (Action)" if (config.get("action") or {}).get("colonne") in a.columns else ""
         res.append(Anomalie(
             "EVOL_SUPPRESSIONS", sev, "Évolution",
-            f"{len(supprimes)} article(s) supprimé(s) depuis la version précédente ({pct:.1f} %)", len(supprimes),
+            f"{len(supprimes)} article(s) absent(s) depuis la version précédente{declare} ({pct:.1f} %)", len(supprimes),
             lignes_touchees=0,
             conseil="Fin de série ou oubli du fournisseur ? Les articles encore en stock doivent être vérifiés.",
             exemples=exemples(p, supprimes.index, COLONNES_CONTEXTE, config, "Présent dans la version précédente"),

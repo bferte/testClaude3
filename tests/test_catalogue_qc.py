@@ -1,11 +1,12 @@
+import os
 from pathlib import Path
 
 import pytest
 
 from catalogue_qc.analyse import analyser
-from catalogue_qc.chargement import lire_csv
+from catalogue_qc.chargement import lire_classeur, lire_csv
 from catalogue_qc.ia_locale import ClientOllama, contexte_anomalies
-from catalogue_qc.modele import charger_config
+from catalogue_qc.modele import charger_config, charger_profils
 from catalogue_qc.outils import cle_reference, ean_valide, signature
 from catalogue_qc.rapport import vers_excel, vers_html
 
@@ -60,7 +61,7 @@ def test_controles_de_base(config):
         "RB-7;;RAY-BAN;Lunette;001;52;abc;25\n"                  # prix non numérique
     ))
     c = codes(res)
-    for code in ["VIDE_REFERENCE", "EAN_DOUBLON", "EAN_SCIENTIFIQUE", "EAN_INVALIDE", "PV_INF_PA",
+    for code in ["VIDE_REFERENCE", "DOUBLON_EAN", "GTIN_SCIENTIFIQUE_EAN", "GTIN_INVALIDE_EAN", "PV_INF_PA",
                  "CLE_CONFLIT", "PRIX_NON_NUM_PRIX_ACHAT", "VIDE_EAN"]:
         assert code in c, code
     assert c["VIDE_REFERENCE"].exemples["ligne"].tolist() == [2]
@@ -114,7 +115,7 @@ def test_exemples_complets_et_exports(config):
     prec = lire_csv(EXEMPLES / "catalogue_precedent.csv", config)
     res = analyser(cat, config, prec)
     c = codes(res)
-    for code in ["EAN_DOUBLON", "EAN_SCIENTIFIQUE", "MARQUE_VARIANTES", "EVOL_FORMAT", "EVOL_RECODIFICATION",
+    for code in ["DOUBLON_EAN", "GTIN_SCIENTIFIQUE_EAN", "MARQUE_VARIANTES", "EVOL_FORMAT", "EVOL_RECODIFICATION",
                  "EVOL_SUPPRESSIONS", "COL_INATTENDUE", "REF_QUASI_IDENTIQUES", "ERREUR_UNITE_PRIX_VENTE"]:
         assert code in c, code
     assert 0 <= res.score < 60
@@ -161,3 +162,68 @@ def test_ia_appel_ollama(config, monkeypatch):
 def test_fichiers_degeneres(config, contenu):
     res = analyser(lire_csv(contenu.encode("cp1252"), config), config, lire_csv(contenu.encode(), config))
     assert 0 <= res.score <= 100
+
+
+# ---------------------------------------------------------------------------
+# Format Audition : classeur Excel multi-onglets, en-tête sur 2 lignes
+# ---------------------------------------------------------------------------
+@pytest.fixture(scope="module")
+def audition():
+    actuel, config = lire_classeur(EXEMPLES / "audition_actuel.xlsx")
+    precedent, _ = lire_classeur(EXEMPLES / "audition_precedent.xlsx", config)
+    return actuel, precedent, config
+
+
+def test_audition_lecture_et_profil_automatique(audition):
+    actuel, _, config = audition
+    assert config["nom"].startswith("Audition")
+    assert set(actuel.tableaux) == {"Audioprothèses", "Accessoires audio"}
+    assert set(actuel.referentiels) == {"couleurs", "associations"}
+    app = actuel.tableaux["Audioprothèses"]
+    assert app.df.index[0] == 3  # n° de ligne Excel (2 lignes d'en-tête)
+    assert app.enumerations["Bluetooth"] == {"0": "Non", "1": "Oui"}
+    assert app.enumerations["type"]["RIC"] == "Récepteur dans le canal"
+    assert "marque" in app.formats_code_libelle
+    assert "associations" in actuel.referentiels
+    assert "audioprothese_code_produit" in actuel.referentiels["associations"].columns
+
+
+def test_audition_version_propre(audition):
+    _, precedent, config = audition
+    res = analyser(precedent, config)
+    assert res.score == 100 and res.verdict == "INTÉGRABLE"
+
+
+def test_audition_anomalies_injectees(audition):
+    actuel, precedent, config = audition
+    c = codes(analyser(actuel, config, precedent))
+    attendus = [
+        "VALEUR_HORS_LISTE_BLUETOOTH", "VALEUR_HORS_LISTE_TYPE", "VALEUR_HORS_LISTE_TVA",
+        "FORMAT_CODE_LIBELLE_MARQUE", "COULEUR_INCONNUE", "COULEUR_LIBELLE", "DOUBLON_CODE_COMMANDE",
+        "GTIN_INVALIDE_REFERENCE", "ERREUR_UNITE_PRIX_ACHAT", "REGLE_DATE_DEBUT_VALIDITE_DATE_FIN_VALIDITE",
+        "VIDE_CLASSE_REMBOURSEMENT", "PV_INF_PA", "DOUBLON_INTER_ONGLETS_REFERENCE",
+        "ASSOCIATION_ORPHELINE_ACCESSOIRE_AUDIO_CODE_PRODUIT", "ASSOCIATION_SUPPRIME_AUDIOPROTHESE_CODE_PRODUIT",
+        "SUPPRESSIONS_DECLAREES", "EVOL_SUPPRESSIONS", "COL_INATTENDUE",
+    ]
+    manquants = [code for code in attendus if code not in c]
+    assert not manquants
+    assert "Bluetooth" in c["VALEUR_HORS_LISTE_BLUETOOTH"].titre
+    assert c["VALEUR_HORS_LISTE_BLUETOOTH"].onglet == "Audioprothèses"
+
+
+def test_choix_profil_optique_pour_csv(config):
+    _, profil = lire_classeur(EXEMPLES / "catalogue_actuel.csv")
+    assert profil["nom"] == config["nom"]
+    assert len(charger_profils()) >= 2
+
+
+@pytest.mark.skipif(not os.environ.get("CATALOGUE_AUDITION_REEL"), reason="catalogue réel non fourni")
+def test_catalogue_reel_correct_sans_alerte_bloquante():
+    """Non-régression sur un vrai catalogue réputé correct (fichier non versionné).
+
+    CATALOGUE_AUDITION_REEL=/chemin/catalogue.xlsx python -m pytest
+    """
+    classeur, config = lire_classeur(os.environ["CATALOGUE_AUDITION_REEL"])
+    res = analyser(classeur, config)
+    assert res.nb("critique") == 0
+    assert res.score >= 90

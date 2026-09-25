@@ -135,7 +135,10 @@ def valeurs_aberrantes(cat: Catalogue, config: dict) -> list[Anomalie]:
     res = []
     seuil = config["seuils"]["zscore_aberrant"]
     facteur = config["seuils"]["facteur_erreur_unite"]
-    groupe = nettoyer(cat.df["marque"]).map(cle_texte) if cat.a("marque") else pd.Series("", index=cat.df.index)
+    groupe = pd.Series("", index=cat.df.index)
+    for col in config.get("groupement_prix") or ["marque"]:
+        if cat.a(col):
+            groupe = groupe + "|" + nettoyer(cat.df[col]).map(cle_texte)
 
     series = {c: en_nombre(cat.df[c]) for c in config["colonnes_prix"] if cat.a(c)}
     if "prix_achat" in series and "prix_vente" in series:
@@ -152,7 +155,13 @@ def valeurs_aberrantes(cat: Catalogue, config: dict) -> list[Anomalie]:
         mediane = val.groupby(cle).transform("median")
         ratio = val / mediane
         aberrant = z.abs() > seuil
-        unite = aberrant & ((ratio >= facteur) | (ratio <= 1 / facteur)) & (nom != "coefficient")
+        # Erreur d'unité : le prix corrigé d'un facteur 10/100/1000 retombe dans la fourchette normale du groupe
+        q1, q3 = val.groupby(cle).transform(lambda s: s.quantile(0.25)), val.groupby(cle).transform(lambda s: s.quantile(0.75))
+        corrigeable = pd.Series(False, index=val.index)
+        for k in (10, 100, 1000):
+            for v in (val / k, val * k):
+                corrigeable |= (v >= q1 / 1.5) & (v <= q3 * 1.5)
+        unite = aberrant & corrigeable & ((ratio >= facteur) | (ratio <= 1 / facteur)) & (nom != "coefficient")
         stat = aberrant & ~unite
         commentaire = (f"{nom} = " + val.round(2).astype(str) + " ; médiane du groupe = "
                        + mediane.round(2).astype(str) + " (x" + ratio.round(1).astype(str) + ")")

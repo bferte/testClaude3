@@ -1,12 +1,14 @@
 """Contrôles déterministes (règles métier classiques)."""
 from __future__ import annotations
 
+import re
+
 import pandas as pd
 
 from .modele import Anomalie, Catalogue
-from .outils import RE_NOTATION_SCIENTIFIQUE, cle_texte, ean_valide, en_nombre, nettoyer
+from .outils import RE_NOTATION_SCIENTIFIQUE, cle_texte, ean_valide, en_date, en_nombre, nettoyer, sans_accents
 
-COLONNES_CONTEXTE = ["reference", "ean", "marque", "libelle", "couleur", "taille"]
+COLONNES_CONTEXTE = ["reference", "code_commande", "ean", "marque", "libelle", "couleur", "taille"]
 
 
 def exemples(df: pd.DataFrame, index, colonnes, config: dict, commentaire=None) -> pd.DataFrame:
@@ -43,6 +45,7 @@ def controle_structure(cat: Catalogue, config: dict) -> list[Anomalie]:
         absentes = [
             c for c, r in config["colonnes"].items()
             if str(r.get("obligatoire", "non")) == sev and not cat.a(c)
+            and (not r.get("onglets") or cat.onglet in r["onglets"])
         ]
         if absentes:
             res.append(Anomalie(
@@ -50,7 +53,7 @@ def controle_structure(cat: Catalogue, config: dict) -> list[Anomalie]:
                 f"{len(absentes)} colonne(s) obligatoire(s) absente(s) : {', '.join(absentes)}",
                 len(absentes),
                 conseil="Vérifier l'en-tête du fichier ou ajouter le nom utilisé par le fournisseur "
-                        "dans les synonymes (config/regles.yaml).",
+                        "dans les synonymes du profil (dossier config/profils).",
                 lignes_touchees=len(cat.df),
             ))
 
@@ -86,13 +89,16 @@ def controle_completude(cat: Catalogue, config: dict) -> list[Anomalie]:
         if not n:
             continue
         sev = str(regle.get("obligatoire", "non"))
-        if sev == "non":
-            sev = "mineur"
+        onglets = regle.get("onglets")
+        if sev == "non" or (onglets and cat.onglet not in onglets):
+            if vide.all():
+                continue  # colonne facultative non utilisée dans ce tableau : normal
+            sev = config.get("severite_facultatif_vide", "mineur")
         titre = (f"{n} ligne(s) sans référence (identifiant manquant)" if col == "reference"
                  else f"{n} ligne(s) sans valeur pour « {col} »")
         res.append(Anomalie(
             f"VIDE_{col.upper()}", sev, "Complétude", titre, n,
-            conseil="Champ obligatoire pour l'intégration." if sev != "mineur"
+            conseil="Champ obligatoire pour l'intégration." if sev in ("critique", "majeur")
                     else "Champ facultatif : à compléter si possible.",
             exemples=exemples(df, vide[vide].index, COLONNES_CONTEXTE + [col], config),
         ))
@@ -137,20 +143,23 @@ def controle_unicite(cat: Catalogue, config: dict) -> list[Anomalie]:
                                   config, pd.Series(differences)),
             ))
 
-    # 3. EAN partagés par plusieurs articles
-    if cat.a("ean"):
-        avec_ean = uniques[uniques["ean"] != ""]
-        cle = cle_article(avec_ean, cols) if cols else avec_ean.index.astype(str).to_series(index=avec_ean.index)
-        nb_articles = cle.groupby(avec_ean["ean"]).nunique()
-        ean_dup = nb_articles[nb_articles > 1].index
-        if len(ean_dup):
-            masque = avec_ean["ean"].isin(ean_dup)
+    # 3. Identifiants partagés par plusieurs articles (EAN, code commande...)
+    for col in config.get("colonnes_uniques") or []:
+        if not cat.a(col):
+            continue
+        renseigne = uniques[uniques[col] != ""]
+        cle = cle_article(renseigne, cols) if cols else renseigne.index.astype(str).to_series(index=renseigne.index)
+        nb_articles = cle.groupby(renseigne[col]).nunique()
+        en_double = nb_articles[nb_articles > 1].index
+        if len(en_double):
+            masque = renseigne[col].isin(en_double)
             res.append(Anomalie(
-                "EAN_DOUBLON", "critique", "Unicité", f"{len(ean_dup)} EAN en doublon (partagés par plusieurs articles)",
-                len(ean_dup), lignes_touchees=int(masque.sum()),
-                conseil="Un EAN identifie un seul article : l'intégration sera rejetée ou écrasera un produit.",
-                exemples=exemples(avec_ean.sort_values("ean"), avec_ean[masque].sort_values("ean").index,
-                                  ["ean"] + COLONNES_CONTEXTE, config),
+                f"DOUBLON_{col.upper()}", "critique", "Unicité",
+                f"{len(en_double)} « {col} » en doublon (partagés par plusieurs articles)",
+                len(en_double), lignes_touchees=int(masque.sum()),
+                conseil=f"Un « {col} » identifie un seul article : l'intégration sera rejetée ou écrasera un produit.",
+                exemples=exemples(renseigne, renseigne[masque].sort_values(col).index,
+                                  [col] + COLONNES_CONTEXTE, config),
             ))
     return res
 
@@ -159,26 +168,33 @@ def controle_validite(cat: Catalogue, config: dict) -> list[Anomalie]:
     res = []
     df = cat.df
 
-    if cat.a("ean"):
-        ean = nettoyer(df["ean"])
+    for regle in config.get("colonnes_gtin") or []:
+        col = regle["colonne"]
+        if not cat.a(col):
+            continue
+        ean = nettoyer(df[col])
         renseigne = ean != ""
         scientifique = renseigne & ean.str.match(RE_NOTATION_SCIENTIFIQUE)
         if scientifique.any():
             n = int(scientifique.sum())
             res.append(Anomalie(
-                "EAN_SCIENTIFIQUE", "critique", "Validité",
-                f"{n} EAN corrompu(s) par Excel (notation scientifique, ex. {ean[scientifique].iloc[0]})", n,
-                conseil="Le fichier a été ouvert/enregistré dans Excel : les chiffres de l'EAN sont perdus. "
+                f"GTIN_SCIENTIFIQUE_{col.upper()}", "critique", "Validité",
+                f"{n} « {col} » corrompu(s) par Excel (notation scientifique, ex. {ean[scientifique].iloc[0]})", n,
+                conseil="Le fichier a été ouvert/enregistré dans Excel : les chiffres du code-barre sont perdus. "
                         "Redemander le fichier source au fournisseur.",
-                exemples=exemples(df, scientifique[scientifique].index, ["ean"] + COLONNES_CONTEXTE, config),
+                exemples=exemples(df, scientifique[scientifique].index, [col] + COLONNES_CONTEXTE, config),
             ))
-        invalide = renseigne & ~scientifique & ~ean.map(ean_valide).astype(bool)
+        a_controler = renseigne & ~scientifique
+        if not regle.get("strict", True):
+            a_controler &= ean.str.fullmatch(r"\d{8}|\d{12,14}")
+        invalide = a_controler & ~ean.map(ean_valide).astype(bool)
         if invalide.any():
             n = int(invalide.sum())
             res.append(Anomalie(
-                "EAN_INVALIDE", "majeur", "Validité", f"{n} EAN invalide(s) (longueur ou clé de contrôle)", n,
+                f"GTIN_INVALIDE_{col.upper()}", "majeur", "Validité",
+                f"{n} « {col} » : code-barre EAN invalide (longueur ou clé de contrôle)", n,
                 conseil="Erreur de saisie probable ou zéro initial perdu.",
-                exemples=exemples(df, invalide[invalide].index, ["ean"] + COLONNES_CONTEXTE, config),
+                exemples=exemples(df, invalide[invalide].index, [col] + COLONNES_CONTEXTE, config),
             ))
 
     for col in config["colonnes_prix"]:
@@ -197,19 +213,31 @@ def controle_validite(cat: Catalogue, config: dict) -> list[Anomalie]:
         if negatif.any():
             n = int(negatif.sum())
             res.append(Anomalie(
-                f"PRIX_NUL_{col.upper()}", "critique", "Validité", f"{n} prix nul(s) ou négatif(s) dans « {col} »", n,
+                f"PRIX_NUL_{col.upper()}", config.get("severite_prix_nul", "critique"), "Validité", f"{n} prix nul(s) ou négatif(s) dans « {col} »", n,
                 exemples=exemples(df, negatif[negatif].index, COLONNES_CONTEXTE + [col], config),
             ))
 
+    for col in config.get("colonnes_dates") or []:
+        if not cat.a(col):
+            continue
+        brut = nettoyer(df[col])
+        invalide = (brut != "") & en_date(df[col]).isna()
+        if invalide.any():
+            n = int(invalide.sum())
+            res.append(Anomalie(
+                f"DATE_INVALIDE_{col.upper()}", "majeur", "Validité", f"{n} date(s) illisible(s) dans « {col} »", n,
+                exemples=exemples(df, invalide[invalide].index, COLONNES_CONTEXTE + [col], config),
+            ))
+
     texte = df.astype(str)
-    espaces = texte.apply(lambda s: s.ne(s.str.strip()) | s.str.contains("  ", regex=False))
+    espaces = texte.apply(lambda s: s.ne(s.str.strip()))
     if espaces.any().any():
         lignes = espaces.any(axis=1)
         n = int(espaces.sum().sum())
         cols_touchees = espaces.columns[espaces.any()].tolist()
         res.append(Anomalie(
             "ESPACES", "mineur", "Validité",
-            f"{n} valeur(s) avec espaces parasites (colonnes : {', '.join(cols_touchees)})", n,
+            f"{n} valeur(s) avec espaces en début ou fin (colonnes : {', '.join(cols_touchees)})", n,
             lignes_touchees=int(lignes.sum()),
             conseil="Sans conséquence si l'outil d'intégration nettoie les espaces, sinon source de faux doublons.",
             exemples=exemples(df, lignes[lignes].index, COLONNES_CONTEXTE + cols_touchees, config),
@@ -263,3 +291,89 @@ def controle_coherence(cat: Catalogue, config: dict) -> list[Anomalie]:
                 exemples=exemples(df, sous[masque].sort_values(a).index, [a, b] + COLONNES_CONTEXTE, config, commentaire),
             ))
     return res
+
+
+def controle_valeurs_autorisees(cat: Catalogue, config: dict) -> list[Anomalie]:
+    """Valeurs hors des listes autorisées (lues dans l'en-tête du fichier ou définies dans le profil)."""
+    res = []
+    regles = config.get("enumerations") or {}
+    listes = {c: set(v) for c, v in cat.enumerations.items()} if regles.get("controle", True) else {}
+    for col, valeurs in (config.get("valeurs_autorisees") or {}).items():
+        listes[col] = {str(v) for v in valeurs}
+    neutres = {str(v) for v in regles.get("valeurs_neutres") or []}
+
+    for col, autorisees in listes.items():
+        if not cat.a(col):
+            continue
+        val = nettoyer(cat.df[col])
+        hors = (val != "") & ~val.isin(autorisees | neutres)
+        if hors.any():
+            n = int(hors.sum())
+            valeurs = ", ".join(f"« {v} »" for v in val[hors].value_counts().index[:5])
+            apercu = ", ".join(sorted(autorisees)[:12]) + (" ..." if len(autorisees) > 12 else "")
+            res.append(Anomalie(
+                f"VALEUR_HORS_LISTE_{normaliser_code(col)}", "majeur", "Validité",
+                f"{n} valeur(s) non autorisée(s) dans « {col} » ({valeurs})", n,
+                conseil=f"Valeurs attendues : {apercu}",
+                exemples=exemples(cat.df, hors[hors].index, COLONNES_CONTEXTE + [col], config),
+            ))
+
+    for col in cat.formats_code_libelle:
+        if not cat.a(col):
+            continue
+        val = nettoyer(cat.df[col])
+        mauvais = (val != "") & ~val.str.match(r"^\S+ - \S")
+        if mauvais.any():
+            n = int(mauvais.sum())
+            res.append(Anomalie(
+                f"FORMAT_CODE_LIBELLE_{normaliser_code(col)}", "majeur", "Validité",
+                f"{n} valeur(s) de « {col} » ne respectant pas le format « CODE - Libellé »", n,
+                exemples=exemples(cat.df, mauvais[mauvais].index, COLONNES_CONTEXTE + [col], config),
+            ))
+    return res
+
+
+OPERATEURS = {"<": "lt", "<=": "le", ">": "gt", ">=": "ge", "=": "eq", "!=": "ne"}
+
+
+def controle_comparaisons(cat: Catalogue, config: dict) -> list[Anomalie]:
+    """Règles « colonne A <opérateur> colonne B » déclarées dans le profil (nombres ou dates)."""
+    res = []
+    for regle in config.get("comparaisons") or []:
+        g, d, op = regle["gauche"], regle["droite"], regle["operateur"]
+        if not (cat.a(g) and cat.a(d)):
+            continue
+        a, b = en_nombre(cat.df[g]), en_nombre(cat.df[d])
+        if a.notna().sum() == 0 or b.notna().sum() == 0:
+            a, b = en_date(cat.df[g]), en_date(cat.df[d])
+        comparables = a.notna() & b.notna()
+        ko = comparables & ~getattr(a, OPERATEURS[op])(b)
+        if ko.any():
+            n = int(ko.sum())
+            res.append(Anomalie(
+                f"REGLE_{normaliser_code(g)}_{normaliser_code(d)}", regle.get("severite", "majeur"), "Cohérence",
+                f"{n} ligne(s) : {regle.get('message', f'{g} {op} {d} non respecté')}", n,
+                conseil=f"Règle attendue : {g} {op} {d}",
+                exemples=exemples(cat.df, ko[ko].index, COLONNES_CONTEXTE + [g, d], config),
+            ))
+    return res
+
+
+def controle_suppressions_declarees(cat: Catalogue, config: dict) -> list[Anomalie]:
+    regle = config.get("action")
+    if not regle or not cat.a(regle["colonne"]):
+        return []
+    supprimes = nettoyer(cat.df[regle["colonne"]]) == str(regle["suppression"])
+    if not supprimes.any():
+        return []
+    n = int(supprimes.sum())
+    return [Anomalie(
+        "SUPPRESSIONS_DECLAREES", "info", "Évolution", f"{n} article(s) déclaré(s) supprimé(s) par le fournisseur", n,
+        lignes_touchees=0,
+        conseil="Vérifier le stock et les commandes en cours sur ces articles.",
+        exemples=exemples(cat.df, supprimes[supprimes].index, COLONNES_CONTEXTE, config),
+    )]
+
+
+def normaliser_code(col: str) -> str:
+    return re.sub(r"[^A-Z0-9]+", "_", sans_accents(col).upper()).strip("_")
