@@ -1,0 +1,106 @@
+# =====================================================================
+#  Règles de contrôle des catalogues fournisseurs
+#  Ce fichier est modifiable par un utilisateur métier (Bloc-notes).
+#  Après modification, relancer l'analyse : aucune programmation requise.
+# =====================================================================
+
+# ---------------------------------------------------------------------
+# Colonnes attendues
+#   - nom canonique (à gauche) : nom utilisé dans les contrôles
+#   - obligatoire : critique | majeur | non
+#       critique -> une valeur vide bloque l'intégration
+#       majeur   -> une valeur vide doit être corrigée mais n'est pas bloquante
+#   - synonymes  : en-têtes acceptés dans les fichiers fournisseurs
+#     (la casse, les accents et les espaces sont ignorés)
+# ---------------------------------------------------------------------
+colonnes:
+  reference:
+    obligatoire: critique
+    synonymes: [ref, reference_article, code_article, sku, ref_fournisseur, article]
+  ean:
+    obligatoire: critique
+    synonymes: [gtin, ean13, code_barre, code_ean, codebarre]
+  marque:
+    obligatoire: majeur
+    synonymes: [brand, nom_marque]
+  libelle:
+    obligatoire: majeur
+    synonymes: [designation, description, nom_produit, libelle_article]
+  couleur:
+    obligatoire: non
+    synonymes: [code_couleur, color, coloris, code_coloris]
+  libelle_couleur:
+    obligatoire: non
+    synonymes: [nom_couleur, couleur_libelle, lib_couleur, color_name]
+  taille:
+    obligatoire: non
+    synonymes: [size, code_taille, pointure]
+  prix_achat:
+    obligatoire: critique
+    synonymes: [pa, prix_achat_ht, cout, cost, prix_net]
+  prix_vente:
+    obligatoire: critique
+    synonymes: [pv, pvc, prix_vente_conseille, prix, price, prix_public, pvp]
+  categorie:
+    obligatoire: non
+    synonymes: [famille, category, rayon, univers]
+
+# Colonnes présentes dans le fichier mais non déclarées ci-dessus :
+# signalées comme "colonnes inattendues" (sauf celles listées ici).
+colonnes_ignorees: []
+
+# ---------------------------------------------------------------------
+# Identification d'un article (une ligne du catalogue)
+# Exemple mode/optique : une référence se décline en couleurs et tailles.
+# Les colonnes absentes du fichier sont automatiquement ignorées.
+# ---------------------------------------------------------------------
+cle_unique: [reference, couleur, taille]
+
+# Colonnes à analyser en tant que prix
+colonnes_prix: [prix_achat, prix_vente]
+
+# Dépendances fonctionnelles : une valeur de la 1re colonne doit toujours
+# correspondre à une seule valeur de la 2e colonne.
+dependances:
+  - [reference, marque]      # une référence n'appartient qu'à une marque
+  - [couleur, libelle_couleur]  # un code couleur = un seul libellé
+  - [reference, libelle]     # une référence = un seul libellé
+
+# Colonnes dont on vérifie l'homogénéité du format (ex. AB-1234)
+controle_format: [reference, couleur]
+
+# ---------------------------------------------------------------------
+# Seuils
+# ---------------------------------------------------------------------
+seuils:
+  similarite_marques: 88          # 0-100 : au-delà, deux marques sont jugées "probablement identiques"
+  zscore_aberrant: 4.5            # sensibilité de détection des prix atypiques (plus haut = moins d'alertes)
+  facteur_erreur_unite: 30        # prix 30x au-dessus/en-dessous de la médiane = erreur d'unité probable
+  format_part_dominante: 0.80     # un format est "dominant" s'il couvre au moins 80 % des valeurs
+  variation_prix_pct: 30          # variation de prix (vs version précédente) signalée au-delà de 30 %
+  suppressions_majeur_pct: 1      # suppressions > 1 % du catalogue précédent -> majeur
+  ajouts_majeur_pct: 30           # ajouts > 30 % du catalogue -> majeur
+  exemples_max: 200               # nombre de lignes d'exemple conservées par anomalie
+
+# ---------------------------------------------------------------------
+# Calcul du score qualité (sur 100)
+#   pénalité d'une anomalie = base + proportion_de_lignes_touchées * 100 * facteur
+#   (plafonnée par "plafond")
+# ---------------------------------------------------------------------
+score:
+  critique: {base: 4,   facteur: 1.0, plafond: 25}
+  majeur:   {base: 1.5, facteur: 0.5, plafond: 10}
+  mineur:   {base: 0.5, facteur: 0.1, plafond: 3}
+  info:     {base: 0,   facteur: 0,   plafond: 0}
+
+# ---------------------------------------------------------------------
+# IA locale (Ollama) - désactivable
+# L'URL doit rester locale : l'application refuse toute adresse externe.
+# ---------------------------------------------------------------------
+ia:
+  active: true
+  url: http://localhost:11434
+  modele: mistral          # ex. mistral, llama3.1:8b, qwen2.5:7b
+  temperature: 0.2
+  timeout_s: 300
+  lignes_echantillon: 40   # lignes envoyées au modèle pour la recherche d'incohérences sémantiques
