@@ -101,11 +101,12 @@ def controle_associations(classeur: Classeur, config: dict) -> list[Anomalie]:
         cibles = [classeur.tableaux[o] for o in lien["onglets"] if o in classeur.tableaux]
         if not cibles:
             continue
+        cible = lien.get("cible", "reference")
         noms = {}
         supprimes = set()
         for cat in cibles:
-            if cat.a("reference"):
-                refs = nettoyer(cat.df["reference"])
+            if cat.a(cible):
+                refs = nettoyer(cat.df[cible])
                 noms.update(zip(refs, nettoyer(cat.df["libelle"]) if cat.a("libelle") else refs))
                 if action and cat.a(action["colonne"]):
                     supprimes |= set(refs[nettoyer(cat.df[action["colonne"]]) == str(action["suppression"])])
@@ -144,9 +145,10 @@ def controle_associations(classeur: Classeur, config: dict) -> list[Anomalie]:
     lien_principal = next((l for l in regle["liens"] if l["colonne"] in assoc.columns), None)
     for nom in regle.get("articles_sans_association") or []:
         cat = classeur.tableaux.get(nom)
-        if cat is None or not cat.a("reference") or lien_principal is None:
+        cible = (lien_principal or {}).get("cible", "reference")
+        if cat is None or lien_principal is None or not cat.a(cible):
             continue
-        refs = nettoyer(cat.df["reference"])
+        refs = nettoyer(cat.df[cible])
         sans = ~refs.isin(set(nettoyer(assoc[lien_principal["colonne"]])))
         if sans.any():
             res.append(Anomalie(
@@ -159,4 +161,29 @@ def controle_associations(classeur: Classeur, config: dict) -> list[Anomalie]:
     return res
 
 
-TOUS = [codes_uniques_entre_onglets, controle_couleurs, controle_associations]
+def controle_marques(classeur: Classeur, config: dict) -> list[Anomalie]:
+    """Codes marque des articles présents dans le référentiel des marques du fichier (ex. ECHO, enregistrements 03)."""
+    regle = (config.get("referentiels") or {}).get("marques")
+    ref = classeur.referentiels.get("marques")
+    if not regle or ref is None or regle["code"] not in ref.columns:
+        return []
+    connues = set(nettoyer(ref[regle["code"]]))
+    res = []
+    for nom, cat in classeur.tableaux.items():
+        if not cat.a("marque"):
+            continue
+        code = nettoyer(cat.df["marque"])
+        inconnue = (code != "") & ~code.isin(connues)
+        if inconnue.any():
+            valeurs = ", ".join(sorted(code[inconnue].unique())[:5])
+            res.append(Anomalie(
+                "MARQUE_INCONNUE", "majeur", "Référentiel",
+                f"[{nom}] {int(inconnue.sum())} article(s) avec un code marque non déclaré ({valeurs})",
+                int(inconnue.sum()), onglet=nom,
+                conseil="Le code marque doit figurer dans la liste des marques du fichier.",
+                exemples=exemples(cat.df, inconnue[inconnue].index, COLONNES_CONTEXTE, config),
+            ))
+    return res
+
+
+TOUS = [codes_uniques_entre_onglets, controle_couleurs, controle_marques, controle_associations]

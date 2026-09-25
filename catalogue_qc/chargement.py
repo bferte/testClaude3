@@ -17,7 +17,11 @@ from pathlib import Path
 
 import pandas as pd
 
-from .modele import Catalogue, Classeur, charger_profils
+import yaml
+
+from .modele import DOSSIER_PROFILS, Catalogue, Classeur, charger_profils
+
+DOSSIER_FORMATS = DOSSIER_PROFILS.parent / "formats"
 
 ENCODAGES = ["utf-8-sig", "cp1252", "latin-1"]
 SEPARATEURS = [";", ",", "\t", "|"]
@@ -133,6 +137,9 @@ def lire_tables(contenu: bytes, nom_fichier: str) -> list[TableBrute]:
         return tables
 
     texte, encodage = _decoder(contenu)
+    spec = detecter_format_enregistrements(texte)
+    if spec:
+        return lire_enregistrements(texte, spec, encodage)
     separateur = _detecter_separateur(texte)
     mal_formees: list[str] = []
 
@@ -145,6 +152,85 @@ def lire_tables(contenu: bytes, nom_fichier: str) -> list[TableBrute]:
     table = _structurer(brut, None)
     table.encodage, table.separateur, table.lignes_mal_formees = encodage, separateur, mal_formees
     return [table]
+
+
+# ---------------------------------------------------------------------------
+# Formats à enregistrements typés (ex. ECHO : « 20;... » = modèle, « 81;... » = déclinaison)
+# ---------------------------------------------------------------------------
+def charger_formats(dossier: Path = DOSSIER_FORMATS) -> list[dict]:
+    formats = []
+    for chemin in sorted(dossier.glob("*.yaml")):
+        with open(chemin, encoding="utf-8") as f:
+            formats.append(yaml.safe_load(f))
+    return formats
+
+
+def detecter_format_enregistrements(texte: str) -> dict | None:
+    lignes = texte.splitlines()
+    if not lignes:
+        return None
+    types = {l.split(";", 1)[0].strip() for l in lignes[:20000]}
+    for spec in charger_formats():
+        det = spec.get("detection", {})
+        if lignes[0].split(";", 1)[0].strip() == str(det.get("premier_enregistrement")) and \
+                all(str(t) in types for t in det.get("enregistrements_attendus", [])):
+            return spec
+    return None
+
+
+def lire_enregistrements(texte: str, spec: dict, encodage: str) -> list[TableBrute]:
+    """Reconstitue des tableaux (un par onglet) à partir des enregistrements typés."""
+    regles = {str(k): v for k, v in spec["enregistrements"].items()}
+    lignes: dict[str, list[tuple[int, list[str]]]] = {}
+    anomalies: list[str] = []
+    for num, champs in enumerate(csv.reader(io.StringIO(texte), delimiter=";"), start=1):
+        if not champs or not "".join(champs).strip():
+            continue
+        code = champs[0].strip()
+        if code not in regles:
+            anomalies.append(f"ligne {num} : type d'enregistrement inconnu « {code} »")
+            continue
+        attendu = max(int(i) for i in regles[code]["champs"]) + 1
+        if len(champs) < attendu:
+            anomalies.append(f"ligne {num} : enregistrement {code} incomplet ({len(champs)} champs au lieu de {attendu})")
+            continue
+        lignes.setdefault(code, []).append((num, champs))
+
+    def tableau(code: str) -> pd.DataFrame:
+        champs = {int(i): nom for i, nom in regles[code]["champs"].items()}
+        donnees = [[c[i].strip() if i < len(c) else "" for i in champs] for _, c in lignes.get(code, [])]
+        return pd.DataFrame(donnees, columns=list(champs.values()),
+                            index=pd.Index([n for n, _ in lignes.get(code, [])], name="ligne"), dtype=str)
+
+    tables: dict[str, pd.DataFrame] = {}
+    for code, regle in regles.items():
+        role = regle.get("role")
+        if role in ("entete", "declinaison") or (code not in lignes and role != "modele"):
+            continue
+        df = tableau(code)
+        if role == "modele":
+            enfants = [c for c, r in regles.items() if r.get("role") == "declinaison" and str(r.get("parent")) == code]
+            for enfant in enfants:
+                cle = regle["cle"]
+                declinaisons = tableau(enfant)
+                modeles = df.drop_duplicates(cle).set_index(cle)
+                sans_modele = ~declinaisons[cle].isin(modeles.index)
+                for num in declinaisons.index[sans_modele]:
+                    anomalies.append(f"ligne {num} : déclinaison {enfant} sans modèle {code} « {declinaisons.at[num, cle]} »")
+                communes = [c for c in modeles.columns if c not in declinaisons.columns]
+                df = declinaisons[~sans_modele].join(modeles[communes], on=cle)
+                for m in modeles.index[~modeles.index.isin(declinaisons[cle])]:
+                    anomalies.append(f"modèle {code} « {m} » sans aucune déclinaison {enfant} (ni EAN ni code commande)")
+        onglet = regle.get("onglet", code)
+        tables[onglet] = pd.concat([tables[onglet], df]) if onglet in tables else df
+
+    resultat = [TableBrute(onglet, df.fillna(""), encodage=encodage, separateur=";") for onglet, df in tables.items()]
+    onglets_articles = {r.get("onglet") for r in regles.values() if r.get("role") in ("modele", "article")}
+    articles = [t for t in resultat if t.onglet in onglets_articles]
+    if articles and anomalies:
+        principal = max(articles, key=lambda t: len(t.df))
+        principal.lignes_mal_formees = sorted(anomalies, key=lambda a: (not a.startswith("ligne"), a))
+    return resultat
 
 
 # ---------------------------------------------------------------------------
@@ -203,9 +289,23 @@ def _catalogue(table: TableBrute, config: dict, nom_fichier: str) -> Catalogue:
         colonnes_inattendues=inattendues,
         lignes_mal_formees=table.lignes_mal_formees,
         onglet=table.onglet,
-        enumerations={renommage.get(c, c): v for c, v in table.enumerations.items()},
+        enumerations=_listes_valeurs(table, config, renommage),
         formats_code_libelle=[renommage.get(c, c) for c in table.formats_code_libelle],
     )
+
+
+def _listes_valeurs(table: TableBrute, config: dict, renommage: dict[str, str]) -> dict[str, dict[str, str]]:
+    """Listes lues dans l'en-tête du fichier, complétées par celles du profil (fichiers sans en-tête descriptif)."""
+    listes: dict[str, dict[str, str]] = {}
+    onglet = normaliser_nom(table.onglet or "")
+    du_profil = next((v for o, v in (config.get("listes_valeurs") or {}).items() if normaliser_nom(o) == onglet), {})
+    colonnes = {normaliser_nom(c): c for c in table.df.columns}
+    for col, codes in du_profil.items():
+        origine = colonnes.get(normaliser_nom(col))
+        if origine:
+            listes[renommage.get(origine, origine)] = {str(c): str(c) for c in codes}
+    listes.update({renommage.get(c, c): v for c, v in table.enumerations.items()})
+    return listes
 
 
 def appliquer_profil(tables: list[TableBrute], config: dict, nom_fichier: str) -> Classeur:

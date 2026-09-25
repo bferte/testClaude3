@@ -6,10 +6,12 @@
 #  colonnes codifiées, la liste des valeurs autorisées).
 #  Calibré sur un catalogue réel réputé correct (juin 2026).
 # =====================================================================
-nom: Audition (Excel multi-onglets)
+nom: Audition (Excel ou ECHO)
 
 # Onglets contenant des articles (sert aussi à reconnaître le format)
 onglets_articles: [Audioprothèses, Embouts, Accessoires audio, Piles]
+# Formats de fichiers acceptés : export Excel multi-onglets, ou fichier ECHO
+# (CSV à enregistrements typés, décrit dans config/formats/echo_audition.yaml)
 onglets_ignores: []
 
 # ---------------------------------------------------------------------
@@ -72,6 +74,9 @@ colonnes:
   action:
     obligatoire: majeur
     synonymes: []
+  code_modele:
+    obligatoire: non
+    synonymes: []
   date_debut_validite:
     obligatoire: non
     synonymes: [date_de_debut_de_validite]
@@ -88,7 +93,8 @@ colonnes:
 # Colonnes du modèle fournisseur : présentes normalement, non signalées.
 # Toute AUTRE colonne sera signalée comme « inattendue » (changement de modèle).
 colonnes_connues: [
-  Nom du fabricant, Nom du distributeur, Code enseigne, Code produit public, Code modèle, Code alternatif,
+  Nom du fabricant, Nom du distributeur, Code enseigne, Code produit public, Code alternatif,
+  Code produit modèle, Champ 20-15, Champ 20-16,
   Code interne, Numéro de série, Collection, Type d'amplification, Nombre de canaux, Alimentation, Sortie,
   Gain total, Consommation en veille, Consommation fonctionnelle, Nb. de configurations, Perte auditive,
   Côté écouteur, Puissance écouteur, Micrologiciel, Bluetooth, Anti-larsen, Réducteur d'acouphène, Bobine T,
@@ -111,6 +117,64 @@ colonnes_connues: [
 enumerations:
   controle: true
   valeurs_neutres: ["0"]          # 0 = « non renseigné » dans ce modèle (ex. Unité de quantité)
+
+# Listes de valeurs du modèle fournisseur, apprises dans l'en-tête de l'export Excel.
+# Elles servent pour les formats sans en-tête descriptif (ex. fichier ECHO) ;
+# quand le fichier contient ses propres listes, celles du fichier priment.
+listes_valeurs:
+  Audioprothèses:
+    "Type": ["BAHA", "BOX", "BTE", "BTEM", "BTEO", "CIC", "GLASSES", "IIC", "ITC", "ITE", "MIC", "MICBTE", "RIC", "RITE"]
+    "Numéro de série": ["0", "1"]
+    "Type d'amplification": ["1", "2", "3"]
+    "Alimentation": ["1", "2", "3", "4"]
+    "Perte auditive": ["1", "2", "3"]
+    "Côté écouteur": ["0", "1", "2", "3", "4"]
+    "Puissance écouteur": ["Hp", "Lp", "Mp", "Np", "Nps", "Up"]
+    "Micrologiciel": ["0", "1"]
+    "Bluetooth": ["0", "1"]
+    "Anti-larsen": ["0", "1"]
+    "Réducteur d'acouphène": ["0", "1"]
+    "Bobine T": ["0", "1"]
+    "Synchronisation binaurale": ["0", "1"]
+    "Directivité microphonique": ["0", "1"]
+    "Apprentissage de sonie": ["0", "1"]
+    "Réducteur de réverbération": ["0", "1"]
+    "Réducteur de bruit du vent": ["0", "1"]
+    "Gestion de l'environnement": ["0", "1"]
+    "Bande passante élargie >= 6000Hz": ["0", "1"]
+    "Action": ["1", "2"]
+    "Classe de remboursement": ["1", "2", "NO"]
+    "Télétransmission": ["0", "1", "2"]
+    "Disponible en dépôt": ["0", "1"]
+  Embouts:
+    "Type de bouchons d'oreilles": ["1", "2"]
+    "Type d'utilisation": ["1", "2", "3"]
+    "Type de moule": ["1", "2", "3", "4"]
+    "Numéro de série": ["0", "1"]
+    "Matériau": ["1", "2", "3", "4", "5", "6", "7", "8"]
+    "Forme": ["1", "2", "3", "4", "5", "6", "7", "8", "ZZZ"]
+    "Côté": ["0", "1", "2", "3", "4"]
+    "Action": ["1", "2"]
+    "Télétransmission": ["0", "1", "2"]
+    "Disponible en dépôt": ["0", "1"]
+  Accessoires audio:
+    "Type": ["1", "2", "3", "4", "5", "6", "7", "8", "9"]
+    "Numéro de série": ["0", "1"]
+    "Côté": ["0", "1", "2", "3", "4"]
+    "Action": ["1", "2"]
+    "Unité de quantité": ["1", "2", "3", "4"]
+    "Télétransmission": ["0", "1", "2"]
+    "Disponible en dépôt": ["0", "1"]
+    "Vendu seul": ["1", "2", "3"]
+  Piles:
+    "Type de pile personnalisé": ["1", "2"]
+    "Numéro de série": ["0", "1"]
+    "Format de la pile": ["10", "13", "312", "675"]
+    "Type de la pile": ["1", "2", "3", "4", "5"]
+    "Rechargeable": ["0", "1"]
+    "Action": ["1", "2"]
+    "Télétransmission": ["0", "1", "2"]
+    "Disponible en dépôt": ["0", "1"]
 
 # Listes complémentaires définies par le métier
 valeurs_autorisees:
@@ -164,9 +228,16 @@ referentiels:
     onglet: Couleurs
     code: code_de_la_couleur
     libelle: nom_de_la_couleur
+  marques:
+    onglet: Marques            # présent dans les fichiers ECHO (enregistrements 03)
+    code: code_marque
+    libelle: nom_de_la_marque
   associations:
     onglet: Associations
     liens:
+      # Fichier ECHO : associations définies au niveau du modèle
+      - {colonne: audioprothese_code_modele, cible: code_modele, libelle: audioprothese_nom_du_produit,
+         onglets: [Audioprothèses]}
       - {colonne: audioprothese_code_produit, libelle: audioprothese_nom_du_produit,
          onglets: [Audioprothèses]}
       - {colonne: accessoire_audio_code_produit, libelle: accessoire_audio_nom_du_produit,

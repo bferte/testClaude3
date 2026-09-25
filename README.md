@@ -1,6 +1,6 @@
 # Contrôle qualité des catalogues fournisseurs (POC)
 
-Outil local pour analyser un catalogue fournisseur (CSV ou Excel multi-onglets) **avant** son intégration dans le système d'information :
+Outil local pour analyser un catalogue fournisseur (CSV, Excel multi-onglets ou fichier ECHO) **avant** son intégration dans le système d'information :
 champs manquants, doublons, EAN invalides, prix incohérents, marques mal orthographiées, références recodifiées,
 différences avec la version précédente… Il produit un **score qualité sur 100**, un verdict et un rapport
 Excel / HTML. Une IA locale (facultative) rédige la synthèse et propose des corrections.
@@ -29,7 +29,9 @@ puis l'application s'ouvre dans le navigateur :
 Pour essayer : utiliser les fichiers du dossier `exemples/` :
 - `catalogue_actuel.csv` / `catalogue_precedent.csv` : catalogue optique à plat ;
 - `audition_actuel.xlsx` / `audition_precedent.xlsx` : classeur audition multi-onglets
-  (Audioprothèses, Accessoires, Couleurs, Associations) au format fournisseur.
+  (Audioprothèses, Accessoires, Couleurs, Associations) au format fournisseur ;
+- `audition_echo_actuel.csv` / `audition_echo_precedent.csv` : le même catalogue au format ECHO
+  (enregistrements typés 20 / 81 / 23 / 80 / 8…).
 
 ### Sans interface
 Glisser-déposer un fichier CSV ou Excel sur **`controler.bat`** : les rapports `<fichier>_controle.html` et
@@ -40,9 +42,10 @@ Les règles sont dans des **profils** (`config/profils/*.yaml`, modifiables avec
 de catalogues. Le profil est choisi automatiquement d'après les colonnes et onglets du fichier, ou forcé dans
 l'interface (`--profil` en ligne de commande) :
 - `optique_mode.yaml` : catalogue CSV à plat (référence, EAN, marque, couleur, taille, prix) ;
-- `audition.yaml` : classeur Excel audition (en-tête sur 2 lignes, listes de valeurs lues dans l'en-tête,
-  référentiel Couleurs, onglet Associations, suppressions déclarées par `Action = 2`). Calibré sur un
-  vrai catalogue réputé correct : 97/100, sans anomalie critique (voir [docs/PROPOSITION.md](docs/PROPOSITION.md#7-calibrage-sur-un-vrai-catalogue-audition-juin-2026)).
+- `audition.yaml` : catalogue audition, en export Excel (en-tête sur 2 lignes, listes de valeurs lues dans
+  l'en-tête) ou en fichier ECHO (positions décrites dans `config/formats/echo_audition.yaml`) ; référentiel
+  Couleurs, Associations, suppressions déclarées par `Action = 2`. Calibré sur deux vrais catalogues réputés
+  corrects (Excel et ECHO) : 97/100, sans anomalie critique (voir [docs/PROPOSITION.md](docs/PROPOSITION.md)).
 
 Un profil décrit les colonnes attendues et leurs noms possibles chez les fournisseurs, les champs obligatoires
 (éventuellement par onglet), les identifiants uniques, les listes de valeurs, les règles entre colonnes

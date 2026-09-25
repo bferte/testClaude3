@@ -12,6 +12,7 @@ import copy
 import random
 from pathlib import Path
 
+import yaml
 from openpyxl import Workbook
 
 DOSSIER = Path(__file__).resolve().parent
@@ -105,9 +106,78 @@ def ecrire(nom, appareils, accessoires, associations, couleurs, colonnes_en_plus
     print(f"{nom} : {len(appareils)} appareils, {len(accessoires)} accessoires, {len(associations)} associations")
 
 
+def ecrire_echo(nom, appareils, accessoires, associations, couleurs, retouches=None):
+    """Même catalogue au format ECHO (enregistrements typés), positions lues dans config/formats."""
+    spec = yaml.safe_load(open(DOSSIER.parent / "config" / "formats" / "echo_audition.yaml", encoding="utf-8"))
+    positions = {str(code): {v.replace(" (?)", ""): int(i) for i, v in r["champs"].items()}
+                 for code, r in spec["enregistrements"].items()}
+    entetes = {"Audioprothèses": APPAREILS, "Accessoires audio": ACCESSOIRES}
+
+    def valeurs(ligne, onglet):
+        v = {h.split("\n")[0]: ligne.get(k, "") for _, h, k in entetes[onglet]}
+        v["Marque"] = v["Marque"].split(" - ")[0]
+        for d in ("Date de début de validité", "Date de fin de validité"):
+            if v.get(d):
+                a, m, j = v[d][:10].split("-")
+                v[d] = f"{j}/{m}/{a} 00:00:00"
+        return v
+
+    def enregistrement(code, v):
+        champs = [""] * (max(positions[code].values()) + 1)
+        champs[0] = code
+        for nom_champ, i in positions[code].items():
+            champs[i] = str(v.get(nom_champ, "") or "")
+        return champs
+
+    lignes = [["00", "5", "2026", "20260115", "Catalogue fictif", "EUR", "", "0"],
+              ["01", "SBX", "SOUNDBOX", "1 rue de l'Exemple", "75000", "Paris", "FR", "M"],
+              ["02", "DST", "DISTRIB", "", "", "", "", "M"]]
+    lignes += [["03", m.split(" - ")[0], m.split(" - ")[1]] for m in MARQUES]
+    modeles = {}
+    for app in appareils:
+        modeles.setdefault(app["nom"].replace(" / ", "_"), []).append(app)
+    for code_modele, declinaisons in modeles.items():
+        v = valeurs(declinaisons[0], "Audioprothèses")
+        lignes.append(enregistrement("20", dict(v, **{"Code modèle": code_modele, "Code produit modèle": code_modele})))
+        for app in declinaisons:
+            lignes.append(enregistrement("81", dict(valeurs(app, "Audioprothèses"), **{"Code modèle": code_modele})))
+    lignes += [enregistrement("23", valeurs(acc, "Accessoires audio")) for acc in accessoires]
+    lignes += [["80", "SBX", code, lib, "", "", ""] for code, lib in couleurs]
+    vues = set()
+    for a_ref, a_nom, x_ref, x_nom in associations:
+        modele = next((m for m, d in modeles.items() if any(x["ref"] == a_ref for x in d)), a_ref)
+        if (modele, x_ref) not in vues:
+            vues.add((modele, x_ref))
+            lignes.append(["8", "SBX", "DST", modele, a_nom, "SBX", "DST", x_ref, x_nom, "", "", ""])
+    if retouches:
+        lignes = retouches(lignes)
+    with open(DOSSIER / nom, "w", encoding="utf-8-sig", newline="") as f:
+        f.write("\r\n".join(";".join(l) for l in lignes) + "\r\n")
+    print(f"{nom} : {len(lignes)} enregistrements")
+
+
+def anomalies_echo(lignes):
+    """Erreurs propres au format ECHO, injectées dans les enregistrements."""
+    modeles = [l for l in lignes if l[0] == "20"]
+    declinaisons = [l for l in lignes if l[0] == "81"]
+    modeles[0][19] = "Oui"                          # Bluetooth hors liste (attendu 0/1)
+    modeles[1][11] = "XYZ"                          # code marque non déclaré en 03
+    modeles[2][44] = ""                             # classe de remboursement manquante
+    modeles[3][45] = str(int(modeles[3][45]) * 100) # prix en centimes
+    declinaisons[1][6] = declinaisons[0][6]         # EAN en doublon
+    declinaisons[2][4] = "ROU"                      # couleur absente du référentiel 80
+    lignes.append(["81", "SBX", "DST", "FANTOME_BTE", "BEI", "Beige", "3761234567897", "399999"] + [""] * 6)
+    lignes.append(["23", "SBX", "SOUNDBOX", "DST"])  # enregistrement tronqué
+    lignes.append(["99", "enregistrement inconnu"])
+    lignes.append(["8", "SBX", "DST", modeles[0][8], modeles[0][5], "SBX", "DST", "799999", "INCONNU", "", "", ""])
+    return lignes
+
+
 def main():
     appareils, accessoires, associations = generer()
     ecrire("audition_precedent.xlsx", appareils, accessoires, associations, COULEURS)
+    ecrire_echo("audition_echo_precedent.csv", appareils, accessoires, associations, COULEURS)
+    ecrire_echo("audition_echo_actuel.csv", appareils, accessoires, associations, COULEURS, anomalies_echo)
 
     app, acc, assoc = copy.deepcopy(appareils), copy.deepcopy(accessoires), list(associations)
     retire = app.pop(5)                                          # disparu sans Action = 2

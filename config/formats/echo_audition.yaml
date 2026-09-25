@@ -1,0 +1,262 @@
+# =====================================================================
+#  Format ECHO – catalogue audition (CSV « ; » à enregistrements typés)
+#  Chaque ligne commence par un code d'enregistrement (00, 01, 03, 20, 81...).
+#  Les champs sont nommés comme les colonnes de l'export Excel du même
+#  fournisseur : le profil « Audition » s'applique donc tel quel.
+#
+#  Correspondance établie en croisant un fichier ECHO et l'export Excel
+#  du même catalogue (juin 2026). Les positions marquées « (?) » étaient
+#  vides dans ce fichier : leur signification n'a pas pu être vérifiée.
+# =====================================================================
+nom: ECHO audition
+detection:
+  premier_enregistrement: "00"
+  enregistrements_attendus: ["20", "81"]
+
+enregistrements:
+  "00":
+    role: entete
+    champs: {1: Version, 2: Année, 3: Date du fichier, 4: Nom du catalogue, 5: Devise, 7: Nombre de contrôle}
+  "01":
+    role: entete
+    champs: {1: Code fabricant, 2: Nom du fabricant, 3: Adresse, 4: Code postal, 5: Ville, 6: Pays, 7: Type}
+  "02":
+    role: entete
+    champs: {1: Code du distributeur, 2: Nom du distributeur, 3: Adresse, 4: Code postal, 5: Ville, 6: Pays, 7: Type}
+  "03":
+    role: referentiel
+    onglet: Marques
+    champs: {1: Code marque, 2: Nom de la marque}
+
+  # --- Audioprothèses : un enregistrement 20 par modèle, un 81 par déclinaison couleur ---
+  "20":
+    role: modele
+    onglet: Audioprothèses
+    cle: Code modèle
+    champs:
+      1: Code fabricant
+      2: Nom du fabricant
+      3: Code du distributeur
+      4: Nom du distributeur
+      5: Nom du produit
+      6: Code produit modèle
+      7: Code enseigne (?)
+      8: Code modèle
+      9: Code alternatif (?)
+      10: Type
+      11: Marque
+      12: Collection (?)
+      13: Gamme
+      14: Numéro de série
+      15: Champ 20-15 (?)
+      16: Champ 20-16 (?)
+      17: Type d'amplification
+      18: Micrologiciel
+      19: Bluetooth
+      20: Nombre de canaux
+      21: Alimentation
+      22: Sortie
+      23: Gain total
+      24: Consommation en veille
+      25: Consommation fonctionnelle
+      26: Anti-larsen
+      27: Réducteur d'acouphène
+      28: Bobine T
+      29: Synchronisation binaurale
+      30: Directivité microphonique
+      31: Apprentissage de sonie
+      32: Réducteur de réverbération
+      33: Réducteur de bruit du vent
+      34: Gestion de l'environnement
+      35: Bande passante élargie >= 6000Hz
+      36: Nb. de configurations
+      37: Perte auditive (?)
+      38: Côté écouteur
+      39: Puissance écouteur (?)
+      40: Piles
+      41: Action
+      42: Date de début de validité
+      43: Date de fin de validité (?)
+      44: Classe de remboursement
+      45: Achat
+      46: Vente (?)
+      47: Vate Rate
+      48: Prix additionnel (non configuré)
+      49: Prix additionnel (non configuré) (2)
+      50: Eco Tax
+      51: Description du produit
+      52: Famille (?)
+      53: Durée de garantie fabricant
+      54: Caractéristiques essentielles
+      55: Origine garantie (?)
+      56: Disponible en dépôt
+      57: Durée du dépôt
+      58: Documentation technique
+      59: Date de création
+      60: Date de modification
+  "81":
+    role: declinaison
+    onglet: Audioprothèses
+    parent: "20"
+    cle: Code modèle
+    champs:
+      1: Code fabricant
+      2: Code du distributeur
+      3: Code modèle
+      4: Code de la couleur
+      5: Nom de la couleur
+      6: Code produit fabricant
+      7: Code commande
+      8: Petite image
+      9: Image de face
+      10: Image droite
+      11: Image gauche
+      12: Image de dessus
+      13: Image de dessous
+
+  "21":
+    role: article
+    onglet: Piles
+    champs:
+      1: Code fabricant
+      2: Nom du fabricant
+      3: Code du distributeur
+      4: Nom du distributeur
+      5: Nom du produit
+      6: Code produit fabricant
+      7: Code enseigne (?)
+      8: Code commande
+      9: Code interne (?)
+      10: Type de pile personnalisé
+      11: Numéro de série
+      12: Marque
+      13: Collection (?)
+      14: Code de la couleur (?)
+      15: Nom de la couleur (?)
+      16: Format de la pile
+      17: Type de la pile
+      18: Rechargeable
+      19: Action
+      20: Date de début de validité
+      21: Date de fin de validité
+      22: Achat
+      23: Vente
+      24: Vate Rate
+      25: Prix additionnel (non configuré)
+      26: Prix additionnel (non configuré) (2)
+      27: Eco Tax
+      28: Nb. unité par emballage (?)
+      29: Volume ou quantité par unité (?)
+      30: Nb. emballages par carton
+      31: Caractéristiques essentielles
+      32: Origine (?)
+      33: Disponible en dépôt
+      34: Durée du dépôt
+      35: Date de création
+      36: Date de modification
+      37: Petite image
+      38: Image de face
+      39: Image droite
+      40: Image gauche
+      41: Image de dessus
+      42: Image de dessous
+  "22":
+    role: article
+    onglet: Embouts
+    champs:
+      1: Code fabricant
+      2: Nom du fabricant
+      3: Code du distributeur
+      4: Nom du distributeur
+      5: Nom du produit
+      6: Code produit fabricant
+      7: Code enseigne (?)
+      8: Code commande
+      9: Code interne (?)
+      10: Type de bouchons d'oreilles
+      11: Numéro de série
+      12: Marque
+      13: Collection (?)
+      14: Code de la couleur (?)
+      15: Nom de la couleur (?)
+      16: Matériau
+      17: Forme
+      18: Côté
+      19: Action
+      20: Date de début de validité
+      21: Date de fin de validité
+      22: Achat
+      23: Vente
+      24: Vate Rate
+      25: Prix additionnel (non configuré)
+      26: Prix additionnel (non configuré) (2)
+      27: Eco Tax
+      28: Origine (?)
+      29: Description du produit
+      30: Durée de garantie fabricant
+      31: Caractéristiques essentielles
+      32: Famille (?)
+      33: Disponible en dépôt
+      34: Durée du dépôt
+      35: Date de création
+      36: Date de modification
+  "23":
+    role: article
+    onglet: Accessoires audio
+    champs:
+      1: Code fabricant
+      2: Nom du fabricant
+      3: Code du distributeur
+      4: Nom du distributeur
+      5: Nom du produit
+      6: Code produit fabricant
+      7: Code enseigne (?)
+      8: Code commande
+      9: Code interne (?)
+      10: Type
+      11: Gamme (?)
+      12: Numéro de série
+      13: Marque
+      14: Collection (?)
+      15: Code de la couleur (?)
+      16: Nom de la couleur (?)
+      17: Longueur du tube
+      18: Puissance du casque
+      19: Côté
+      20: Action
+      21: Date de début de validité
+      22: Date de fin de validité
+      23: Achat
+      24: Vente
+      25: Vate Rate
+      26: Prix additionnel (non configuré)
+      27: Prix additionnel (non configuré) (2)
+      28: Eco Tax
+      29: Origine (?)
+      30: Description du produit
+      31: Durée de garantie fabricant
+      32: Caractéristiques essentielles
+      33: Famille (?)
+      34: Disponible en dépôt
+      35: Durée du dépôt
+      36: Vendu seul
+      37: Date de création
+      38: Date de modification
+
+  "80":
+    role: referentiel
+    onglet: Couleurs
+    champs: {1: Code fabricant, 2: Code de la couleur, 3: Nom de la couleur, 4: Rouge, 5: Vert, 6: Bleu}
+  "8":
+    role: referentiel
+    onglet: Associations
+    champs:
+      1: Audioprothèse - Code fabricant
+      2: Audioprothèse - Code du distributeur
+      3: Audioprothèse - Code modèle
+      4: Audioprothèse - Nom du produit
+      5: Accessoire audio - Code fabricant
+      6: Accessoire audio - Code du distributeur
+      7: Accessoire audio - Code produit
+      8: Accessoire audio - Nom du produit
+      9: Prix de l'audioprothèse (?)

@@ -227,3 +227,37 @@ def test_catalogue_reel_correct_sans_alerte_bloquante():
     res = analyser(classeur, config)
     assert res.nb("critique") == 0
     assert res.score >= 90
+
+
+# ---------------------------------------------------------------------------
+# Format ECHO : CSV à enregistrements typés (20 = modèle, 81 = déclinaison...)
+# ---------------------------------------------------------------------------
+def test_echo_reconstitution_des_tableaux():
+    classeur, config = lire_classeur(EXEMPLES / "audition_echo_precedent.csv")
+    assert config["nom"].startswith("Audition")
+    app = classeur.tableaux["Audioprothèses"]
+    assert len(app.df) == 54                                   # une ligne par déclinaison (81)
+    assert app.df["libelle"].ne("").all()                      # champs du modèle (20) recopiés
+    assert set(classeur.referentiels) == {"marques", "couleurs", "associations"}
+    assert app.enumerations["Bluetooth"] == {"0": "0", "1": "1"}  # listes apprises, stockées dans le profil
+    assert analyser(classeur, config).score == 100
+
+
+def test_echo_anomalies_injectees():
+    actuel, config = lire_classeur(EXEMPLES / "audition_echo_actuel.csv")
+    precedent, _ = lire_classeur(EXEMPLES / "audition_echo_precedent.csv", config)
+    c = codes(analyser(actuel, config, precedent))
+    for code in ["LIGNE_MAL_FORMEE", "VALEUR_HORS_LISTE_BLUETOOTH", "MARQUE_INCONNUE", "VIDE_CLASSE_REMBOURSEMENT",
+                 "ERREUR_UNITE_PRIX_ACHAT", "CLE_CONFLIT", "COULEUR_INCONNUE",
+                 "ASSOCIATION_ORPHELINE_ACCESSOIRE_AUDIO_CODE_PRODUIT"]:
+        assert code in c, code
+    structure = " ".join(c["LIGNE_MAL_FORMEE"].exemples["contenu"])
+    assert "incomplet" in structure and "« 99 »" in structure and "FANTOME_BTE" in structure
+
+
+@pytest.mark.skipif(not os.environ.get("CATALOGUE_ECHO_REEL"), reason="fichier ECHO réel non fourni")
+def test_echo_reel_correct_sans_alerte_bloquante():
+    classeur, config = lire_classeur(os.environ["CATALOGUE_ECHO_REEL"])
+    res = analyser(classeur, config)
+    assert res.nb("critique") == 0 and res.score >= 90
+    assert "LIGNE_MAL_FORMEE" not in codes(res)

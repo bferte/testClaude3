@@ -70,9 +70,10 @@ def controle_structure(cat: Catalogue, config: dict) -> list[Anomalie]:
     if cat.lignes_mal_formees:
         res.append(Anomalie(
             "LIGNE_MAL_FORMEE", "critique", "Structure",
-            f"{len(cat.lignes_mal_formees)} ligne(s) avec un nombre de colonnes incorrect (ignorées)",
+            f"{len(cat.lignes_mal_formees)} ligne(s) invalide(s) dans la structure du fichier (ignorées)",
             len(cat.lignes_mal_formees),
-            conseil="Souvent causé par un séparateur (;) présent dans un libellé ou un retour à la ligne.",
+            conseil="Nombre de champs incorrect (souvent un « ; » ou un retour à la ligne dans un libellé), "
+                    "type d'enregistrement inconnu ou déclinaison sans modèle.",
             exemples=pd.DataFrame({"contenu": cat.lignes_mal_formees[: config["seuils"]["exemples_max"]]}),
         ))
     return res

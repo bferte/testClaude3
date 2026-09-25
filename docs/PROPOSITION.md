@@ -193,3 +193,33 @@ et non supprimés, unicité des codes entre onglets, suppressions déclarées (`
 
 Test de non-régression : `CATALOGUE_AUDITION_REEL=chemin/fichier.xlsx python -m pytest` vérifie qu'un
 catalogue correct reste sans anomalie critique et au-dessus de 90/100.
+
+## 8. Format ECHO (CSV à enregistrements typés)
+
+Le même catalogue existe au format **ECHO** : un CSV sans en-tête où chaque ligne commence par un code
+d'enregistrement (`00` entête, `01` fabricant, `03` marques, `20` modèle d'audioprothèse, `81` déclinaison
+couleur avec EAN et code commande, `21` piles, `22` embouts, `23` accessoires, `80` couleurs, `8` associations).
+
+- Les positions des champs sont décrites dans `config/formats/echo_audition.yaml`, en reprenant les noms des
+  colonnes de l'export Excel. Le profil *Audition* s'applique donc sans changement ; le format est détecté
+  automatiquement (première ligne `00`, présence d'enregistrements `20` et `81`).
+- Cette correspondance a été **établie en croisant** le fichier ECHO et l'export Excel du même catalogue :
+  les 2 316 articles reconstitués (modèle `20` + déclinaisons `81`) sont identiques à l'export Excel, valeur
+  par valeur. Les positions notées « (?) » étaient vides dans le fichier et restent à confirmer.
+- Le fichier ECHO ne décrit pas ses listes de valeurs : celles de l'export Excel ont été reprises dans le
+  profil (`listes_valeurs`), par onglet.
+- Contrôles propres au format : type d'enregistrement inconnu, enregistrement tronqué, déclinaison `81`
+  sans modèle `20`, modèle sans déclinaison, code marque absent des enregistrements `03`.
+
+**Résultat sur le fichier réel : 97/100 – INTÉGRABLE**, mêmes constats que l'export Excel.
+
+**Écarts constatés entre les deux exports du même catalogue** (utile pour choisir le format à intégrer) :
+
+| Sujet | Export Excel | Fichier ECHO |
+|---|---|---|
+| Associations appareil ↔ accessoire | par déclinaison couleur : 9 339 couples modèle–accessoire | par modèle : 3 773 couples, soit en pratique les accessoires **communs à toutes les couleurs** (155 modèles sur 166). Les accessoires propres à une couleur sont perdus. |
+| Type de bouchons d'oreilles (Embouts) | renseigné (`2`) | vide |
+| Caractéristiques essentielles, date de création | au niveau de la déclinaison | au niveau du modèle |
+| Date de modification | date seule | date et heure |
+
+Test de non-régression : `CATALOGUE_ECHO_REEL=chemin/fichier.csv python -m pytest`.
