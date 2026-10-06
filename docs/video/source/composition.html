@@ -145,11 +145,11 @@ async function setRec(vt){
 function toStage(x,y,cam){return [210+cam.tx+x*cam.s, 220+56+cam.ty+y*cam.s]}
 
 const TYPED=['TEST','Andre','1 11 11 11 111 111'];
-async function render(t){
+async function render(t,T=t){
   // background
-  $('b1').style.transform=`translate(${200+Math.sin(t*.4)*180}px,${-150+Math.cos(t*.3)*120}px)`;
-  $('b2').style.transform=`translate(${1300+Math.cos(t*.35)*160}px,${500+Math.sin(t*.5)*120}px)`;
-  $('grid').style.transform=`translate(${(t*12)%60}px,${(t*8)%60}px)`;
+  $('b1').style.transform=`translate(${200+Math.sin(T*.4)*180}px,${-150+Math.cos(T*.3)*120}px)`;
+  $('b2').style.transform=`translate(${1300+Math.cos(T*.35)*160}px,${500+Math.sin(T*.5)*120}px)`;
+  $('grid').style.transform=`translate(${(T*12)%60}px,${(T*8)%60}px)`;
 
   // S1 0-3.3
   const s1=$('s1'); s1.style.opacity=t<3.4?1:0;
@@ -240,5 +240,11 @@ async function render(t){
   // final fade to navy
   $('stage').style.filter=`brightness(${1-eio(p(t,25.4,26))})`;
 }
+// Pauses (temps de composition, durée) pour laisser la voix off respirer
+const HOLDS=[[9.8,1.2],[12.1,2.6],[23.0,2.5],[25.0,1.6]];
+const DURATION=26+HOLDS.reduce((a,h)=>a+h[1],0);
+function warp(T){let t=T;for(const [at,d] of HOLDS){if(t<=at)break;t=t<at+d?at:t-d}return t}
 window.render=render;
+window.renderAt=T=>render(warp(T),T);
+window.DURATION=DURATION;
 </script></body></html>

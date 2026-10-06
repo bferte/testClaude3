@@ -8,7 +8,7 @@ await pg.goto('file://'+html); await pg.evaluate(()=>document.fonts.ready);
 const times = only ? only.split(',').map(Number) : [...Array(Math.round(+dur*+fps)).keys()].map(i=>i/+fps);
 let i=0;
 for (const t of times){
-  await pg.evaluate(t=>window.render(t), t);
+  await pg.evaluate(t=>window.renderAt(t), t);
   const name = only ? `t${t}` : String(i).padStart(4,'0');
   await pg.screenshot({path:`${outDir}/${name}.jpg`, type:'jpeg', quality:93}); i++;
 }

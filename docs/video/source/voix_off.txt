@@ -1,0 +1,8 @@
+Nouveau dans Atol Pro : Mutuelle Web.
+Fini la ressaisie, champ par champ, et les erreurs qui vont avec.
+En un clic depuis la fiche client, le volet mutuelle s'ouvre, déjà rempli.
+Et le portail de la mutuelle s'affiche juste à côté.
+Chaque information a son bouton copier.
+Un clic pour copier, un clic pour coller : vous êtes connecté.
+Plus rapide, sans erreur, et tout sur le même écran.
+Mutuelle Web, disponible dès maintenant dans Atol Pro.
