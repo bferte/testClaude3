@@ -1,0 +1,11 @@
+.NextButton {
+  & > svg {
+    transition: transform 250ms;
+  }
+
+  &:hover {
+    & > svg {
+      transform: translateX(2px);
+    }
+  }
+}

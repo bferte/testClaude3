@@ -1,0 +1,35 @@
+.Page {
+  min-height: 100vh;
+
+  display: flex;
+  flex-direction: column;
+  background: rgb(var(--background));
+
+  @supports (height: 100svh) {
+    min-height: 100svh;
+  }
+
+  & > header {
+    display: flex;
+    justify-content: flex-end;
+    padding: 20px;
+    position: relative;
+    z-index: 100;
+
+    @media (min-width: 751px) {
+      @media (max-height: 850px) {
+        padding: 10px;
+      }
+    }
+
+    @media (max-width: 750px) {
+      padding: 10px;
+    }
+  }
+}
+
+.accessibilityButtonContainer {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+}

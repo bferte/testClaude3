@@ -1,0 +1,19 @@
+.Page {
+  min-height: 100vh;
+
+  display: flex;
+  flex-direction: column;
+  background: rgb(var(--background));
+}
+
+.buttons {
+  display: flex;
+  flex-direction: column;
+
+  & > button {
+    width: 300px;
+    &:not(:last-child) {
+      margin-bottom: 10px;
+    }
+  }
+}

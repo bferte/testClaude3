@@ -1,0 +1,71 @@
+.CustomTest {
+  position: fixed;
+  background-color: rgb(var(--background));
+  inset: 0;
+  z-index: 10;
+  display: flex;
+
+  .backButton {
+    position: absolute;
+    top: 40px;
+    left: 40px;
+  }
+
+  & > div {
+    margin: auto;
+
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+  }
+
+  h2 {
+    margin: 40px 0 10px 0;
+  }
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 50px;
+
+  --cell-size: 180px;
+
+  &.small {
+    --cell-size: 120px;
+  }
+
+  width: calc((var(--cell-size) * 3) + 100px);
+
+  & > div {
+    display: flex;
+    flex-direction: column;
+    font-weight: 600;
+    text-align: center;
+
+    & > .icon {
+      height: var(--cell-size);
+      width: var(--cell-size);
+      background-color: rgb(var(--background-alt));
+      border-radius: 10px;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      color: rgb(var(--primary));
+      border: 2px solid rgb(var(--primary), 0.2);
+      transition: border-color 250ms;
+
+      &:hover {
+        border-color: rgb(var(--primary));
+      }
+    }
+
+    &.active {
+      & > .icon {
+        border-color: rgb(var(--primary));
+      }
+    }
+  }
+}

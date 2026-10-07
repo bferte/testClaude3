@@ -1,0 +1,45 @@
+.Page {
+  margin: 50px auto;
+  width: 800px;
+  padding: 0 20px;
+  max-width: 100%;
+
+  .backButton {
+    border: 1px solid rgb(var(--text), 0.1);
+    // background-color: white !important;
+    margin-bottom: 20px;
+    transition: border-color 250ms;
+
+    &:hover {
+      border-color: rgb(var(--text), 0.3);
+    }
+
+    & > svg {
+      transition: transform 250ms;
+    }
+
+    @media (pointer: fine) {
+      &:hover > svg {
+        transform: translateX(-2px);
+      }
+    }
+  }
+
+  h1 {
+    margin-bottom: 20px;
+  }
+
+  h2 {
+    margin: 40px 0 0 0;
+  }
+
+  p {
+    margin: 20px 0;
+  }
+
+  ul {
+    li {
+      margin: 10px 0;
+    }
+  }
+}

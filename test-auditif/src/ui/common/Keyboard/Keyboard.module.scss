@@ -1,0 +1,119 @@
+.Keyboard {
+  --button-size: 80px;
+  --gap: 20px;
+
+  user-select: none;
+
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--gap);
+
+  @media (min-width: 501px) {
+    @media (max-height: 850px) {
+      --button-size: 60px;
+      --gap: 15px;
+    }
+  }
+
+  @media (max-width: 500px) {
+    --button-size: 70px;
+    --gap: 10px;
+  }
+
+  @media (max-width: 350px) {
+    --button-size: 60px;
+  }
+
+  @media (max-height: 700px) {
+    --button-size: 60px
+  }
+}
+
+.ValidateButton {
+  grid-column: span 3;
+  width: 100% !important;
+  height: 60px;
+  justify-content: center;
+  opacity: 0.5;
+  pointer-events: none;
+  transition: opacity 250ms;
+  margin-top: 10px;
+
+  &.active {
+    opacity: 1;
+    pointer-events: all;
+  }
+}
+
+@keyframes ClickAnimation {
+  from {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  to {
+    opacity: 0;
+    transform: scale(1.75);
+  }
+}
+
+.KeyboardButton {
+  position: relative;
+  height: var(--button-size);
+  width: var(--button-size);
+  border-radius: calc(var(--button-size) / 2);
+  transition: background-color 250ms, opacity 250ms;
+  background-color: rgb(var(--primary));
+
+  &:active {
+    background-color: rgb(var(--primary-hover));
+  }
+
+  color: white;
+  font-size: 25px;
+  font-weight: 600;
+
+  opacity: 0.5;
+  pointer-events: none;
+
+  &.active {
+    opacity: 1;
+    pointer-events: all;
+  }
+
+  &::after {
+    content: "";
+    position: absolute;
+    display: block;
+    background-color: rgb(var(--primary), 0.5);
+    height: var(--button-size);
+    width: var(--button-size);
+    border-radius: calc(var(--button-size) / 2);
+    opacity: 0;
+    top: 0;
+    left: 0;
+    transform: scale(2);
+    pointer-events: none;
+  }
+
+  &.activeAnimation {
+    &::after {
+      animation: ClickAnimation 500ms;
+      pointer-events: none;
+    }
+  }
+}
+
+.backspaceButton {
+  height: var(--button-size);
+  width: var(--button-size);
+  border-radius: calc(var(--button-size) / 2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  &>svg {
+    height: 40px;
+    width: 40px;
+  }
+}

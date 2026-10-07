@@ -1,0 +1,47 @@
+# classNameModule Utility
+
+> **IMPORTANT**: This method MUST ALWAYS be used to import and apply SCSS styles in the project.
+
+## Import
+
+```js
+import classNameModule from "@classname";
+import styles from "./Component.module.scss";
+const className = classNameModule(styles);
+```
+
+## Syntax
+
+```jsx
+// Simple class
+<div {...className("Container")} />
+
+// Conditional classes
+<div {...className("Button", { active: isActive, disabled: true })} />
+
+// With values
+<div {...className("Card", { type: "large" })} />
+
+// Global classes (not transformed by CSS Modules)
+<div {...className("Component", ":global-class")} />
+
+// Combinations
+<div {...className("Card", { highlighted: true }, `:${externalClassName}`)} />
+```
+
+## Behavior
+
+- `"ClassName"` → Finds and applies the CSS Module hash
+- `{ condition: true }` → Adds the `condition` class if true
+- `{ type: "value" }` → Adds the `type-value` class
+- `":global-class"` → Adds the literal class without transformation
+
+## Configuration (optional)
+
+```js
+const className = classNameModule(styles, {
+  globalPrefix: ":", // Prefix for global classes
+  keepUnfoundValues: false, // Keep classes not found
+  logUnfoundValues: true, // Log warnings
+});
+```

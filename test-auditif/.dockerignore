@@ -1,0 +1,12 @@
+# Fichiers et répertoires générés par npm/yarn
+node_modules
+yarn.lock
+
+# Fichiers de build Next.js
+
+# Fichiers et répertoires généraux à ignorer
+.dockerignore
+.git
+.gitignore
+.vscode
+*.log

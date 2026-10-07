@@ -1,0 +1,54 @@
+.DeviceScreen {
+  //
+
+  &>.devices {
+    display: flex;
+    margin-top: 40px;
+
+    &>button {
+      flex: 1;
+      height: 300px;
+      background-color: white;
+      border-radius: 10px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      transition: transform 250ms, box-shadow 250ms;
+
+      &:hover {
+        @media (pointer: fine) {
+          transform: translateY(-5px);
+          box-shadow: 0 10px 20px rgb(var(--primary), 0.1);
+        }
+      }
+
+      &.recommended {
+        background-color: rgb(var(--primary));
+        color: white;
+      }
+
+      &:not(:last-child) {
+        margin-right: 20px;
+      }
+
+      &>.label {
+        position: relative;
+        font-weight: 500;
+
+        font-size: 1em;
+
+        &>.recommended {
+          position: absolute;
+          left: 50%;
+          transform: translateX(-50%);
+          text-transform: uppercase;
+          font-weight: 500;
+
+          font-size: 0.7em;
+          color: rgb(white, 0.7);
+        }
+      }
+    }
+  }
+}

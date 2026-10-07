@@ -1,0 +1,37 @@
+
+auditif:
+  repository: harbor.k8s.atol.fr/atomag/test-auditif
+  tag: "main"
+  pullPolicy: Always
+
+service:
+  imagespullsecret: harborcredential
+  name: auditif
+  type: ClusterIP
+  port: 3000
+  targetPort: 3000
+  protocol: TCP
+
+env:
+  ENV: main
+  URL: testauditif.services.atol.fr
+  DB_HOST: 10.10.10.3
+  DB_USER: atomag
+  # DB_PASSWORD : à fournir via un Secret Kubernetes, ne jamais le versionner
+  DB_NAME: prospects
+
+ingress:
+  namespace: b2c-prod
+  hosts:
+    - host: testauditif.services.atol.fr
+    - host: testauditif.atol.fr
+  ingressClassName: nginx-public
+  tls:
+    enabled: true
+    secretName: site-web-atol-tls
+
+resources: {}
+
+nameOverride: ""
+fullnameOverride: ""
+fullname: "b2c"

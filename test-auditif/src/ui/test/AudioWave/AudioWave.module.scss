@@ -1,0 +1,33 @@
+.AudioWave {
+  height: 80px;
+  display: inline-flex;
+  align-items: center;
+
+  & > div {
+    height: inherit;
+    background-color: rgb(var(--primary));
+    width: 7px;
+    border-radius: 5px;
+
+    animation: BarAnimation 1s;
+    animation-iteration-count: infinite;
+
+    &:not(:last-child) {
+      margin-right: 7px;
+    }
+  }
+}
+
+@keyframes BarAnimation {
+  from {
+    transform: scaleY(0.2);
+  }
+
+  50% {
+    transform: scaleY(1);
+  }
+
+  to {
+    transform: scaleY(0.2);
+  }
+}

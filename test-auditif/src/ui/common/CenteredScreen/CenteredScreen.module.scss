@@ -1,0 +1,21 @@
+.CenteredScreen {
+  display: flex;
+  flex-direction: column;
+  margin: auto;
+  padding: 20px;
+
+  @media (max-width: 1000px) {
+    text-align: center;
+  }
+
+  @media (min-width: 1001px) {
+    align-items: center;
+  }
+
+  & > p {
+    max-width: 510px;
+    max-width: 32em;
+    line-height: 1.4;
+    margin-bottom: 30px;
+  }
+}

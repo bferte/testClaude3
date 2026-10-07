@@ -1,0 +1,47 @@
+.ScreenLayout {
+  display: flex;
+  flex-direction: column;
+  padding: 20px;
+
+  & > .content {
+    margin: auto 0;
+  }
+
+  & > .buttons {
+    display: flex;
+    align-items: center;
+
+    & > button {
+      flex: 1;
+      justify-content: center;
+
+      &:not(:last-child) {
+        margin-right: 20px;
+
+        @media (max-width: 750px) {
+          margin-right: 10px;
+        }
+      }
+    }
+
+    @media (max-width: 750px) {
+      margin-top: auto;
+    }
+  }
+
+  @media (min-width: 751px) {
+    margin: auto;
+    width: 1000px;
+    max-width: 100%;
+    padding: 40px;
+
+    @media (max-height: 1000px) {
+      padding: 20px;
+    }
+  }
+
+  @media (max-width: 750px) {
+    flex: 1;
+    padding: 0 20px 20px 20px;
+  }
+}

@@ -1,0 +1,9 @@
+.Logo {
+  position: absolute;
+  right: 30px;
+  bottom: 20px;
+
+  @media (max-width: 1200px) {
+    display: none;
+  }
+}

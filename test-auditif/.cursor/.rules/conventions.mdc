@@ -1,0 +1,44 @@
+---
+description: 
+globs: *.tsx
+alwaysApply: false
+---
+# Comments
+- ALWAYS Write comments and code in english, even if developers are french.
+
+# Naming Conventions
+- React component files: PascalCase (e.g., TestStep.tsx)
+- Utility files: camelCase (e.g., createConnection.ts)
+- Folders: camelCase for standard folders (e.g., utils), PascalCase for components (e.g., Logo)
+- Types/Interfaces: PascalCase with descriptive suffix (e.g., ResultData, TestType)
+- Constants: UPPER_SNAKE_CASE (e.g., SHOP_TEST_OPE_ID)
+
+# Styles and CSS
+- MANDATORY: Use CSS Modules with the classNameModule utility
+- Name style files with the .module.scss suffix
+- Main class names should be in PascalCase
+- Modifiers and states should be in camelCase
+- Avoid global styles unless necessary
+
+# Typescript Typing
+- Always type component props, if there is at least one prop, in a type defined juste before the component. For example :
+```tsx
+type ComponentProps = {
+    name:string
+}
+
+const Component = ({ name }: ComponentProps) => {}
+```
+
+- Avoid any whenever possible, prefer specific types
+- Create types/interfaces for structured data
+- Use enums for predefined types
+
+# React Components
+
+- Prefer functional components with hooks
+- Use "use client" only when necessary
+- Extract complex logic into custom hooks
+- Pass data between steps via props
+- Use the "handleNext" pattern for navigation between steps
+

@@ -1,0 +1,32 @@
+.VerticalProgressContainer {
+  border-radius: 44px;
+  border: 4px solid rgb(var(--primary));
+  background-color: rgb(var(--primary));
+  margin: 20px auto;
+
+  --progress-bar-height: 200px;
+  --cursor-size: 44px;
+}
+
+.VerticalProgress {
+  height: var(--progress-bar-height);
+  width: var(--cursor-size);
+  border-radius: var(--cursor-size);
+
+  background-color: rgb(var(--primary));
+  cursor: pointer;
+  touch-action: none;
+  overflow: hidden;
+  position: relative;
+
+  & > div {
+    position: absolute;
+    height: var(--cursor-size);
+    width: var(--cursor-size);
+    border-radius: var(--cursor-size);
+    background-color: white;
+
+    // Initial position at bottom
+    top: calc(var(--progress-bar-height) - var(--cursor-size));
+  }
+}

@@ -1,0 +1,39 @@
+.Progress {
+  display: flex;
+  height: 0.4em;
+
+  & > div {
+    flex: 1;
+    height: inherit;
+    background-color: rgb(var(--text), 0.1);
+    position: relative;
+    border-radius: 6px;
+    overflow: hidden;
+
+    &:not(:last-child) {
+      margin-right: 10px;
+
+      @media (max-width: 750px) {
+        margin-right: 5px;
+      }
+    }
+
+    &::after {
+      content: "";
+      display: block;
+      height: inherit;
+      width: 100%;
+      background-color: rgb(var(--primary));
+      transition: transform 500ms;
+      transform-origin: left;
+      transform: translateX(-105%);
+      border-radius: 6px;
+    }
+
+    &.active {
+      &::after {
+        transform: none;
+      }
+    }
+  }
+}

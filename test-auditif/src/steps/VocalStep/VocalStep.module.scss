@@ -1,0 +1,162 @@
+.VocalStep {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+
+  &>header {
+    display: flex;
+    flex-direction: column;
+
+    @media (min-width: 751px) {
+      margin-top: auto;
+    }
+
+    @media (max-width: 750px) {
+      flex: 1;
+    }
+
+    &>.text {
+      // background-color: yellow;
+
+      text-align: center;
+      padding: 20px;
+
+
+      &>p {
+        @media (max-width: 430px) {
+          font-size: 0.9em;
+        }
+
+        @media (max-width: 390px) {
+          font-size: 0.8em;
+        }
+      }
+
+
+      .mobileStep {
+        color: rgb(var(--text), 0.5);
+
+        @media (min-width: 751px) {
+          display: none;
+        }
+      }
+    }
+  }
+
+  &>.keyboard {
+    display: flex;
+    padding: 20px 20px 40px 20px;
+
+    @media (min-width: 751px) {
+      margin-bottom: auto;
+    }
+
+    @media (max-width: 500px) {
+      padding-top: 0;
+      padding-bottom: 20px;
+    }
+
+    &>div {
+      margin: auto;
+    }
+  }
+}
+
+.progress {
+  width: 700px;
+  max-width: calc(100vw - 40px);
+
+  @media (min-width: 751px) {
+    // position: fixed;
+    top: 80px;
+    // left: 50%;
+    // transform: translateX(-50%);
+    margin: 0 auto;
+
+    @media (max-height: 850px) {
+      top: 60px;
+    }
+  }
+
+  @media (max-width: 750px) {
+    display: none;
+  }
+}
+
+@keyframes SoundWaveAnimation {
+  from {
+    transform: scale(1);
+  }
+
+  to {
+    opacity: 0;
+    transform: scale(2.5);
+  }
+}
+
+.Typing {
+  margin: 0 auto;
+  --button-height: 80px;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  --gap: 20px;
+  gap: var(--gap);
+
+  --button-size: 80px;
+  height: var(--button-height);
+
+  @media (max-width: 750px) {
+    margin-bottom: 20px;
+    height: 70px;
+  }
+
+  @media (min-width: 501px) {
+    @media (max-height: 850px) {
+      --button-size: 60px;
+      --button-height: 60px;
+    }
+  }
+
+  @media (max-width: 500px) {
+    --button-size: 60px;
+    --button-height: 60px;
+    height: 60px;
+  }
+
+  @media (max-width: 350px) {
+    --button-size: 60px;
+  }
+
+  &>div {
+    flex: 1;
+    outline: 2px solid rgb(var(--primary), 0.1);
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 40px;
+    transition: outline 250ms;
+    width: var(--button-size);
+
+    height: var(--button-height) !important;
+
+    &.active {
+      outline: 2px solid rgb(var(--primary));
+    }
+  }
+}
+
+.NextButton {
+  margin-left: auto;
+
+  &>svg {
+    transition: transform 250ms;
+  }
+
+  @media (pointer: fine) {
+    &:hover>svg {
+      transform: translateX(2px);
+    }
+  }
+}

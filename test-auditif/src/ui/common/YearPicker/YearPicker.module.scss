@@ -1,0 +1,124 @@
+@keyframes DropdownEntry {
+  from {
+    opacity: 0;
+    transform: translateY(-5px);
+  }
+
+  50% {
+    opacity: 1;
+  }
+
+  to {
+    transform: none;
+  }
+}
+
+.YearPicker {
+  position: relative;
+
+  & > button {
+    height: 55px;
+    background-color: rgb(var(--background-alt));
+    width: 100%;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 20px;
+    transition: background-color 250ms;
+
+    &:hover {
+      background-color: rgb(var(--background-alt-hover));
+    }
+
+    &:focus {
+      outline: 2px solid rgb(var(--text));
+    }
+  }
+
+  & > .dropdown {
+    position: absolute;
+    top: calc(100% + 5px);
+    left: 0;
+    right: 0;
+    padding: 10px;
+    border-radius: 10px;
+    background-color: rgb(var(--background-alt));
+    z-index: 2;
+
+    @media (min-width: 751px) {
+      animation: DropdownEntry 250ms;
+    }
+
+    @media (max-width: 750px) {
+      position: fixed;
+      inset: 10px;
+      display: flex;
+      flex-direction: column;
+      z-index: 1000;
+    }
+
+    & > header {
+      height: 50px;
+      display: flex;
+      justify-content: flex-end;
+      border-bottom: 1px solid rgb(var(--light));
+      margin-bottom: 10px;
+
+      & > button {
+        height: 50px;
+        width: 50px;
+      }
+
+      @media (min-width: 751px) {
+        display: none;
+      }
+    }
+
+    & > div {
+      overflow-y: auto;
+      padding-right: 10px;
+      max-height: 100%;
+      position: relative;
+
+      @media (max-width: 750px) {
+        flex: 1;
+      }
+
+      @media (min-width: 751px) {
+        max-height: 300px;
+      }
+
+      &::-webkit-scrollbar {
+        width: 10px;
+      }
+
+      &::-webkit-scrollbar-thumb {
+        background-color: rgb(var(--light));
+        border-radius: 10px;
+      }
+
+      & > button {
+        display: flex;
+        align-items: center;
+        padding: 0 15px;
+        height: 44px;
+        width: 100%;
+        transition: border-color 250ms;
+        border-radius: 10px;
+        border: 2px solid transparent;
+        margin-bottom: 2px;
+        scroll-margin: 40px 0;
+
+        &.active {
+          background-color: rgb(var(--primary));
+          color: white;
+        }
+
+        &:hover {
+          border-color: rgb(var(--text));
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,14 @@
+.AudioTest {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+
+  & > .actions {
+    & > * {
+      width: 250px;
+    }
+    & > :not(:last-child) {
+      margin-right: 20px;
+    }
+  }
+}

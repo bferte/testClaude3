@@ -1,0 +1,25 @@
+.Checkbox {
+  //
+
+  height: 1.3em;
+  width: 1.3em;
+  border: 2px solid rgb(var(--text), 0.1);
+  border-radius: 5px;
+  display: inline-flex;
+  transition: background-color 250ms;
+
+  & > svg {
+    margin: auto;
+    opacity: 0;
+    color: white;
+    transition: opacity 250ms;
+  }
+
+  &.checked {
+    background-color: rgb(var(--primary));
+
+    & > svg {
+      opacity: 1;
+    }
+  }
+}

@@ -1,0 +1,46 @@
+@font-face {
+  font-family: "OpenDyslexic";
+  src: url(/fonts/OpenDyslexic/OpenDyslexic-Regular.otf) format("opentype");
+}
+
+body {
+  color: rgb(var(--text));
+  background-color: rgb(var(--background));
+  -webkit-tap-highlight-color: transparent;
+  font-size: 16px;
+}
+
+h1 {
+  font-family: var(--title-font-family);
+  font-weight: 600;
+  font-size: 3em;
+
+  @media (max-width: 1000px) {
+    font-size: 30px;
+  }
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  min-width: 0;
+}
+
+button {
+  padding: 0;
+  border: 0;
+  outline: none;
+  font: inherit;
+  color: inherit;
+  background-color: transparent;
+  cursor: pointer;
+}
+
+input {
+  font: inherit;
+  outline-color: rgb(var(--primary));
+}
+
+a {
+  color: inherit;
+}

@@ -1,0 +1,46 @@
+.ResultBar {
+  display: flex;
+  max-width: 700px;
+  margin-top: 10px;
+  margin-bottom: 20px;
+
+  & > div {
+    height: 10px;
+    flex: 1;
+    position: relative;
+    transition: opacity 250ms;
+
+    &:first-child {
+      border-radius: 10px 0 0 10px;
+    }
+
+    &:last-child {
+      border-radius: 0 10px 10px 0;
+    }
+
+    &.good {
+      --color: #7ace6d;
+    }
+
+    &.medium {
+      --color: #f1c40f;
+    }
+
+    &.bad {
+      --color: #ee6034;
+    }
+
+    background-color: var(--color);
+    color: var(--color);
+
+    & > .cursor {
+      position: absolute;
+      bottom: 100%;
+      left: 0;
+      right: 0;
+      display: flex;
+      justify-content: center;
+      transform: translateY(5px);
+    }
+  }
+}

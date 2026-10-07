@@ -1,0 +1,36 @@
+---
+description: 
+globs: *.module.scss
+alwaysApply: false
+---
+- Never use harcoded colors, use these CSS variables, defined in global.css instead :
+
+```css
+--background
+--background-alt
+--background-alt-hover
+--text
+--light
+--primary
+--primary-hover
+```
+
+These color are defined as destructured rgb (for exemple : `--background: 33, 33, 33`)
+So you have to use it this way :
+
+```scss
+color: rgb(var(--primary))
+```
+
+- Root Component Class are using PascalCase. other are using pascalCase
+
+For example : 
+```tsx
+const Component = () => (<div {...className('Component')}><div {...className('authorName')}></div></div>)
+```
+
+# Nesting
+Limit nesting to 3 levels maximum to keep specificity manageable
+Use BEM-like approach with parent-child relationships
+Child elements should be nested inside parent selectors
+State classes should be used directly, not nested

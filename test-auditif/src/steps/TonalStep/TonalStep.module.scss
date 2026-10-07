@@ -1,0 +1,109 @@
+.TonalStep {
+  text-align: center;
+
+  p {
+    margin-bottom: 30px;
+  }
+}
+
+.progress {
+  width: 700px;
+  max-width: calc(100vw - 40px);
+
+  @media (min-width: 751px) {
+    position: fixed;
+    top: 80px;
+    left: 50%;
+    transform: translateX(-50%);
+  }
+
+  @media (max-width: 750px) {
+    display: none;
+  }
+
+  & > div {
+    text-align: center;
+    margin-top: 10px;
+    color: rgb(var(--text), 0.4);
+    font-weight: 500;
+  }
+}
+
+.FrequencyTest {
+  h1 {
+    text-align: center;
+  }
+  .animation {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 40px;
+    margin-top: 50px;
+  }
+  .actions {
+    width: 100%;
+
+    & > button {
+      width: 200px;
+      justify-content: center;
+
+      &:not(:last-child) {
+        margin-right: 20px;
+      }
+    }
+  }
+}
+
+.NextButton {
+  margin-left: auto;
+  & > svg {
+    transition: transform 250ms;
+  }
+
+  @media (pointer: fine) {
+    &:hover > svg {
+      transform: translateX(2px);
+    }
+  }
+}
+
+.volume {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 50px;
+  margin-top: 40px;
+  color: rgb(var(--primary));
+
+  & > svg {
+    margin-right: 15px;
+  }
+
+  & > div {
+    height: 30px;
+    width: 30px;
+    border: 2px solid rgb(var(--text), 0.1);
+    border-radius: 30px;
+    position: relative;
+
+    & > span {
+      position: absolute;
+      bottom: calc(100% + 5px);
+      left: 50%;
+      transform: translateX(-50%);
+      color: rgb(var(--text), 0.5);
+      font-weight: 500;
+      display: none;
+    }
+
+    &.active {
+      background-color: rgb(var(--primary));
+
+      & > span {
+        display: block;
+      }
+    }
+
+    &:not(:last-child) {
+      margin-right: 10px;
+    }
+  }
+}

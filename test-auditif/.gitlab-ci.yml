@@ -1,0 +1,50 @@
+stages:
+  - build
+  - deploy
+
+variables:
+  DOCKER_DRIVER: overlay2
+  IMAGE_TAG: $NEW_CI_DOCKER_REGISTRY/atomag/test-auditif:$CI_COMMIT_REF_NAME
+
+before_script:
+  - docker info
+  - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" "$NEW_CI_DOCKER_REGISTRY"
+
+build:
+  stage: build
+  script:
+    - docker build -t $IMAGE_TAG .
+    - docker push $IMAGE_TAG
+  cache:
+    key: "$CI_COMMIT_REF_SLUG"
+    paths:
+      - /var/lib/docker
+
+deploy:
+  image: registry.atol.fr/helm:1.0.0
+  stage: deploy 
+  variables:
+    KUBECONFIG: "/builds/$CI_PROJECT_NAMESPACE/$CI_PROJECT_NAME/.kube/config"
+  before_script:
+    - mkdir -p $(dirname $KUBECONFIG)
+    - echo "$KUBECONFIG_CONTENT" | base64 -d > $KUBECONFIG
+  script:
+    - |
+      # if [ "$CI_COMMIT_REF_NAME" == "develop" ]; then
+      #   helm upgrade --install test-auditif ./helm/b2c --set auditif.tag=$CI_COMMIT_REF_NAME --kube-context b2c-dev-context    --namespace b2c-dev -f ./helm/b2c/values-develop.yaml
+      #   kubectl config use-context b2c-dev-context
+      #   kubectl rollout restart deployment auditif -n b2c-dev
+
+      # elif [ "$CI_COMMIT_REF_NAME" == "preprod" ]; then
+      #   helm upgrade --install test-auditif ./helm/b2c --set auditif.tag=$CI_COMMIT_REF_NAME --kube-context b2c-preprod-context --namespace  b2c-preprod -f ./helm/b2c/values-preprod.yaml
+      #   kubectl config use-context b2c-preprod-context
+      #   kubectl rollout restart deployment auditif -n b2c-preprod
+
+      if [ "$CI_COMMIT_REF_NAME" == "main" ]; then
+        helm upgrade --install test-auditif ./helm/b2c --set auditif.tag=$CI_COMMIT_REF_NAME --kube-context b2c-prod-context   --namespace  b2c-prod -f ./helm/b2c/values-prod.yaml
+        kubectl config use-context b2c-prod-context
+        kubectl rollout restart deployment auditif -n b2c-prod
+      fi
+  rules:
+    - if: '$CI_COMMIT_REF_NAME == "main"'
+      when: manual
