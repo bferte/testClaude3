@@ -3,6 +3,8 @@
 import { ResultData } from "@/steps/step.types";
 import { createConnection } from "./createConnection";
 import { Connection } from "mariadb";
+import { insertProspect } from "./prospect";
+import { generateResultToken } from "@/utils/session/session";
 
 const SHOP_TEST_OPE_ID = 3;
 const WEB_TEST_OPE_ID = 2;
@@ -33,8 +35,8 @@ export async function pushResult(
   try {
     const id_prospect = await insertProspect(
       clientInformations,
-      source,
-      data,
+      source === SOURCE.SHOP ? SHOP_TEST_OPE_ID : WEB_TEST_OPE_ID,
+      "",
       connection
     );
 
@@ -53,53 +55,13 @@ export async function pushResult(
       connection
     );
 
-    return {};
+    return { resultToken: await generateResultToken(id_prospect) };
   } catch (Err) {
     console.error("Error : ", Err);
     throw new Error(Err as string);
   } finally {
     await connection.end();
   }
-}
-
-/**
- *
- */
-async function insertProspect(
-  clientInformations: {
-    firstname?: string;
-    lastname?: string;
-    phone?: string;
-    email?: string;
-    postalCode?: string;
-  },
-  source: SOURCE,
-  data: ResultData,
-  connection: Connection
-) {
-  const query = `
-  INSERT INTO
-    prospect
-      (nom, prenom,tel, mail, codpos, infoprospect, idope)
-    VALUES
-      (
-      ${[
-        clientInformations?.lastname ?? "",
-        clientInformations?.firstname ?? "",
-        clientInformations?.phone ?? "",
-        clientInformations?.email ?? "",
-        clientInformations?.postalCode ?? "",
-        "",
-      ]
-        .map((value) => `'${value}'`)
-        .join(", ")},${
-    source === SOURCE.SHOP ? SHOP_TEST_OPE_ID : WEB_TEST_OPE_ID
-  });
-  `;
-
-  const result = await connection.query(query);
-
-  return Number(result.insertId);
 }
 
 /**

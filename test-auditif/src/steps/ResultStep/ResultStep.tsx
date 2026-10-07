@@ -4,11 +4,13 @@ import { Button, DebugMessage } from "@ui/common";
 import { PhoneIcon, PinIcon, RefreshCcwIcon } from "lucide-react";
 import { computeScore } from "./ResultStep.utils";
 import { ResultStep, StepComponentProps } from "../step.types";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { pushResult } from "@/database/push-result";
 import { useParams, useRouter } from "next/navigation";
 
 import Cookies from "js-cookie";
+
+import { ResultContactForm } from "./ResultContactForm/ResultContactForm";
 
 // import { ResultBar } from "./ResultBar/ResultBar";
 import classNameModule from "@classname";
@@ -21,6 +23,11 @@ export const ResultStepComponent = ({
   handleNext,
 }: StepComponentProps<ResultStep>) => {
   const notation: string = computeScore(data);
+
+  // null while the result is being saved, undefined if saving failed.
+  const [resultToken, setResultToken] = useState<string | null | undefined>(
+    null
+  );
 
   const params = useParams<{
     shop_id: string;
@@ -42,6 +49,8 @@ export const ResultStepComponent = ({
       lastname: data.introduction?.lastname,
       firstname: data.introduction?.firstname,
     })
+      .then(({ resultToken }) => setResultToken(resultToken))
+      .catch(() => setResultToken(undefined));
   }, []);
 
   return (
@@ -121,6 +130,8 @@ export const ResultStepComponent = ({
               ? "Continuez à prendre soin de vos oreilles en les protégeant et refaites un test tous les ans."
               : "Nous vous recommandons de prendre rendez-vous avec nous pour un test auditif professionnel en magasin."}
           </p>
+
+          <ResultContactForm resultToken={resultToken} />
 
           {step.form && (
             <div {...className("actions")}>

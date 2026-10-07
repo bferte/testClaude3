@@ -3,7 +3,7 @@
 /**
  * Send a mail for company internal use
  */
-import nodemailer from "nodemailer";
+import { sendMail } from "./mailer";
 
 export interface EmailOptions {
   subject: string;
@@ -44,29 +44,10 @@ export async function sendResultMail(data: {
 }
 
 async function sendInternalMail({ subject, html, text }: EmailOptions) {
-  const transporter = nodemailer.createTransport({
-    host: "in-v3.mailjet.com",
-    port: 465,
-    secure: true,
-    auth: {
-      user: process.env.MAILJET_API_KEY || "",
-      pass: process.env.MAILJET_PASSWORD || "",
-    },
-  });
-
-  const mailOptions = {
-    from: "informations@audition.atol.fr",
+  return await sendMail({
     to: "servicecommande@auditiongp.com",
     subject,
     html,
     text,
-  };
-
-  try {
-    const info = await transporter.sendMail(mailOptions);
-    return { success: true, messageId: info.messageId };
-  } catch (error) {
-    console.error("Error sending email:", error);
-    return { success: false, error };
-  }
+  });
 }
