@@ -1,0 +1,289 @@
+<!doctype html>
+<html lang="fr"><head><meta charset="utf-8">
+<style>
+@font-face{font-family:P;font-weight:300;src:url(assets/poppins-latin-300-normal.woff2)}
+@font-face{font-family:P;font-weight:400;src:url(assets/poppins-latin-400-normal.woff2)}
+@font-face{font-family:P;font-weight:500;src:url(assets/poppins-latin-500-normal.woff2)}
+@font-face{font-family:P;font-weight:700;src:url(assets/poppins-latin-700-normal.woff2)}
+:root{--nuit:#1B2D50;--atol:#13386C;--moyen:#87B1E5;--pale:#C4E2F9;--casse:#F7F5F2;--gris:#5C6E87;--frame:#0F1B33}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:1920px;height:1080px;overflow:hidden;background:#000;font-family:P,sans-serif}
+#stage{position:absolute;inset:0;overflow:hidden}
+.scene{position:absolute;inset:0;overflow:hidden;display:none}
+.bg-nuit{background:var(--nuit)} .bg-atol{background:var(--atol)} .bg-casse{background:var(--casse)} .bg-pale{background:var(--pale)}
+.rings{position:absolute;left:0;top:0;width:1920px;height:1080px;pointer-events:none}
+.title{position:absolute;font-weight:700;line-height:1.02;white-space:nowrap}
+.title .line{display:block}
+.m{display:inline-block;overflow:hidden;vertical-align:top;padding:0 .02em .14em;margin-bottom:-.14em}
+.w{display:inline-block;will-change:transform}
+.dark .title{color:#fff} .light .title{color:var(--atol)}
+.title .line.last{color:var(--moyen)}
+.para{position:absolute;font-weight:400;font-size:33px;line-height:1.5}
+.dark .para{color:var(--pale)} .light .para{color:var(--gris)}
+.persp{position:absolute;inset:0;perspective:1800px;perspective-origin:50% 50%}
+.card{position:absolute;background:#fff;border-radius:24px;overflow:hidden;
+  box-shadow:0 40px 90px rgba(15,27,51,.28),0 8px 24px rgba(15,27,51,.14);transform-origin:50% 50%}
+.dark .card{box-shadow:0 40px 100px rgba(0,0,0,.42),0 8px 24px rgba(0,0,0,.25)}
+.card img{display:block;width:100%;height:100%}
+.hl{position:absolute;border:5px solid var(--moyen);border-radius:16px;opacity:0;box-shadow:0 0 0 6px rgba(135,177,229,.25)}
+.flash{position:absolute;inset:0;background:#fff;opacity:0;pointer-events:none}
+.black{position:absolute;inset:0;background:#000;opacity:0;pointer-events:none}
+.dot{position:absolute;left:960px;top:540px;width:22px;height:22px;margin:-11px 0 0 -11px;border-radius:50%;background:#fff}
+.halo{position:absolute;left:960px;top:540px;width:22px;height:22px;margin:-11px 0 0 -11px;border-radius:50%;border:2px solid rgba(196,226,249,.8)}
+.caps{position:absolute;left:0;width:1920px;text-align:center;color:#fff;font-weight:500;font-size:44px;letter-spacing:.42em;padding-left:.42em}
+.quote{position:absolute;background:var(--atol);color:#fff;border-radius:26px;padding:34px 40px;font-size:31px;line-height:1.45;font-weight:400;
+  box-shadow:0 30px 70px rgba(19,56,108,.35)}
+.quote b{font-weight:700;color:var(--pale)}
+.quote:after{content:"";position:absolute;left:60px;bottom:-22px;border:22px solid transparent;border-top-color:var(--atol);border-bottom:0}
+</style></head>
+<body><div id="stage"></div>
+<script>
+// ---------- helpers ----------
+const clamp=(x,a=0,b=1)=>Math.max(a,Math.min(b,x));
+const expoOut=x=>x>=1?1:1-Math.pow(2,-10*x);
+const expoIn=x=>x<=0?0:Math.pow(2,10*x-10);
+const cubicIO=x=>x<.5?4*x*x*x:1-Math.pow(-2*x+2,3)/2;
+const backOut=x=>{const c1=1.45,c3=c1+1;return 1+c3*Math.pow(x-1,3)+c1*Math.pow(x-1,2)};
+const prog=(t,a,d)=>clamp((t-a)/d);
+const el=(tag,cls,parent,html)=>{const e=document.createElement(tag);if(cls)e.className=cls;if(html!=null)e.innerHTML=html;if(parent)parent.appendChild(e);return e};
+const stage=document.getElementById('stage');
+
+const BAR=1.979, DROP=9.5, bar=k=>DROP+BAR*k;
+const END=73.81, FINAL=68.853;
+
+// sound-wave rings (shapes of the chart)
+function rings(parent,cx,cy,color,n=9,step=150,r0=160){
+  const NS='http://www.w3.org/2000/svg';
+  const s=document.createElementNS(NS,'svg');s.setAttribute('class','rings');s.setAttribute('viewBox','0 0 1920 1080');
+  const g=document.createElementNS(NS,'g');s.appendChild(g);
+  for(let i=0;i<n;i++){const c=document.createElementNS(NS,'circle');c.setAttribute('cx',cx);c.setAttribute('cy',cy);
+    c.setAttribute('r',r0+i*step);c.setAttribute('fill','none');c.setAttribute('stroke',color);c.setAttribute('stroke-width',2);
+    c.setAttribute('opacity',(1-i/n*0.7).toFixed(2));g.appendChild(c);}
+  parent.appendChild(s);
+  return {svg:s,g,cx,cy,update(lt,amp=0.04){g.setAttribute('transform',`translate(${cx} ${cy}) scale(${1+amp*lt/8}) translate(${-cx} ${-cy})`)}};
+}
+
+// animated title: lines -> words in masks
+function makeTitle(parent,lines,{x,y,maxW,size=130,min=86,align='left'}){
+  const t=el('div','title',parent);t.style.left=x+'px';t.style.top=y+'px';
+  if(align==='center'){t.style.left='0';t.style.width='1920px';t.style.textAlign='center'}
+  const words=[];
+  lines.forEach((ln,i)=>{const l=el('span','line'+(i===lines.length-1&&lines.length>1?' last':''),t);
+    ln.split(' ').forEach((w,j)=>{if(j)l.appendChild(document.createTextNode(' '));const m=el('span','m',l);words.push(el('span','w',m,w))});});
+  let fs=size;t.style.fontSize=fs+'px';t.style.letterSpacing=(-fs*0.028)+'px';
+  const width=()=>Math.max(...[...t.querySelectorAll('.line')].map(l=>{const r=document.createRange();r.selectNodeContents(l);return r.getBoundingClientRect().width}));
+  while(maxW&&width()>maxW&&fs>min){fs-=2;t.style.fontSize=fs+'px';t.style.letterSpacing=(-fs*0.028)+'px'}
+  t.dataset.fs=fs;
+  return {el:t,words,fs,update(lt,start,gap=0.42,outAt=null){
+    words.forEach((w,i)=>{const p=expoOut(prog(lt,start+i*gap,0.6));let ty=(1-p)*110;
+      if(outAt!=null){const q=expoIn(prog(lt,outAt+i*0.04,0.45));ty-=q*110}
+      w.style.transform=`translateY(${ty}%)`;});}};
+}
+function makePara(parent,html,{x,y,w}){
+  const p=el('div','para',parent,html);p.style.left=x+'px';p.style.top=y+'px';p.style.width=w+'px';
+  return {el:p,update(lt,start){const q=expoOut(prog(lt,start,0.8));p.style.opacity=q;p.style.transform=`translateY(${(1-q)*40}px)`}};
+}
+// card with image or frame sequence
+function makeCard(parent,{src,seq,frames,w,h,x,y}){
+  const c=el('div','card',parent);c.style.width=w+'px';c.style.height=h+'px';c.style.left=x+'px';c.style.top=y+'px';
+  const img=el('img','',c);img.src=src||`assets/${seq[0].dir}/00001.jpg`;
+  const hls=[];
+  const obj={el:c,img,w,h,
+    hl(rx,ry,rw,rh,t0,t1){const d=el('div','hl',c);const sx=w,sy=h;d.style.left=(rx*sx-8)+'px';d.style.top=(ry*sy-8)+'px';d.style.width=(rw*sx+16)+'px';d.style.height=(rh*sy+16)+'px';hls.push({d,t0,t1});return obj},
+    update(lt,{enter=0.2,dur=8,from=-16,zoom=0.03,dx=0,dy=0,blur=0,op=1}={}){
+      const p=expoOut(prog(lt,enter,1.4));
+      const ry=(1-p)*from, rx=(1-p)*7, ty=(1-p)*130, s=(0.94+0.06*p)*(1+zoom*clamp(lt/dur));
+      c.style.transform=`translate3d(${dx}px,${ty+dy}px,0) rotateY(${ry}deg) rotateX(${rx}deg) scale(${s})`;
+      c.style.opacity=clamp(p*1.6)*op; c.style.filter=blur?`blur(${blur}px)`:'';
+      hls.forEach(({d,t0,t1})=>{d.style.opacity=clamp(prog(lt,t0,0.5))*(1-clamp(prog(lt,t1,0.5)))});
+      if(seq){let f=Math.max(0,Math.floor((lt-enter)*30));let s0=seq[seq.length-1],fi=s0.n-1;
+        for(const q of seq){if(f<q.n){s0=q;fi=f;break} f-=q.n}
+        const nsrc=`assets/${s0.dir}/${String(fi+1).padStart(5,'0')}.jpg`;
+        if(!img.src.endsWith(nsrc)){img.src=nsrc;}}
+    }};
+  return obj;
+}
+// fit image box
+const fit=(iw,ih,mw,mh)=>{const s=Math.min(mw/iw,mh/ih);return [Math.round(iw*s),Math.round(ih*s)]};
+
+// ---------- scenes ----------
+const scenes=[];
+function init(){
+function scene(start,end,cls,build){const root=el('div','scene '+cls,stage);root.style.display='block';const s={start,end,root,...build(root)};root.style.display='none';scenes.push(s);return s}
+
+// INTRO 0 -> 9.5
+scene(0,DROP,'bg-nuit dark',root=>{
+  const r=rings(root,960,540,'rgba(135,177,229,.10)',10,140,200);
+  const halo=el('div','halo',root), dot=el('div','dot',root);
+  const persp=el('div','persp',root);persp.style.perspective='1100px';
+  const ti=makeTitle(root,['Atol Mon Audition','5 minutes pour tendre l’oreille.'],{x:0,y:395,align:'center',size:128,maxW:1700});
+  const caps=[['as32.png',1916,850],['cap_infos.jpg',1908,940],['cap_cal.jpg',1908,940],['cap_keypad.jpg',1908,940],['cap_result.jpg',1920,946]];
+  const pos=[[-520,-250],[470,-230],[-470,250],[500,240],[0,0]];
+  const cards=caps.map(([src,iw,ih],i)=>{const [w,h]=fit(iw,ih,640,420);const c=el('div','card',persp);
+    c.style.width=w+'px';c.style.height=h+'px';c.style.left=(960-w/2)+'px';c.style.top=(540-h/2)+'px';el('img','',c).src='assets/'+src;return c});
+  return {update(t){
+    r.update(t,0.06);
+    // pulsing dot until hook
+    const pulse=0.5+0.5*Math.sin(t*Math.PI*2/ (BAR/2));
+    const dOut=expoIn(prog(t,1.25,0.4));
+    dot.style.transform=`scale(${(0.85+0.25*pulse)*(1-dOut)})`;dot.style.opacity=clamp(t/0.4)*(1-dOut);
+    const hp=(t%(BAR/2))/(BAR/2);halo.style.transform=`scale(${1+hp*4})`;halo.style.opacity=(1-hp)*0.7*(1-dOut)*clamp(t/0.4);
+    // hook: line1 on bar(-4)=1.58, line2 on bar(-3)=3.56 ; out at 5.2
+    const w=ti.words; const t1=bar(-4), t2=3.1;
+    w.forEach((x,i)=>{const st=i<3?t1+i*0.42:t2+(i-3)*0.4;const p=expoOut(prog(t,st,0.6));
+      const q=expoIn(prog(t,5.6+i*0.03,0.5));x.style.transform=`translateY(${(1-p)*110-q*110}%)`});
+    // captures cascade from bar(-2)=5.54, then rush to camera from bar(-1)=7.52
+    cards.forEach((c,i)=>{const a=bar(-2)+0.3+i*0.36;const p=expoOut(prog(t,a,1.1));
+      const [px,py]=pos[i];let z=-1500+p*1000, x=px*(0.6+0.4*p), y=py*(0.6+0.4*p)+(1-p)*200;
+      const f=expoIn(prog(t,bar(-1)+0.25+i*0.22,1.45)); z+=f*1650;
+      const op=clamp(p*2)*(1-clamp((z-700)/300));
+      c.style.transform=`translate3d(${x*(1+f*0.6)}px,${y*(1+f*0.6)}px,${z}px) rotateY(${(1-p)*(px<0?20:-20)}deg) rotateX(${(1-p)*8}deg)`;
+      c.style.opacity=op; c.style.display=op<=0.001?'none':'block';});
+  }};
+});
+
+// DROP logo 9.5 -> bar2
+function logoScene(start,end,{fadeBlack=false}={}){
+  return scene(start,end,'bg-nuit dark',root=>{
+    const r=rings(root,960,500,'rgba(135,177,229,.16)',12,120,330);
+    const r2=rings(root,960,500,'rgba(196,226,249,.06)',6,260,600);
+    const logo=el('img','',root);logo.src='assets/logo_white.png';Object.assign(logo.style,{position:'absolute',width:'620px',left:'650px',top:'500px',marginTop:'-118px'});
+    const capsWrap=el('div','caps',root);capsWrap.style.top='690px';
+    const cm=el('span','m',capsWrap);const cw=el('span','w',cm,'ATOL MON AUDITION');
+    const flash=el('div','flash',root), black=el('div','black',root);
+    return {update(lt){
+      r.update(lt,0.05);r2.update(lt,-0.03);
+      flash.style.opacity=1-expoOut(prog(lt,0,0.7));
+      const p=prog(lt,0.05,0.9);logo.style.transform=`scale(${0.78+0.22*backOut(p)})`;logo.style.opacity=clamp(p*4);
+      // rings pulse out once on impact
+      r.svg.style.opacity=0.5+0.5*expoOut(prog(lt,0,1.2));
+      const q=expoOut(prog(lt,0.55,0.7));cw.style.transform=`translateY(${(1-q)*110}%)`;
+      capsWrap.style.letterSpacing=(0.42+0.18*(1-q))+'em';
+      if(fadeBlack){black.style.opacity=cubicIO(prog(lt,3.2,1.5))}
+    }};
+  });
+}
+logoScene(DROP,bar(2));
+
+// generic feature scene layout
+const TX=118, TW=760, CX0=930, CW=900;
+function feature(start,end,cls,{title,para,card,extra,titleY=250,paraGap=40,size=124}){
+  return scene(start,end,cls,root=>{
+    const dark=cls.includes('dark');
+    const r=rings(root,1880,1040,dark?'rgba(135,177,229,.10)':'rgba(19,56,108,.06)',11,130,140);
+    const ti=makeTitle(root,title,{x:TX,y:titleY,maxW:TW,size});
+    const nl=title.length, fs=+ti.el.dataset.fs;
+    const py=titleY+nl*fs*1.02+paraGap;
+    const pa=makePara(root,para,{x:TX+4,y:py,w:TW-40});
+    const persp=el('div','persp',root);
+    const parts=card(persp,root);
+    const dur=end-start;
+    return {update(lt){
+      r.update(lt,0.05);
+      ti.update(lt,0.3,0.42);
+      pa.update(lt,0.12);
+      parts.update(lt,dur);
+    }};
+  });
+}
+
+// A — AS3.2 access (light)
+feature(bar(2),bar(6),'bg-casse light',{
+  title:['Un clic.','Depuis AS3.2.'],
+  para:'Le test de dépistage se lance directement depuis le menu d’AS3.2, en optique comme en audio.',
+  card(persp){
+    const [w,h]=fit(1916,850,860,600);
+    const big=makeCard(persp,{src:'assets/as32.png',w,h,x:1840-w,y:540-h/2+40});
+    const sc=1.12, sw=Math.round(197*sc), sh=Math.round(810*sc);
+    const side=makeCard(persp,{src:'assets/sidebar.png',w:sw,h:sh,x:900,y:540-sh/2});
+    side.hl(0.0,258/810,1,30/810,2.2,99);
+    big.hl(0,258/850,197/1916,30/850,2.2,99);
+    return {update(lt,dur){big.update(lt,{enter:0.15,dur,from:-14});
+      side.update(lt,{enter:0.75,dur,from:-22,zoom:0.025});}};
+  }});
+
+// B — infos + calibrage (dark ATOL)
+feature(bar(6),bar(10),'bg-atol dark',{
+  title:['Quelques infos.','Le bon volume.'],
+  para:'Votre client renseigne son profil, met le casque, puis règle le curseur pour entendre les chiffres confortablement.',
+  card(persp){
+    const [w,h]=fit(1110,825,880,700);
+    const back=makeCard(persp,{src:'assets/cap_cal.jpg',w:Math.round(w*0.86),h:Math.round(w*0.86*940/1908),x:1840-w*0.86+30,y:110});
+    const c=makeCard(persp,{seq:[{dir:'infos',n:240}],w,h,x:1840-w,y:540-h/2+30});
+    return {update(lt,dur){back.update(lt,{enter:0.05,dur,from:-10,blur:7,op:0.45,dy:-40,dx:40});
+      c.update(lt,{enter:0.2,dur,from:-16});}};
+  }});
+
+// C — keypad test (light)
+feature(bar(10),bar(16),'bg-casse light',{
+  title:['Trois chiffres.','Dans le bruit.','23 fois.'],titleY:200,
+  para:'Il écoute 23 séries de trois chiffres sur un bruit de fond et les saisit à l’écran. Les sons antiphasiques rendent le test plus précis.',
+  card(persp){
+    const [w,h]=fit(888,960,880,880);
+    const back=makeCard(persp,{src:'assets/keypad/00001.jpg',w:Math.round(w*0.8),h:Math.round(h*0.8),x:1840-w-120,y:540-h*0.4-20});
+    const c=makeCard(persp,{seq:[{dir:'keypad',n:181},{dir:'keypad2',n:171}],w,h,x:1840-w+20,y:540-h/2+10});
+    c.hl(0.21,0.21,0.58,0.115,4.0,6.6);
+    return {update(lt,dur){back.update(lt,{enter:0.05,dur,from:-10,blur:8,op:0.4});
+      c.update(lt,{enter:0.2,dur,from:-16,zoom:0.025});}};
+  }});
+
+// D — result (dark ATOL)
+feature(bar(16),bar(20),'bg-atol dark',{
+  title:['Un résultat clair.','Un rendez-vous.'],
+  para:'Le résultat s’affiche aussitôt, avec le parcours en centre Atol Audition. Indicatif, il ne remplace pas un bilan en cabine.',
+  card(persp){
+    const [w,h]=fit(1420,810,940,640);
+    const c=makeCard(persp,{seq:[{dir:'result',n:181}],w,h,x:1860-w,y:540-h/2});
+    c.hl(660/1420,121/810,700/1420,88/810,1.6,4.4).hl(660/1420,465/810,700/1420,230/810,4.8,99);
+    return {update(lt,dur){c.update(lt,{enter:0.2,dur,from:-16});}};
+  }});
+
+// E — how to offer it (light pale)
+feature(bar(20),bar(25),'bg-pale light',{
+  title:['Pendant l’attente.','Tout naturellement.'],
+  para:'Proposez un «&nbsp;test de santé auditive&nbsp;» pendant le dossier ou l’ajustage. Et pensez aux accompagnants&nbsp;!',
+  card(persp,root){
+    const [w,h]=fit(720,380,820,460);
+    const c=makeCard(persp,{src:'assets/testvocal.jpg',w,h,x:1840-w,y:430});
+    c.hl(0.085,0.64,0.262,0.132,3.6,99);
+    const q=el('div','quote',root,'«&nbsp;Pendant que je finalise votre dossier, je vous propose un <b>rapide test auditif</b>&nbsp;? Il ne dure que 5&nbsp;minutes&nbsp;!&nbsp;»');
+    Object.assign(q.style,{left:(1840-w-20)+'px',top:'150px',width:(w+20)+'px'});
+    return {update(lt,dur){c.update(lt,{enter:0.2,dur,from:-16});
+      const p=expoOut(prog(lt,1.5,1.0));q.style.opacity=p;q.style.transform=`translateY(${(1-p)*50}px) scale(${0.96+0.04*p})`;}};
+  }});
+
+// F — benefits (dark ATOL), centered
+scene(bar(25),FINAL,'bg-atol dark',root=>{
+  const r=rings(root,960,540,'rgba(135,177,229,.10)',12,130,200);
+  const ti=makeTitle(root,['Dépister.','Conseiller.','Fidéliser.'],{x:0,y:250,align:'center',size:150,maxW:1600});
+  const sub=el('div','para',root,'Faites savoir à tous qu’Atol, c’est aussi l’audition.');
+  Object.assign(sub.style,{left:'0',width:'1920px',textAlign:'center',top:'770px',fontWeight:300,fontSize:'40px'});
+  return {update(lt){r.update(lt,0.04);
+    ti.words.forEach((w,i)=>{const p=expoOut(prog(lt,0.15+i*BAR,0.6));w.style.transform=`translateY(${(1-p)*110}%)`});
+    const q=expoOut(prog(lt,0.15+3*BAR,0.8));sub.style.opacity=q;sub.style.transform=`translateY(${(1-q)*40}px)`;}};
+});
+
+// FINAL logo
+logoScene(FINAL,END+1,{fadeBlack:true});
+
+}
+// ---------- render ----------
+const REVEAL=0.55;
+window.render=async function(t){
+  const pending=[];
+  scenes.forEach((s,i)=>{
+    const on=t>=s.start&&t<s.end+(i<scenes.length-1&&scenes[i+1].start===s.end&&!scenes[i+1].noReveal?REVEAL:0);
+    s.root.style.display=on?'block':'none';
+    if(!on)return;
+    s.update(t-s.start);
+    // incoming scene reveal from bottom (except logo/flash scenes)
+    const lt=t-s.start, flashy=s.root.querySelector('.flash');
+    if(!flashy&&i>0){const p=expoOut(prog(lt,0,REVEAL));s.root.style.clipPath=p<1?`inset(${(1-p)*100}% 0 0 0)`:'none'}
+    s.root.style.zIndex=i;
+  });
+  document.querySelectorAll('img').forEach(im=>{if(!im.complete)pending.push(im.decode().catch(()=>{}))});
+  await Promise.all(pending);
+  return true;
+};
+window.ready=Promise.all(['300','400','500','700'].map(w=>document.fonts.load(w+' 40px P'))).then(()=>{init();return true});
+</script></body></html>
