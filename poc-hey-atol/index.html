@@ -1,0 +1,264 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>POC Hey Atol</title>
+<style>
+  :root { --bleu: #0b3d91; --bleu-clair: #e8eefb; --gris: #6b7280; --vert: #15803d; --rouge: #b91c1c; --orange: #b45309; }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", sans-serif; background: #f5f6f8; color: #111827; }
+  header { background: var(--bleu); color: #fff; padding: 16px 24px; display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+  header h1 { margin: 0; font-size: 20px; }
+  main { max-width: 1100px; margin: 0 auto; padding: 24px 16px 120px; display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  @media (max-width: 800px) { main { grid-template-columns: 1fr; } }
+  section { background: #fff; border-radius: 10px; padding: 16px 20px; box-shadow: 0 1px 3px rgba(0,0,0,.08); }
+  h2 { font-size: 16px; margin: 0 0 12px; }
+  button { font: inherit; border: 0; border-radius: 8px; padding: 8px 14px; cursor: pointer; background: var(--bleu); color: #fff; }
+  header button:not(.secondaire) { background: #fff; color: var(--bleu); font-weight: 600; }
+  button.secondaire { background: #e5e7eb; color: #111827; }
+  label { font-size: 14px; }
+  .pastille { display: inline-flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 999px; background: rgba(255,255,255,.15); font-size: 14px; }
+  .pastille::before { content: ""; width: 10px; height: 10px; border-radius: 50%; background: #9ca3af; }
+  .pastille.veille::before { background: #4ade80; animation: pulse 1.6s infinite; }
+  .pastille.question::before { background: #facc15; animation: pulse .6s infinite; }
+  .pastille.refuse::before { background: #f87171; }
+  @keyframes pulse { 50% { opacity: .3; } }
+  .alerte { padding: 10px 14px; border-radius: 8px; margin-bottom: 12px; font-size: 14px; background: #fef3c7; color: #78350f; }
+  .alerte.erreur { background: #fee2e2; color: #7f1d1d; }
+  #journal { font: 12px/1.5 ui-monospace, Consolas, monospace; height: 320px; overflow: auto; background: #0f172a; color: #cbd5e1; border-radius: 8px; padding: 10px; }
+  #journal .reveil { color: #4ade80; font-weight: bold; }
+  #journal .erreur { color: #f87171; }
+  #journal .provisoire { color: #64748b; }
+  #journal .relance { color: #fbbf24; }
+  .ligne { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+  .ligne input[type=text] { flex: 1; min-width: 180px; padding: 8px; border: 1px solid #d1d5db; border-radius: 8px; font: inherit; }
+  #resultatTest { margin-top: 8px; font-size: 14px; }
+  ol { padding-left: 20px; font-size: 14px; color: #374151; }
+  /* Widget chatbot */
+  #chat { position: fixed; right: 20px; bottom: 20px; width: 340px; max-width: calc(100vw - 32px); background: #fff; border-radius: 14px; box-shadow: 0 10px 30px rgba(0,0,0,.2); display: none; flex-direction: column; overflow: hidden; }
+  #chat.ouvert { display: flex; animation: apparait .2s ease-out; }
+  @keyframes apparait { from { transform: translateY(20px); opacity: 0; } }
+  #chat .entete { background: var(--bleu); color: #fff; padding: 12px 14px; display: flex; justify-content: space-between; align-items: center; }
+  #chat .entete button { background: transparent; padding: 0 4px; font-size: 18px; }
+  #messages { padding: 12px; height: 260px; overflow: auto; display: flex; flex-direction: column; gap: 8px; }
+  .msg { padding: 8px 12px; border-radius: 12px; max-width: 85%; font-size: 14px; }
+  .msg.bot { background: var(--bleu-clair); align-self: flex-start; }
+  .msg.moi { background: var(--bleu); color: #fff; align-self: flex-end; }
+  .msg.partiel { opacity: .6; font-style: italic; }
+  #bulle { position: fixed; right: 20px; bottom: 20px; width: 56px; height: 56px; border-radius: 50%; font-size: 24px; padding: 0; }
+</style>
+</head>
+<body>
+<header>
+  <h1>POC « Hey Atol »</h1>
+  <span id="etat" class="pastille">Micro arrêté</span>
+  <button id="btnDemarrer">Activer l'écoute</button>
+  <button id="btnArreter" class="secondaire">Arrêter</button>
+</header>
+
+<main>
+  <section>
+    <h2>Comment tester</h2>
+    <div id="alertes"></div>
+    <ol>
+      <li>Ouvrir la page dans <b>Chrome</b> ou <b>Edge</b> (ordinateur ou Android), via <code>http://localhost</code> ou en HTTPS.</li>
+      <li>Cliquer sur <b>Activer l'écoute</b> et autoriser le micro.</li>
+      <li>Dire « <b>Hey Atol</b> » : le chat s'ouvre, puis poser la question.<br>
+          On peut aussi tout dire d'une traite : « Hey Atol, quels sont vos horaires ? »</li>
+      <li>Laisser la page ouverte plusieurs minutes et réessayer : l'écoute doit rester active.</li>
+      <li>En cas de raté, regarder le <b>journal</b> : il montre exactement ce que le navigateur a compris.</li>
+    </ol>
+    <h2>Réglages</h2>
+    <label>Tolérance :
+      <select id="tolerance">
+        <option value="0">Stricte (variantes connues seulement)</option>
+        <option value="1" selected>Normale</option>
+        <option value="2">Large (plus de déclenchements, plus de faux positifs)</option>
+      </select>
+    </label><br>
+    <label><input type="checkbox" id="atolSeul"> Accepter aussi « Atol, … » sans « hey » en début de phrase</label><br>
+    <label><input type="checkbox" id="voirProvisoires" checked> Afficher les transcriptions provisoires</label>
+
+    <h2 style="margin-top:16px">Tester la détection au clavier</h2>
+    <div class="ligne">
+      <input type="text" id="texteTest" placeholder="ex. : et à tôle, hey atoll, hé à toi…">
+      <button id="btnTester" class="secondaire">Tester</button>
+    </div>
+    <div id="resultatTest"></div>
+  </section>
+
+  <section>
+    <h2>Journal de la reconnaissance</h2>
+    <div id="journal"></div>
+    <div class="ligne"><button id="btnVider" class="secondaire">Vider</button></div>
+  </section>
+</main>
+
+<button id="bulle" title="Ouvrir le chat">💬</button>
+<div id="chat" role="dialog" aria-label="Assistant Atol">
+  <div class="entete"><b>Assistant Atol</b><button id="btnFermer" aria-label="Fermer">×</button></div>
+  <div id="messages"></div>
+</div>
+
+<script src="wake-word.js"></script>
+<script>
+(function () {
+  "use strict";
+  var $ = function (id) { return document.getElementById(id); };
+  var journal = $("journal"), messages = $("messages"), chat = $("chat");
+  var bullePartielle = null;
+
+  function heure() { return new Date().toLocaleTimeString("fr-FR"); }
+  function ajouterJournal(texte, classe) {
+    var div = document.createElement("div");
+    div.className = classe || "";
+    div.textContent = "[" + heure() + "] " + texte;
+    journal.appendChild(div);
+    journal.scrollTop = journal.scrollHeight;
+  }
+
+  function ouvrirChat() {
+    chat.classList.add("ouvert");
+    $("bulle").style.display = "none";
+  }
+  function fermerChat() {
+    chat.classList.remove("ouvert");
+    $("bulle").style.display = "";
+  }
+  function message(texte, qui) {
+    if (bullePartielle) { bullePartielle.remove(); bullePartielle = null; }
+    var div = document.createElement("div");
+    div.className = "msg " + qui;
+    div.textContent = texte;
+    messages.appendChild(div);
+    messages.scrollTop = messages.scrollHeight;
+  }
+  function repondre(question) {
+    message(question, "moi");
+    // Ici, brancher l'appel au vrai moteur du chatbot.
+    setTimeout(function () { message("Vous avez demandé : « " + question + " ». (réponse factice du POC)", "bot"); }, 400);
+  }
+
+  function bip() {
+    try {
+      var ctx = new (window.AudioContext || window.webkitAudioContext)();
+      var o = ctx.createOscillator(), g = ctx.createGain();
+      o.frequency.value = 880; g.gain.value = 0.08;
+      o.connect(g); g.connect(ctx.destination);
+      o.start(); o.stop(ctx.currentTime + 0.12);
+    } catch (e) {}
+  }
+
+  var libellesEtat = { veille: "En écoute de « Hey Atol »", question: "J'écoute votre question…", refuse: "Micro refusé", arrete: "Micro arrêté" };
+  function majEtat(etat) {
+    $("etat").className = "pastille " + etat;
+    $("etat").textContent = libellesEtat[etat] || etat;
+  }
+
+  // Vérifications d'environnement : causes fréquentes de « ça ne marche pas »
+  var alertes = [];
+  if (!(window.SpeechRecognition || window.webkitSpeechRecognition)) {
+    alertes.push(["erreur", "Ce navigateur ne propose pas la reconnaissance vocale (c'est le cas de Firefox, et elle est peu fiable sur Safari / iPhone). Utiliser Chrome ou Edge."]);
+  }
+  if (!window.isSecureContext) {
+    alertes.push(["erreur", "La page n'est pas en HTTPS ni sur localhost : le navigateur bloque le micro. Lancer « python -m http.server 8000 » dans ce dossier puis ouvrir http://localhost:8000."]);
+  }
+  if (/Firefox/.test(navigator.userAgent)) alertes.push(["erreur", "Firefox n'est pas compatible."]);
+  alertes.forEach(function (a) {
+    var div = document.createElement("div");
+    div.className = "alerte " + a[0];
+    div.textContent = a[1];
+    $("alertes").appendChild(div);
+  });
+
+  function options() {
+    return { tolerance: Number($("tolerance").value), atolSeulEnDebut: $("atolSeul").checked };
+  }
+
+  var ecouteur = null;
+  function creer() {
+    var o = options();
+    return WakeWord.creerEcouteur({
+      lang: "fr-FR",
+      tolerance: o.tolerance,
+      atolSeulEnDebut: o.atolSeulEnDebut,
+      onEtat: majEtat,
+      onReveil: function (r) {
+        bip();
+        ouvrirChat();
+        if (!messages.children.length || !chat.dataset.salue) {
+          message("Bonjour, je vous écoute !", "bot");
+          chat.dataset.salue = "1";
+        }
+      },
+      onQuestionPartielle: function (t) {
+        if (!bullePartielle) {
+          bullePartielle = document.createElement("div");
+          bullePartielle.className = "msg moi partiel";
+          messages.appendChild(bullePartielle);
+        }
+        bullePartielle.textContent = t;
+        messages.scrollTop = messages.scrollHeight;
+      },
+      onQuestion: repondre,
+      onSilence: function () {
+        if (bullePartielle) { bullePartielle.remove(); bullePartielle = null; }
+        ajouterJournal("Pas de question entendue, retour en veille.", "relance");
+      },
+      onLog: function (e) {
+        if (e.type === "transcription") {
+          if (!e.final && !$("voirProvisoires").checked) return;
+          var conf = e.final && e.confiance ? " (confiance " + Math.round(e.confiance * 100) + " %)" : "";
+          ajouterJournal((e.final ? "FINAL : " : "… ") + e.alternatives.map(function (a) { return "« " + a.trim() + " »"; }).join(" | ") + conf,
+            e.final ? "" : "provisoire");
+        } else if (e.type === "reveil") {
+          ajouterJournal("✔ RÉVEIL sur « " + e.texte.trim() + " » (méthode : " + e.detail.methode + ", alternative n°" + (e.alternative + 1) + ")", "reveil");
+        } else if (e.type === "erreur") {
+          var aide = {
+            "not-allowed": "micro refusé : cliquer sur le cadenas de la barre d'adresse pour l'autoriser",
+            "no-speech": "aucune parole détectée, relance automatique",
+            "network": "le service de reconnaissance (serveurs Google pour Chrome) est injoignable : proxy ou pare-feu de l'entreprise ?",
+            "audio-capture": "aucun micro trouvé ou micro utilisé par une autre application",
+            "aborted": "session interrompue (normal lors d'une relance)"
+          }[e.erreur] || "";
+          ajouterJournal("Erreur : " + e.erreur + (aide ? " — " + aide : ""), e.erreur === "aborted" || e.erreur === "no-speech" ? "relance" : "erreur");
+        } else if (e.type === "relance") {
+          ajouterJournal("Le navigateur a coupé l'écoute, relance" + (e.attenteMs > 250 ? " dans " + e.attenteMs + " ms" : ""), "relance");
+        }
+      }
+    });
+  }
+
+  function demarrer() {
+    if (ecouteur) ecouteur.arreter();
+    ecouteur = creer();
+    if (!ecouteur.supporte) { ajouterJournal("Reconnaissance vocale non disponible dans ce navigateur.", "erreur"); return; }
+    ecouteur.demarrer();
+    ajouterJournal("Écoute activée.");
+  }
+
+  $("btnDemarrer").onclick = demarrer;
+  $("btnArreter").onclick = function () { if (ecouteur) ecouteur.arreter(); };
+  $("tolerance").onchange = $("atolSeul").onchange = function () { if (ecouteur) demarrer(); };
+  $("btnVider").onclick = function () { journal.textContent = ""; };
+  $("bulle").onclick = function () { ouvrirChat(); if (ecouteur) ecouteur.ecouterQuestion(); };
+  $("btnFermer").onclick = fermerChat;
+
+  function tester() {
+    var t = $("texteTest").value;
+    var r = WakeWord.detecter(t, options());
+    $("resultatTest").innerHTML = "";
+    var span = document.createElement("span");
+    span.style.color = r ? "var(--vert)" : "var(--rouge)";
+    span.textContent = r
+      ? "✔ Détecté (« " + r.extrait + " », méthode : " + r.methode + ")" + (r.suite ? " — question : « " + r.suite + " »" : "")
+      : "✘ Non détecté (texte normalisé : « " + WakeWord.normaliser(t) + " »)";
+    $("resultatTest").appendChild(span);
+  }
+  $("btnTester").onclick = tester;
+  $("texteTest").onkeydown = function (e) { if (e.key === "Enter") tester(); };
+})();
+</script>
+</body>
+</html>
