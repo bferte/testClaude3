@@ -131,9 +131,9 @@ scene(0,DROP,'bg-nuit dark',root=>{
     // hook: line1 on bar(-4)=1.58, line2 on bar(-3)=3.56 ; out at 5.2
     const w=ti.words; const t1=bar(-4), t2=3.1;
     w.forEach((x,i)=>{const st=i<3?t1+i*0.42:t2+(i-3)*0.4;const p=expoOut(prog(t,st,0.6));
-      const q=expoIn(prog(t,5.6+i*0.03,0.5));x.style.transform=`translateY(${(1-p)*110-q*110}%)`});
+      const q=expoIn(prog(t,5.45+i*0.03,0.45));x.style.transform=`translateY(${(1-p)*110-q*110}%)`});
     // captures cascade from bar(-2)=5.54, then rush to camera from bar(-1)=7.52
-    cards.forEach((c,i)=>{const a=bar(-2)+0.3+i*0.36;const p=expoOut(prog(t,a,1.1));
+    cards.forEach((c,i)=>{const a=6.15+i*0.3;const p=expoOut(prog(t,a,1.1));
       const [px,py]=pos[i];let z=-1500+p*1000, x=px*(0.6+0.4*p), y=py*(0.6+0.4*p)+(1-p)*200;
       const f=expoIn(prog(t,bar(-1)+0.25+i*0.22,1.45)); z+=f*1650;
       const op=clamp(p*2)*(1-clamp((z-700)/300));
