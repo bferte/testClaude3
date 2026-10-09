@@ -1,0 +1,272 @@
+<!doctype html>
+<html lang="fr"><head><meta charset="utf-8"><title>PAF motion</title>
+<style>
+@font-face{font-family:Poppins;font-weight:300;src:url(assets/poppins-latin-300-normal.woff2)}
+@font-face{font-family:Poppins;font-weight:400;src:url(assets/poppins-latin-400-normal.woff2)}
+@font-face{font-family:Poppins;font-weight:700;src:url(assets/poppins-latin-700-normal.woff2)}
+:root{--nuit:#1B2D50;--atol:#13386C;--moyen:#87B1E5;--pale:#C4E2F9;--casse:#F7F5F2;--gris:#5C6E87;--phone:#0F1B33}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:1920px;height:1080px;overflow:hidden;background:#000;font-family:Poppins,sans-serif}
+#stage{position:absolute;inset:0;overflow:hidden}
+.scene{position:absolute;inset:0;overflow:hidden;visibility:hidden}
+.shape{position:absolute;border-radius:50%}
+.title{position:absolute;font-weight:700;letter-spacing:-3px;line-height:1.02}
+.line{display:block;overflow:hidden;padding:0 4px 0.12em 0;margin-bottom:-0.12em;white-space:nowrap}
+.w{display:inline-block;will-change:transform}
+.sub{position:absolute;font-weight:400;font-size:29px;line-height:1.48}
+.sub .line{white-space:normal}
+.card{position:absolute;background:#fff;border-radius:24px;overflow:hidden;
+  box-shadow:0 30px 70px rgba(15,27,51,.22),0 8px 20px rgba(15,27,51,.10)}
+.card img{position:absolute;inset:0;width:100%;height:100%;display:block}
+.hl{position:absolute;border:5px solid var(--moyen);border-radius:16px;opacity:0;
+  box-shadow:0 0 0 6px rgba(135,177,229,.25)}
+.persp{position:absolute;inset:0;perspective:1600px}
+#flash{position:absolute;inset:0;background:#fff;opacity:0;pointer-events:none}
+#black{position:absolute;inset:0;background:#000;opacity:0;pointer-events:none}
+.caps{position:absolute;left:0;right:0;text-align:center;font-weight:300;letter-spacing:14px;color:var(--pale);font-size:34px}
+.wipe{position:absolute;inset:0;transform:translateY(100%)}
+</style></head>
+<body><div id="stage"></div><div id="flash"></div><div id="black"></div>
+<script>
+(async()=>{
+await Promise.all(['300','400','700'].map(w=>document.fonts.load(w+' 40px Poppins')));
+const BAR = 1.8565, DROP = 9.5;
+const T = {drop:DROP, s1:DROP+2*BAR, s2:DROP+8*BAR, s3:DROP+15*BAR, s4:DROP+21*BAR, ben:DROP+25*BAR, fin:DROP+29*BAR, end:68.0};
+window.TIMES = T;
+const W=1920,H=1080, FPS=30;
+const C = {nuit:'#1B2D50',atol:'#13386C',moyen:'#87B1E5',pale:'#C4E2F9',casse:'#F7F5F2',gris:'#5C6E87'};
+
+// ---------- helpers ----------
+const clamp=(x,a=0,b=1)=>Math.min(b,Math.max(a,x));
+const expoOut=x=>x>=1?1:1-Math.pow(2,-10*x);
+const expoIn=x=>x<=0?0:Math.pow(2,10*x-10);
+const expoInOut=x=>x<=0?0:x>=1?1:x<.5?Math.pow(2,20*x-10)/2:(2-Math.pow(2,-20*x+10))/2;
+const cubicOut=x=>1-Math.pow(1-x,3);
+const backOut=(x,s=2.2)=>1+(s+1)*Math.pow(x-1,3)+s*Math.pow(x-1,2);
+const prog=(t,a,d)=>clamp((t-a)/d);
+const lerp=(a,b,x)=>a+(b-a)*x;
+const el=(tag,cls,parent,css)=>{const e=document.createElement(tag);if(cls)e.className=cls;if(css)Object.assign(e.style,css);parent.appendChild(e);return e};
+const stage=document.getElementById('stage');
+
+// title builder: lines = array of strings; last line coloured accent
+function makeTitle(parent,lines,{x,y,size,color,accent,width,align='left'}){
+  const box=el('div','title',parent,{left:x+'px',top:y+'px',fontSize:size+'px',color,width:width?width+'px':'auto',textAlign:align});
+  const words=[];
+  lines.forEach((ln,i)=>{
+    const l=el('span','line',box); if(i===lines.length-1&&lines.length>1) l.style.color=accent;
+    ln.split(' ').forEach((wd,j,arr)=>{const s=el('span','w',l);s.textContent=wd;words.push(s);if(j<arr.length-1)l.appendChild(document.createTextNode(' '))});
+  });
+  return {box,words};
+}
+function fitTitle(t,maxW){ // shrink font so widest line fits
+  let size=parseFloat(t.box.style.fontSize);
+  const widest=()=>Math.max(...[...t.box.querySelectorAll('.line')].map(l=>{const r=document.createRange();r.selectNodeContents(l);return r.getBoundingClientRect().width}));
+  while(widest()>maxW&&size>60){size-=2;t.box.style.fontSize=size+'px'}
+  return size;
+}
+// word-by-word mask reveal; returns nothing, mutates
+function revealWords(words,t,start,gap,dur=0.6){
+  words.forEach((w,i)=>{const p=expoOut(prog(t,start+i*gap,dur));w.style.transform=`translateY(${(1-p)*115}%)`;});
+}
+function hideWords(words,t,start,dur=0.5){ // slide up and out
+  if(t<start) return; const p=expoInOut(prog(t,start,dur));
+  words.forEach(w=>{w.style.transform=`translateY(${-p*115}%)`});
+}
+function makeSub(parent,text,{x,y,width,color}){
+  const box=el('div','sub',parent,{left:x+'px',top:y+'px',width:width+'px',color});
+  const l=el('span','line',box); const inner=el('span','w',l); inner.textContent=text; inner.style.display='block';
+  return {box,inner};
+}
+function revealSub(s,t,start){const p=expoOut(prog(t,start,0.8));s.inner.style.transform=`translateY(${(1-p)*40}px)`;s.inner.style.opacity=p;}
+
+function bgShapes(scene,palette){
+  const arr=[];
+  palette.forEach(p=>{const s=el('div','shape',scene,{width:p.r*2+'px',height:p.r*2+'px',left:(p.x-p.r)+'px',top:(p.y-p.r)+'px',background:p.fill||'transparent',border:p.ring?`${p.ring}px solid ${p.color}`:'none',opacity:p.o});arr.push({s,p})});
+  return t=>arr.forEach(({s,p},i)=>{const dx=Math.sin(t*0.25+i*1.7)*18, dy=Math.cos(t*0.21+i)*14; s.style.transform=`translate(${dx}px,${dy}px)`});
+}
+
+// card with entrance (slide + 3D rotation that settles) and slow zoom
+function makeCard(parent,src,{x,y,w,h}){
+  const persp=el('div','persp',parent);
+  const c=el('div','card',persp,{left:x+'px',top:y+'px',width:w+'px',height:h+'px'});
+  const img=el('img','',c); img.src=src;
+  return {c,img,w,h};
+}
+function animCard(card,t,start,sceneDur,{fromX=140,rotY=-16}={}){
+  const p=expoOut(prog(t,start,1.2));
+  const z=1+0.035*prog(t,start,sceneDur-start);
+  card.c.style.opacity=clamp(p*1.6);
+  card.c.style.transform=`translateX(${(1-p)*fromX}px) rotateY(${(1-p)*rotY}deg) rotateX(${(1-p)*5}deg) scale(${z})`;
+}
+function addHL(card,{x,y,w,h},pad=8){
+  // x,y,w,h in source-image pixels; convert to card px
+  const sx=card.w/card.srcW, sy=card.h/card.srcH;
+  return el('div','hl',card.c,{left:(x*sx-pad)+'px',top:(y*sy-pad)+'px',width:(w*sx+2*pad)+'px',height:(h*sy+2*pad)+'px'});
+}
+const frameSrc=(dir,i)=>`clips/${dir}/${String(i).padStart(4,'0')}.jpg`;
+
+// scene-transition wipe: panel of next bg colour slides up, landing on the bar
+function wipeIn(scene,color,t,start){
+  // scene visible from start-0.55; bg panel covers via transform
+  const p=expoInOut(prog(t,start-0.55,0.55));
+  scene.style.clipPath=`inset(${(1-p)*100}% 0 0 0)`;
+}
+
+const scenes=[];
+function addScene(from,to,bg,build){
+  const s=el('div','scene',stage,{background:bg});
+  const upd=build(s);
+  scenes.push({s,from,to,upd});
+}
+
+// ================= INTRO =================
+addScene(0,T.drop,C.nuit,s=>{
+  const shapes=bgShapes(s,[{x:1680,y:140,r:340,fill:C.atol,o:.55},{x:180,y:980,r:300,fill:C.atol,o:.45},{x:1720,y:150,r:420,ring:2,color:C.moyen,o:.25},{x:200,y:960,r:390,ring:2,color:C.moyen,o:.2}]);
+  const dot=el('div','',s,{position:'absolute',left:'951px',top:'531px',width:'18px',height:'18px',borderRadius:'50%',background:'#fff'});
+  const ring=el('div','',s,{position:'absolute',left:'936px',top:'516px',width:'48px',height:'48px',borderRadius:'50%',border:'2px solid #fff'});
+  const tt=makeTitle(s,['Le PAF,','tout simplement.'],{x:0,y:0,size:150,color:'#fff',accent:C.moyen,width:1920,align:'center'});
+  fitTitle(tt,1700); tt.box.style.top=(540-tt.box.offsetHeight/2)+'px';
+  // capture cascade
+  const shots=[['stills/i1.jpg',1918,942],['stills/i2.jpg',1918,942],['stills/i3.jpg',1070,880],['stills/i4.jpg',1070,880],['stills/i5.jpg',1918,942]];
+  const persp=el('div','persp',s,{perspective:'1400px'});
+  const pos=[[-330,-120],[340,-60],[-260,150],[300,170],[0,0]];
+  const cards=shots.map(([src,w,h],i)=>{const cw=w>h*1.5?900:560, ch=cw*h/w;
+    const c=el('div','card',persp,{left:(960-cw/2+pos[i][0])+'px',top:(540-ch/2+pos[i][1])+'px',width:cw+'px',height:ch+'px',opacity:0});
+    el('img','',c).src=src; return c;});
+  return t=>{
+    shapes(t);
+    // dot pulses, fades as title arrives
+    const pulse=1+0.22*Math.sin(t*Math.PI*2/1.857*2);
+    const dv=1-prog(t,1.6,0.5);
+    dot.style.transform=`scale(${pulse})`; dot.style.opacity=dv;
+    const rp=(t%0.93)/0.93; ring.style.transform=`scale(${1+rp*1.6})`; ring.style.opacity=(1-rp)*0.6*dv;
+    revealWords(tt.words,t,1.75,0.5);
+    hideWords(tt.words,t,5.05,0.5);
+    // cascade: each card arrives from depth then rushes past the camera
+    cards.forEach((c,i)=>{
+      const a=5.35+i*0.62, fly=a+1.25+(i===4?0.35:0);
+      const pin=expoOut(prog(t,a,0.9)), pf=expoIn(prog(t,fly,i===4?0.75:0.8));
+      const z=lerp(-900,0,pin)+pf*1500;
+      const ry=(1-pin)*(i%2?14:-14);
+      c.style.opacity=t<a?0:clamp(pin*1.5)*(1-clamp((pf-0.75)*4));
+      c.style.transform=`translateZ(${z}px) rotateY(${ry}deg) rotateX(${(1-pin)*8}deg)`;
+    });
+  };
+});
+
+// ================= DROP =================
+function logoScene(from,to,{fadeOut=false}={}){
+  addScene(from,to,C.nuit,s=>{
+    const shapes=bgShapes(s,[{x:1650,y:120,r:360,fill:C.atol,o:.6},{x:240,y:990,r:320,fill:C.atol,o:.5},{x:1660,y:130,r:460,ring:2,color:C.moyen,o:.28},{x:250,y:980,r:420,ring:2,color:C.moyen,o:.22},{x:120,y:110,r:60,fill:C.moyen,o:.18},{x:1800,y:930,r:90,fill:C.moyen,o:.15}]);
+    const logo=el('img','',s,{position:'absolute',width:'560px',left:'680px',top:'335px'}); logo.src='assets/logo.png';
+    const cap=el('div','caps',s,{top:'640px'});
+    const l=el('span','line',cap,{display:'inline-block'}); const inner=el('span','w',l); inner.textContent='PLAN ANNUEL DE FORMATION';
+    return t=>{
+      const lt=t-from; shapes(t);
+      const p=prog(lt,0.05,0.9); const sc=lt<0.05?0.55:lerp(0.55,1,backOut(p,1.9));
+      logo.style.transform=`scale(${sc})`; logo.style.opacity=clamp(lt/0.12);
+      const pc=expoOut(prog(lt,0.75,0.7)); inner.style.transform=`translateY(${(1-pc)*115}%)`;
+      // drift
+      s.style.transform=`scale(${1+0.02*prog(lt,0,to-from)})`;
+    };
+  });
+}
+logoScene(T.drop,T.s1);
+
+// ================= PRODUCT SCENES =================
+function productScene({from,to,bg,dark,lines,sub,clip,hl,cardBox,src}){
+  addScene(from,to,bg,s=>{
+    const titleC=dark?'#fff':C.nuit, subC=dark?C.pale:C.gris;
+    const shapes=bgShapes(s,dark?[{x:1880,y:1040,r:300,fill:C.nuit,o:.5},{x:60,y:40,r:180,ring:2,color:C.moyen,o:.25}]
+                                 :[{x:1880,y:1060,r:320,fill:C.pale,o:.7},{x:40,y:30,r:200,fill:C.pale,o:.45}]);
+    const tt=makeTitle(s,lines,{x:110,y:0,size:118,color:titleC,accent:C.moyen});
+    fitTitle(tt,cardBox.textW||690);
+    const sb=makeSub(s,sub,{x:112,y:0,width:cardBox.textW?Math.min(cardBox.textW,640):620,color:subC});
+    const th=tt.box.offsetHeight, sh=sb.box.offsetHeight, gap=40, tot=th+gap+sh;
+    const top=cardBox.textTop!=null?cardBox.textTop:(540-tot/2);
+    tt.box.style.top=top+'px'; sb.box.style.top=(top+th+gap)+'px';
+    if(cardBox.subPos){Object.assign(sb.box.style,{left:cardBox.subPos.x+'px',top:cardBox.subPos.y+'px',width:cardBox.subPos.w+'px'})}
+    const card=makeCard(s,src||frameSrc(clip.segs[0].dir,1),cardBox);
+    card.srcW=cardBox.srcW; card.srcH=cardBox.srcH;
+    const hls=(hl||[]).map(h=>({e:addHL(card,h.r),at:h.at}));
+    return t=>{
+      const lt=t-from; shapes(t);
+      revealSub(sb,lt,0.25);
+      revealWords(tt.words,lt,0.45,0.5);
+      animCard(card,t,from+0.3,to-from);
+      if(clip){ // map local time to a source frame
+        let ct=lt-clip.start, acc=0, f=null;
+        for(const g of clip.segs){const d=g.n/30/g.speed; if(ct<acc+d||g===clip.segs.at(-1)){const i=clamp(Math.floor((ct-acc)*g.speed*30)+1,1,g.n); f=frameSrc(g.dir,i); break;} acc+=d;}
+        if(ct<0) f=frameSrc(clip.segs[0].dir,1);
+        const want=new URL(f,location.href).href; if(card.img.src!==want) card.img.src=f;
+      }
+      hls.forEach(h=>h.e.style.opacity=cubicOut(prog(lt,h.at,0.6)));
+    };
+  });
+}
+// card geometry
+const wideCard={x:850,y:0,w:990,h:990*880/1790,srcW:1790,srcH:880}; wideCard.y=540-wideCard.h/2;
+const modalCard={x:930,y:0,w:950*1070/880,h:950*880/1070,srcW:1070,srcH:880};
+modalCard.h=820; modalCard.w=820*1070/880; modalCard.y=130; modalCard.x=1840-modalCard.w;
+
+productScene({from:T.s1,to:T.s2,bg:C.casse,dark:false,
+  lines:['Vos équipes.','Leurs chiffres.','Le bon parcours.'],
+  sub:'Pour chaque collaborateur : ses indicateurs face à la moyenne nationale, et le parcours de formation suggéré selon ses résultats.',
+  cardBox:wideCard, clip:{start:0.3,segs:[{dir:'s1',n:300,speed:1}]},
+  hl:[{at:7.2,r:{x:1335,y:122,w:237,h:655}}]});
+productScene({from:T.s2,to:T.s3,bg:C.atol,dark:true,
+  lines:['Un parcours.','Des sessions.','Réservé.'],
+  sub:'Choisissez le parcours, puis réservez les sessions en présentiel et à distance, selon les places disponibles.',
+  cardBox:modalCard, clip:{start:0.3,segs:[{dir:'s2a',n:102,speed:1},{dir:'s2b',n:273,speed:1.15}]}});
+productScene({from:T.s3,to:T.s4,bg:C.casse,dark:false,
+  lines:['Les programmes.','En un clic.'],
+  sub:'Les programmes Fondamentaux et Perfectionnement se téléchargent en PDF, tout comme le guide de présentation du PAF.',
+  cardBox:wideCard, clip:{start:0.3,segs:[{dir:'s3',n:272,speed:1.15}]},
+  hl:[{at:8.3,r:{x:1062,y:450,w:714,h:58}},{at:8.9,r:{x:1270,y:12,w:248,h:70}}]});
+// signature: wide still, text on top
+const signCard={x:110,y:560,w:1700,h:1700*370/1780,srcW:1780,srcH:370,textTop:150,textW:860,subPos:{x:1060,y:250,w:700}};
+productScene({from:T.s4,to:T.ben,bg:C.atol,dark:true,
+  lines:['Un plan.','Une signature.'],
+  sub:'Le PAF rejoint l’espace Signatures, aux côtés du PAL et du PAM : l’état de chaque plan se suit d’un coup d’œil.',
+  cardBox:signCard, src:'stills/sign.jpg', hl:[{at:3.0,r:{x:1196,y:105,w:576,h:258}}]});
+
+// ================= BENEFITS =================
+addScene(T.ben,T.fin,C.casse,s=>{
+  const shapes=bgShapes(s,[{x:1700,y:900,r:380,fill:C.pale,o:.6},{x:200,y:150,r:260,fill:C.pale,o:.45},{x:1690,y:910,r:470,ring:2,color:C.moyen,o:.3}]);
+  const tt=makeTitle(s,['Plus clair.','Plus rapide.','Plus ciblé.'],{x:0,y:0,size:165,color:C.nuit,accent:C.moyen,width:1920,align:'center'});
+  tt.box.style.top=(540-tt.box.offsetHeight/2)+'px';
+  return t=>{const lt=t-T.ben; shapes(t);
+    // one line per ~2 beats: "Plus" then adjective
+    revealWords(tt.words.slice(0,2),lt,0.25,0.42); revealWords(tt.words.slice(2,4),lt,1.65,0.42); revealWords(tt.words.slice(4),lt,3.05,0.42);
+    tt.box.style.transform=`scale(${1+0.03*prog(lt,0,T.fin-T.ben)})`;
+  };
+});
+logoScene(T.fin,T.end);
+
+// ================= MASTER =================
+const flash=document.getElementById('flash'), black=document.getElementById('black');
+const wipeColors=[];
+window.seek=async function(t){
+  scenes.forEach((sc,i)=>{
+    const lead=(sc.from===T.s2||sc.from===T.s3||sc.from===T.s4||sc.from===T.ben)?0.55:0;
+    const on=t>=sc.from-lead && t<sc.to;
+    sc.s.style.visibility=on?'visible':'hidden';
+    sc.s.style.zIndex=i;
+    if(on){
+      if(lead){const p=expoInOut(prog(t,sc.from-lead,lead)); sc.s.style.clipPath=`inset(${(1-p)*100}% 0 0 0 round ${p<1?40:0}px)`;}
+      sc.upd(t);
+    }
+  });
+  // two impacts only: drop and final logo
+  const f1=t>=T.drop?1-cubicOut(prog(t,T.drop,0.7)):0;
+  const f2=t>=T.fin?1-cubicOut(prog(t,T.fin,0.7)):0;
+  // short white build just before the hits
+  const pre1=expoIn(prog(t,T.drop-0.18,0.18))*(t<T.drop?1:0), pre2=expoIn(prog(t,T.fin-0.18,0.18))*(t<T.fin?1:0);
+  flash.style.opacity=Math.max(f1,f2,pre1,pre2);
+  black.style.opacity=cubicOut(prog(t,T.end-1.3,1.15));
+  // wait for any image changes to decode
+  await Promise.all([...document.images].filter(im=>!im.complete).map(im=>new Promise(r=>{im.onload=im.onerror=r})));
+};
+window.ready=true;
+})();
+</script></body></html>
