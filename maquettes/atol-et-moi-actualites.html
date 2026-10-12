@@ -1,0 +1,581 @@
+<title>Atol &amp; Moi – Actualités</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap">
+<style>
+/* Layout : barre latérale fixe + contenu en grille 2/3 – 1/3, reprise de la charte Atol & Moi (marine, bleu ciel, cartes blanches). */
+:root {
+  --bg: #f4f6fa;
+  --surface: #ffffff;
+  --surface-2: #eef2f8;
+  --navy: #15396b;
+  --navy-ink: #0f2b52;
+  --sky: #7fb2e5;
+  --accent: #e23d3d;
+  --text: #15396b;
+  --muted: #6b7a90;
+  --line: #e3e8f0;
+  --on-navy: #ffffff;
+  --shadow: 0 1px 2px rgba(15, 43, 82, .05), 0 6px 18px rgba(15, 43, 82, .06);
+  --font: "Poppins", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --radius: 14px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0c1626; --surface: #13223a; --surface-2: #1a2d4a; --navy: #1d4580; --navy-ink: #0e2142;
+    --sky: #8fbcea; --accent: #f06565; --text: #e6edf7; --muted: #9aaac0; --line: #243a5c;
+    --on-navy: #ffffff; --shadow: 0 1px 2px rgba(0,0,0,.3), 0 6px 18px rgba(0,0,0,.25); color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0c1626; --surface: #13223a; --surface-2: #1a2d4a; --navy: #1d4580; --navy-ink: #0e2142;
+  --sky: #8fbcea; --accent: #f06565; --text: #e6edf7; --muted: #9aaac0; --line: #243a5c;
+  --on-navy: #ffffff; --shadow: 0 1px 2px rgba(0,0,0,.3), 0 6px 18px rgba(0,0,0,.25); color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--text); font-family: var(--font); font-size: 15px; line-height: 1.55; }
+a { color: inherit; text-decoration: none; }
+button { font: inherit; color: inherit; background: none; border: 0; cursor: pointer; }
+:focus-visible { outline: 2px solid var(--sky); outline-offset: 2px; border-radius: 6px; }
+h1, h2, h3 { margin: 0; text-wrap: balance; line-height: 1.2; }
+p { margin: 0; }
+
+/* ---------- Shell ---------- */
+.app { display: grid; grid-template-columns: 270px minmax(0, 1fr); min-height: 100vh; }
+.side { background: var(--surface); border-right: 1px solid var(--line); padding: 14px 14px 30px; position: sticky; top: 0; height: 100vh; overflow-y: auto; }
+.logo { display: flex; align-items: baseline; gap: 4px; padding: 0 0 28px 0; font-weight: 800; font-size: 34px; letter-spacing: -1px; color: var(--text); }
+.logo .amp { color: var(--sky); font-size: 28px; }
+.nav { display: flex; flex-direction: column; gap: 4px; }
+.nav a { display: flex; align-items: center; justify-content: space-between; padding: 12px 14px; border-radius: 8px; font-weight: 500; font-size: 16px; border-left: 3px solid transparent; }
+.nav a:hover { background: var(--surface-2); }
+.nav a.on { background: var(--surface-2); border-left-color: var(--navy); font-weight: 600; }
+.nav .new { font-size: 10px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; background: var(--accent); color: #fff; padding: 2px 7px; border-radius: 99px; }
+
+.main { min-width: 0; }
+.topbar { display: flex; align-items: center; gap: 14px; padding: 14px 28px; background: var(--surface); font-size: 16px; }
+.topbar b { font-weight: 600; }
+.topbar span { color: var(--muted); }
+.band { height: 18px; background:
+  radial-gradient(ellipse 90px 50px at 12% 0, var(--sky) 60%, transparent 61%),
+  radial-gradient(ellipse 120px 60px at 48% 100%, var(--sky) 60%, transparent 61%),
+  radial-gradient(ellipse 80px 40px at 80% 0, var(--sky) 60%, transparent 61%),
+  var(--navy-ink); }
+.content { padding: 36px 46px 60px; display: flex; flex-direction: column; gap: 20px; max-width: 1560px; }
+
+.card { background: var(--surface); border-radius: var(--radius); box-shadow: var(--shadow); padding: 22px 22px; min-width: 0; }
+.card-h { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 16px; }
+.card-h h2 { font-size: 18px; font-weight: 600; }
+.more { display: inline-flex; align-items: center; gap: 8px; font-weight: 600; font-size: 14px; color: var(--text); }
+.more:hover { text-decoration: underline; }
+.eyebrow { font-size: 11px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; }
+.pill { display: inline-block; font-size: 11px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; padding: 6px 12px; border-radius: 99px; background: var(--surface-2); }
+
+/* ---------- Hero ---------- */
+.hero { background: var(--navy); color: var(--on-navy); border-radius: 18px; padding: 28px 36px; display: flex; flex-wrap: wrap; gap: 24px; align-items: center; justify-content: space-between; position: relative; overflow: hidden; }
+.hero h1 { font-size: 40px; font-weight: 700; }
+.hero p { font-size: 18px; opacity: .9; margin-top: 6px; }
+.hero-meta { display: flex; align-items: center; gap: 28px; border: 1px solid rgba(255,255,255,.25); background: rgba(255,255,255,.06); border-radius: 14px; padding: 16px 26px; }
+.hero-date { display: grid; grid-template-columns: auto auto; column-gap: 10px; align-items: center; }
+.hero-date small { grid-column: 1 / -1; font-size: 11px; font-weight: 700; letter-spacing: .12em; }
+.hero-date strong { font-size: 46px; line-height: 1; font-weight: 700; }
+.hero-date em { font-style: normal; font-weight: 600; font-size: 17px; line-height: 1.2; }
+.hero-date em i { display: block; font-style: normal; font-weight: 400; font-size: 12px; opacity: .8; }
+.hero-weather { display: flex; align-items: center; gap: 12px; padding-left: 28px; border-left: 1px solid rgba(255,255,255,.25); }
+.hero-weather strong { font-size: 28px; font-weight: 600; }
+.hero-weather span { font-size: 12px; line-height: 1.3; }
+.hero-weather span b { display: block; font-size: 14px; }
+
+/* ---------- Grids ---------- */
+.row { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap: 20px; align-items: start; }
+.row-3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px; align-items: start; }
+
+/* ---------- Visuels d'articles (illustrations générées) ---------- */
+.thumb { position: relative; border-radius: 10px; overflow: hidden; aspect-ratio: 16 / 10; max-width: 100%; display: grid; place-items: center; color: rgba(255,255,255,.95); }
+.thumb svg { width: 34%; height: auto; position: relative; z-index: 1; filter: drop-shadow(0 4px 10px rgba(0,0,0,.18)); }
+.thumb::before, .thumb::after { content: ""; position: absolute; border-radius: 50%; background: rgba(255,255,255,.14); }
+.thumb::before { width: 70%; aspect-ratio: 1; right: -18%; top: -30%; }
+.thumb::after { width: 45%; aspect-ratio: 1; left: -12%; bottom: -25%; background: rgba(255,255,255,.09); }
+
+/* ---------- À la une (carrousel) ---------- */
+.une { position: relative; overflow: hidden; }
+.une-view { overflow: hidden; margin: 0 -6px; }
+.une-track { display: flex; transition: transform .45s ease; }
+.une-slide { flex: 0 0 100%; display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 28px; align-items: center; padding: 4px 6px; }
+.une-slide .thumb { aspect-ratio: 16 / 11; }
+.une-slide .thumb svg { width: 30%; }
+.une-slide h3 { font-size: 26px; font-weight: 700; margin: 8px 0 12px; }
+.une-slide p { color: var(--muted); font-size: 15px; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.une-foot { display: flex; align-items: center; justify-content: space-between; margin-top: 18px; gap: 12px; flex-wrap: wrap; }
+.dots { display: flex; gap: 8px; }
+.dots button { width: 9px; height: 9px; border-radius: 99px; background: var(--line); padding: 0; transition: width .25s, background .25s; }
+.dots button.on { background: var(--navy); width: 24px; }
+:root[data-theme="dark"] .dots button.on { background: var(--sky); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .dots button.on { background: var(--sky); } }
+.arrows { display: flex; gap: 8px; }
+.arrow { width: 36px; height: 36px; border-radius: 10px; border: 1px solid var(--line); display: grid; place-items: center; font-size: 18px; font-weight: 600; }
+.arrow:hover { background: var(--surface-2); }
+
+.meta { display: flex; align-items: center; gap: 10px; font-size: 12px; color: var(--muted); flex-wrap: wrap; }
+.cat { font-weight: 600; }
+.react { display: flex; align-items: center; gap: 16px; font-size: 13px; color: var(--muted); }
+.react button, .react span { display: inline-flex; align-items: center; gap: 5px; }
+.react svg { width: 17px; height: 17px; }
+.react button:hover { color: var(--text); }
+.react .liked { color: var(--accent); }
+.react .liked svg path { fill: currentColor; }
+.react .saved { color: var(--text); }
+.react .saved svg path { fill: currentColor; }
+
+/* ---------- Dernières actualités ---------- */
+.news-list { display: flex; flex-direction: column; }
+.news { display: grid; grid-template-columns: 210px minmax(0, 1fr); gap: 20px; padding: 16px 0; border-top: 1px solid var(--line); align-items: center; }
+.news:first-child { border-top: 0; padding-top: 0; }
+.news h3 { font-size: 17px; font-weight: 600; margin: 4px 0 6px; }
+.news h3 a:hover { text-decoration: underline; }
+.news p { font-size: 13.5px; color: var(--muted); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; margin-bottom: 10px; }
+.news-new { font-size: 10px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--accent); }
+
+/* ---------- Calendrier ---------- */
+.cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); text-align: center; row-gap: 10px; font-size: 13px; font-variant-numeric: tabular-nums; }
+.cal-grid .dow { font-size: 11px; font-weight: 600; color: var(--muted); }
+.cal-grid .d { width: 38px; height: 38px; margin: 0 auto; display: grid; place-items: center; border-radius: 50%; position: relative; }
+.cal-grid .out { color: var(--line); }
+.cal-grid .today { background: var(--navy); color: var(--on-navy); font-weight: 700; }
+.cal-grid .ev::after { content: ""; position: absolute; bottom: 4px; width: 5px; height: 5px; border-radius: 50%; background: var(--accent); }
+
+/* ---------- Événements / anniversaires ---------- */
+.ev-item { display: grid; grid-template-columns: 52px minmax(0, 1fr); gap: 14px; padding: 14px 0; border-top: 1px solid var(--line); }
+.ev-item:first-of-type { border-top: 0; padding-top: 0; }
+.ev-badge { width: 52px; height: 52px; border-radius: 12px; background: var(--surface-2); display: grid; place-items: center; color: var(--accent); font-weight: 800; font-size: 18px; }
+.ev-item small { font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
+.ev-item b { display: block; font-weight: 600; font-size: 15px; line-height: 1.35; margin: 3px 0; }
+.ev-item span { font-size: 12px; color: var(--muted); }
+.people { display: flex; flex-direction: column; gap: 14px; }
+.person { display: flex; align-items: center; gap: 14px; }
+.av { width: 46px; height: 46px; border-radius: 50%; display: grid; place-items: center; font-weight: 600; font-size: 14px; color: #fff; flex: none; }
+.person b { display: block; font-weight: 600; font-size: 16px; line-height: 1.25; }
+.person span { font-size: 13px; color: var(--muted); }
+
+/* ---------- Page Actualités ---------- */
+.page-head { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: 16px; }
+.page-head h1 { font-size: 32px; font-weight: 700; }
+.page-head p { color: var(--muted); margin-top: 4px; }
+.search { display: flex; align-items: center; gap: 8px; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 9px 14px; min-width: 0; width: 320px; max-width: 100%; }
+.search input { border: 0; outline: 0; background: transparent; font: inherit; color: var(--text); width: 100%; min-width: 0; }
+.search svg { width: 18px; color: var(--muted); flex: none; }
+.filters { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip { padding: 7px 14px; border-radius: 99px; border: 1px solid var(--line); background: var(--surface); font-size: 13px; font-weight: 500; }
+.chip:hover { border-color: var(--sky); }
+.chip.on { background: var(--navy); border-color: var(--navy); color: var(--on-navy); }
+.grid-news { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px; }
+.tile { display: flex; flex-direction: column; gap: 10px; padding: 14px; }
+.tile h3 { font-size: 17px; font-weight: 600; }
+.tile h3 a:hover { text-decoration: underline; }
+.tile p { font-size: 13.5px; color: var(--muted); display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; flex: 1; }
+.empty { text-align: center; padding: 50px 20px; color: var(--muted); }
+
+/* ---------- Article ---------- */
+.article { max-width: 860px; }
+.back { font-weight: 600; font-size: 14px; display: inline-flex; gap: 8px; align-items: center; }
+.article h1 { font-size: 36px; font-weight: 700; margin: 12px 0 14px; }
+.article .thumb { aspect-ratio: 21 / 9; margin: 20px 0 26px; }
+.article .thumb svg { width: 16%; }
+.article .body { font-size: 16px; display: flex; flex-direction: column; gap: 14px; max-width: 68ch; }
+.article .body p { color: var(--text); }
+.article .react { margin-top: 26px; padding-top: 18px; border-top: 1px solid var(--line); font-size: 14px; }
+.comments { margin-top: 26px; display: flex; flex-direction: column; gap: 14px; }
+.comment { display: flex; gap: 12px; }
+.comment .av { width: 38px; height: 38px; font-size: 12px; }
+.comment div div { background: var(--surface-2); border-radius: 12px; padding: 10px 14px; font-size: 14px; }
+.comment b { font-size: 13px; font-weight: 600; display: block; }
+.c-form { display: flex; gap: 10px; }
+.c-form input { flex: 1; min-width: 0; border: 1px solid var(--line); border-radius: 10px; padding: 10px 14px; font: inherit; background: var(--surface); color: var(--text); }
+.btn { background: var(--navy); color: var(--on-navy); padding: 10px 18px; border-radius: 10px; font-weight: 600; font-size: 14px; }
+
+.mock-note { font-size: 12px; color: var(--muted); text-align: center; }
+
+/* ---------- Responsive ---------- */
+@media (max-width: 1180px) {
+  .row { grid-template-columns: minmax(0, 1fr); }
+  .row-3 { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  .grid-news { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+}
+@media (max-width: 860px) {
+  .app { grid-template-columns: minmax(0, 1fr); }
+  .side { position: static; height: auto; padding: 12px 16px; border-right: 0; border-bottom: 1px solid var(--line); }
+  .logo { font-size: 26px; padding-bottom: 8px; }
+  .nav { flex-direction: row; overflow-x: auto; gap: 2px; }
+  .nav a { white-space: nowrap; padding: 8px 12px; font-size: 14px; border-left: 0; border-bottom: 3px solid transparent; border-radius: 6px 6px 0 0; }
+  .nav a.on { border-bottom-color: var(--navy); }
+  .content { padding: 20px 16px 40px; }
+  .topbar { padding: 12px 16px; }
+  .hero { padding: 22px; }
+  .hero h1 { font-size: 30px; }
+  .hero-meta { flex-wrap: wrap; gap: 16px; padding: 14px 18px; }
+  .hero-weather { padding-left: 0; border-left: 0; }
+  .une-slide { grid-template-columns: minmax(0, 1fr); gap: 14px; }
+  .une-slide h3 { font-size: 22px; }
+  .row-3, .grid-news { grid-template-columns: minmax(0, 1fr); }
+  .news { grid-template-columns: 120px minmax(0, 1fr); gap: 14px; }
+  .news p { display: none; }
+  .article h1 { font-size: 26px; }
+}
+@media (prefers-reduced-motion: reduce) { .une-track, .dots button { transition: none; } }
+</style>
+
+<div class="app">
+  <aside class="side">
+    <div class="logo">ATOL<span class="amp">&amp;</span>MOI</div>
+    <nav class="nav" id="nav" aria-label="Menu principal">
+      <a href="#accueil" data-view="accueil">Accueil</a>
+      <a href="#actualites" data-view="actualites">Actualités <span class="new">Nouveau</span></a>
+      <a href="#accueil" data-inert>Newsletters</a>
+      <a href="#accueil" data-inert>Evenements</a>
+      <a href="#accueil" data-inert>Documents</a>
+      <a href="#accueil" data-inert>Organigrammes</a>
+      <a href="#accueil" data-inert>Offres d’emploi</a>
+      <a href="#accueil" data-inert>Annuaire</a>
+      <a href="#accueil" data-inert>FAQ</a>
+      <a href="#accueil" data-inert>Liens utiles</a>
+      <a href="#accueil" data-inert>Admin</a>
+      <a href="#accueil" data-inert>Profil</a>
+    </nav>
+  </aside>
+
+  <div class="main">
+    <header class="topbar"><b>Briac FERTE</b><span>Product Owner</span></header>
+    <div class="band" aria-hidden="true"></div>
+    <main class="content" id="view"></main>
+  </div>
+</div>
+
+<script>
+(function () {
+  // ---------- Icônes ----------
+  const I = {
+    heart: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"/></svg>',
+    chat: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M4 5h16v11H9l-5 4z"/></svg>',
+    mark: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M6 3h12v18l-6-4-6 4z"/></svg>',
+    search: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg>',
+    cloud: '<svg viewBox="0 0 24 24" width="30" height="30"><path fill="#f5c94a" d="M7 9a4 4 0 0 1 7.6-1.6"/><circle cx="9" cy="9" r="4" fill="#f5c94a"/><path fill="#ffffff" d="M7 19a4 4 0 0 1-.5-8A5 5 0 0 1 16 10a4.5 4.5 0 0 1 1 9z"/></svg>'
+  };
+  // Pictogrammes des visuels par catégorie
+  const G = {
+    event: '<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linejoin="round"><rect x="8" y="12" width="48" height="44" rx="6"/><path d="M8 24h48M20 6v12M44 6v12"/><path d="M32 30l3.5 7 7.5 1-5.5 5 1.5 7.5L32 47l-7 3.5L26.5 43 21 38l7.5-1z" fill="currentColor"/></svg>',
+    building: '<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linejoin="round"><path d="M10 56V14l22-8v50M32 22h22v34M4 56h56"/><path d="M18 20h6M18 30h6M18 40h6M40 30h6M40 40h6"/></svg>',
+    people: '<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round"><circle cx="22" cy="22" r="8"/><circle cx="44" cy="24" r="6"/><path d="M8 52c0-8 6-14 14-14s14 6 14 14M38 52c0-6 3-11 8-12 6 1 10 6 10 12"/></svg>',
+    ribbon: '<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linejoin="round"><path d="M32 34c-6-7-12-14-12-20a12 12 0 0 1 24 0c0 6-6 13-12 20zM26 26L14 58l8-4 4 8 10-24M38 26l12 32-8-4-4 8-10-24"/></svg>',
+    glasses: '<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linejoin="round"><path d="M4 28h56M6 28l2 12a8 8 0 0 0 8 6h6a8 8 0 0 0 8-7l2-11M58 28l-2 12a8 8 0 0 1-8 6h-6a8 8 0 0 1-8-7l-2-11M8 28l6-12M56 28l-6-12"/></svg>',
+    talk: '<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linejoin="round"><path d="M6 10h34v22H20l-10 8v-8H6z"/><path d="M46 22h12v20h-4v8l-10-8H28v-6"/></svg>',
+    camera: '<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linejoin="round"><path d="M6 20h12l5-8h18l5 8h12v34H6z"/><circle cx="32" cy="35" r="10"/></svg>',
+    home: '<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linejoin="round"><path d="M6 30L32 8l26 22M14 24v32h36V24"/><path d="M26 56V40h12v16"/></svg>',
+    eye: '<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linejoin="round"><path d="M4 32s10-18 28-18 28 18 28 18-10 18-28 18S4 32 4 32z"/><circle cx="32" cy="32" r="9"/></svg>'
+  };
+
+  const CATS = {
+    "Événement":           { color: "#2f6fc0", grad: "linear-gradient(135deg,#15396b,#3f86d8)" },
+    "Vie du siège":         { color: "#4a8fd6", grad: "linear-gradient(135deg,#3f86d8,#8cc0f0)" },
+    "Ressources Humaines":  { color: "#c4572f", grad: "linear-gradient(135deg,#e26a3a,#f4a87a)" },
+    "Engagement":           { color: "#d0457f", grad: "linear-gradient(135deg,#d0457f,#f39ac0)" },
+    "Produits & Réseau":    { color: "#1f8a76", grad: "linear-gradient(135deg,#167a68,#4cc3a5)" }
+  };
+
+  // ---------- Données de démonstration ----------
+  const NEWS = [
+    { id: "atol-days", date: "2026-10-12", cat: "Événement", icon: "event", une: true,
+      title: "Atol Days 2026 : le programme complet est en ligne",
+      excerpt: "Rendez-vous les 19, 20 et 21 novembre à Paris pour trois jours de conférences, d’ateliers métiers et de rencontres avec les fournisseurs partenaires.",
+      body: ["Les Atol Days reviennent cette année à Paris, du 19 au 21 novembre. Plus de 600 opticiens adhérents et collaborateurs du siège sont attendus.",
+             "Au programme : une plénière d’ouverture avec la direction, douze ateliers métiers (basse vision, contactologie, relation client, vente additionnelle), un espace fournisseurs et la soirée de remise des trophées réseau.",
+             "Les inscriptions aux ateliers ouvrent lundi 19 octobre dans l’espace Événements. Les places sont limitées à 40 participants par atelier."],
+      comments: 6, likes: 24 },
+    { id: "siege-antony", date: "2026-10-09", cat: "Vie du siège", icon: "building", une: true,
+      title: "Siège d’Antony : l’espace collaboratif du 2e étage ouvre ses portes",
+      excerpt: "Salles de réunion réservables, zone de travail libre et nouveau coin café : découvrez le plateau rénové et les règles de réservation.",
+      body: ["Après trois mois de travaux, le plateau du 2e étage accueille désormais six salles de réunion équipées pour la visio, une zone de travail libre de 30 postes et un coin café.",
+             "Les salles se réservent depuis Outlook, avec le préfixe « ANT-2 ». La zone libre fonctionne sans réservation.",
+             "Un petit-déjeuner d’inauguration a lieu jeudi 15 octobre à 9 h. Toutes les équipes du siège sont invitées."],
+      comments: 3, likes: 18 },
+    { id: "recrues-marketing", date: "2026-10-08", cat: "Ressources Humaines", icon: "people",
+      title: "Bienvenue aux trois nouvelles recrues du pôle Marketing",
+      excerpt: "Chloé, Mehdi et Inès rejoignent l’équipe pour renforcer le digital, le CRM et l’animation commerciale des magasins.",
+      body: ["Le pôle Marketing accueille trois nouveaux collaborateurs ce mois-ci.",
+             "Chloé Martin prend le poste de cheffe de projet digital, Mehdi Benali celui de chargé CRM et Inès Garnier rejoint l’animation commerciale du réseau.",
+             "N’hésitez pas à passer les saluer au 3e étage."],
+      comments: 9, likes: 31 },
+    { id: "octobre-rose", date: "2026-10-06", cat: "Engagement", icon: "ribbon",
+      title: "Octobre Rose : 120 magasins mobilisés aux côtés de la Ligue",
+      excerpt: "Vitrines aux couleurs de la campagne, collecte en magasin et marche solidaire du 18 octobre : voici comment participer.",
+      body: ["Pour la quatrième année, le réseau Atol soutient Octobre Rose. 120 magasins ont déjà confirmé leur participation.",
+             "Pour chaque monture de la sélection solidaire vendue, 5 € sont reversés à la recherche contre le cancer du sein.",
+             "Une marche solidaire part du siège d’Antony le dimanche 18 octobre à 10 h."],
+      comments: 4, likes: 42 },
+    { id: "collection-solaire", date: "2026-10-02", cat: "Produits & Réseau", icon: "glasses",
+      title: "Collection solaire printemps 2027 : les premières montures dévoilées",
+      excerpt: "Douze modèles, des acétates biosourcés et trois coloris exclusifs. Les échantillons arrivent en magasin fin janvier.",
+      body: ["La collection solaire printemps 2027 compte douze modèles, dont huit en acétate biosourcé.",
+             "Trois coloris sont exclusifs au réseau : écaille miel, bleu marine translucide et vert sauge.",
+             "Les fiches produits sont disponibles dans l’espace Documents, rubrique Collections."],
+      comments: 2, likes: 15 },
+    { id: "entretiens-annuels", date: "2026-09-25", cat: "Ressources Humaines", icon: "talk",
+      title: "Entretiens annuels : comment bien les préparer ?",
+      excerpt: "La campagne démarre le 1er novembre. Trame, calendrier et conseils pour préparer l’échange avec votre manager.",
+      body: ["La campagne des entretiens annuels se déroule du 1er novembre au 15 décembre.",
+             "La trame est disponible dans l’espace RH. Prévoyez 20 minutes pour faire le point sur vos objectifs et vos souhaits de formation avant l’entretien.",
+             "Les managers recevront une session de préparation le 27 octobre."],
+      comments: 2, likes: 5 },
+    { id: "seminaire", date: "2026-09-21", cat: "Produits & Réseau", icon: "camera", une: true,
+      title: "Retour sur le séminaire des adhérents, toutes les photos",
+      excerpt: "Merci à toutes et à tous pour ces deux jours d’échanges à Lyon. Retrouvez l’album photo et les supports des interventions.",
+      body: ["Le séminaire des adhérents a réuni 250 opticiens à Lyon les 17 et 18 septembre.",
+             "L’album photo et les supports des interventions sont disponibles dans l’espace Documents.",
+             "Merci à toutes les équipes qui ont rendu ces deux jours possibles."],
+      comments: 2, likes: 5 },
+    { id: "action-logement", date: "2026-09-18", cat: "Ressources Humaines", icon: "home",
+      title: "Action Logement : les aides auxquelles vous avez droit en 2026",
+      excerpt: "Avance de dépôt de garantie, aide à la mobilité, prêt accession : un récapitulatif avant les webinaires de novembre.",
+      body: ["Action Logement propose plusieurs aides aux salariés : avance Loca-Pass pour le dépôt de garantie, aide Mobili-Jeune, prêt accession.",
+             "Deux webinaires sont programmés les 5 et 27 novembre à midi. Inscription dans l’espace Événements."],
+      comments: 1, likes: 8 },
+    { id: "depistage", date: "2026-09-12", cat: "Engagement", icon: "eye",
+      title: "Journée de dépistage visuel gratuit : bilan de l’édition 2026",
+      excerpt: "Plus de 3 400 dépistages réalisés en une journée dans le réseau. Merci aux équipes en magasin.",
+      body: ["La journée nationale de dépistage a permis de réaliser 3 412 dépistages gratuits en magasin.",
+             "Près d’un tiers des personnes dépistées n’avaient pas consulté depuis plus de deux ans."],
+      comments: 3, likes: 21 }
+  ];
+
+  const TODAY = new Date("2026-10-12T09:00:00");
+  const MONTHS = ["janvier","février","mars","avril","mai","juin","juillet","août","septembre","octobre","novembre","décembre"];
+  const fmt = iso => { const d = new Date(iso + "T00:00:00"); return d.getDate() + " " + MONTHS[d.getMonth()] + " " + d.getFullYear(); };
+  const isNew = iso => (TODAY - new Date(iso + "T00:00:00")) / 864e5 < 4;
+  const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+
+  // État local de la maquette (j'aime, enregistrés, commentaires)
+  const state = { liked: new Set(), saved: new Set(), extra: {}, slide: 0, cat: "Toutes", q: "" };
+  try { const s = JSON.parse(localStorage.getItem("atol-actus") || "{}"); (s.liked || []).forEach(x => state.liked.add(x)); (s.saved || []).forEach(x => state.saved.add(x)); } catch (e) {}
+  const persist = () => { try { localStorage.setItem("atol-actus", JSON.stringify({ liked: [...state.liked], saved: [...state.saved] })); } catch (e) {} };
+
+  const thumb = n => `<div class="thumb" style="background:${CATS[n.cat].grad}" aria-hidden="true">${G[n.icon]}</div>`;
+  const catTag = n => `<span class="cat" style="color:${CATS[n.cat].color}">${esc(n.cat)}</span>`;
+  const reactions = n => {
+    const liked = state.liked.has(n.id), saved = state.saved.has(n.id);
+    const nc = n.comments + (state.extra[n.id] || []).length;
+    return `<div class="react">
+      <a href="#article-${n.id}" aria-label="${nc} commentaires">${I.chat} ${nc}</a>
+      <button type="button" data-like="${n.id}" class="${liked ? "liked" : ""}" aria-pressed="${liked}" aria-label="J’aime">${I.heart} ${n.likes + (liked ? 1 : 0)}</button>
+      <button type="button" data-save="${n.id}" class="${saved ? "saved" : ""}" aria-pressed="${saved}" aria-label="Enregistrer">${I.mark}${saved ? " Enregistré" : ""}</button>
+    </div>`;
+  };
+
+  // ---------- Vue Accueil ----------
+  function home() {
+    const une = NEWS.filter(n => n.une);
+    const latest = NEWS.filter(n => !n.une).slice(0, 3);
+    return `
+    <section class="hero">
+      <div><h1>Bonjour Briac</h1><p>Retrouvez les informations et outils utiles à votre quotidien.</p></div>
+      <div class="hero-meta">
+        <div class="hero-date"><small>LUNDI</small><strong>12</strong><em>Octobre<i>2026</i></em></div>
+        <div class="hero-weather">${I.cloud}<strong>18°</strong><span><b>Ciel couvert</b>7° / 18° · Antony</span></div>
+      </div>
+    </section>
+
+    <div class="row">
+      <section class="card une" aria-roledescription="carrousel" aria-label="Infos à la une">
+        <div class="card-h"><span class="pill">À la une</span>
+          <div class="arrows"><button class="arrow" type="button" data-slide="-1" aria-label="Précédent">‹</button><button class="arrow" type="button" data-slide="1" aria-label="Suivant">›</button></div>
+        </div>
+        <div class="une-view"><div class="une-track" id="track" style="transform:translateX(-${state.slide * 100}%)">
+          ${une.map((n, i) => `
+          <article class="une-slide" aria-label="${i + 1} sur ${une.length}" ${i === state.slide ? "" : 'aria-hidden="true"'}>
+            <a href="#article-${n.id}" tabindex="${i === state.slide ? 0 : -1}">${thumb(n)}</a>
+            <div>
+              <div class="meta">${fmt(n.date)} · ${catTag(n)}</div>
+              <h3><a href="#article-${n.id}" tabindex="${i === state.slide ? 0 : -1}">${esc(n.title)}</a></h3>
+              <p>${esc(n.excerpt)}</p>
+              <div style="margin-top:14px">${reactions(n)}</div>
+            </div>
+          </article>`).join("")}
+        </div></div>
+        <div class="une-foot">
+          <div class="dots">${une.map((_, i) => `<button type="button" data-dot="${i}" class="${i === state.slide ? "on" : ""}" aria-label="Actualité ${i + 1}"></button>`).join("")}</div>
+          <a class="more" href="#article-${une[state.slide].id}">Lire l’article <span aria-hidden="true">→</span></a>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="card-h"><h2>Octobre 2026</h2><div class="arrows"><button class="arrow" type="button" aria-label="Mois précédent">‹</button><button class="arrow" type="button" aria-label="Mois suivant">›</button></div></div>
+        ${calendar()}
+      </section>
+    </div>
+
+    <div class="row">
+      <section class="card">
+        <div class="card-h"><h2>Dernières actualités</h2><a class="more" href="#actualites">Voir toutes les actualités <span aria-hidden="true">→</span></a></div>
+        <div class="news-list">
+          ${latest.map(n => `
+          <article class="news">
+            <a href="#article-${n.id}" tabindex="-1">${thumb(n)}</a>
+            <div>
+              <div class="meta">${fmt(n.date)} · ${catTag(n)} ${isNew(n.date) ? '<span class="news-new">Nouveau</span>' : ""}</div>
+              <h3><a href="#article-${n.id}">${esc(n.title)}</a></h3>
+              <p>${esc(n.excerpt)}</p>
+              ${reactions(n)}
+            </div>
+          </article>`).join("")}
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="card-h"><h2>Prochains événements</h2><a class="more" href="#accueil" aria-label="Voir tous les événements">→</a></div>
+        ${[["19 OCTOBRE · 10H00", "Ouverture des inscriptions aux ateliers Atol Days", "Interne"],
+           ["5 NOVEMBRE · 12H00", "Webinaire Action Logement : les étapes de l’accession à la propriété", "Webinaire"],
+           ["19 NOVEMBRE · 09H00", "Atol Days 2026, Paris", "Événement réseau"]]
+          .map(e => `<div class="ev-item"><div class="ev-badge">${e[2] === "Webinaire" ? "AL" : "AD"}</div><div><small>${e[0]}</small><b>${e[1]}</b><span>${e[2]}</span></div></div>`).join("")}
+      </section>
+    </div>
+
+    <div class="row-3">
+      <section class="card"><div class="card-h"><h2>Prochains anniversaires</h2></div>
+        <div class="people">${people([["Orlane PALENZUELA", "Demain", "#c4572f"], ["Bérangère MEYER", "dans 2 jours", "#2f6fc0"], ["Florian CAPONE", "dans 3 jours", "#1f8a76"]])}</div></section>
+      <section class="card"><div class="card-h"><h2>Anniversaires professionnels</h2></div>
+        <div class="people">${people([["Aurélien SAISON", "1 an", "#15396b"], ["Margaux DALET", "5 ans", "#d0457f"], ["Camille FERREIRA", "5 ans", "#7a5bc4"]])}</div></section>
+      <section class="card"><div class="card-h"><h2>Newsletter RH</h2></div>
+        <p style="font-weight:600;font-size:16px">Newsletter du 9 octobre 2026</p>
+        <p style="color:var(--muted);font-size:13.5px;margin:6px 0 14px">Les Atol Days sont dans les starting-blocks ! Donnez votre avis sur le nouvel intranet et découvrez la nouveauté du siège d’Antony.</p>
+        <a class="more" href="#accueil">Lire la newsletter <span aria-hidden="true">→</span></a></section>
+    </div>
+    <p class="mock-note">Maquette fonctionnelle · contenus fictifs</p>`;
+  }
+
+  function people(list) {
+    return list.map(p => `<div class="person"><div class="av" style="background:${p[2]}">${p[0].split(" ").map(w => w[0]).join("")}</div><div><b>${p[0]}</b><span>${p[1]}</span></div></div>`).join("");
+  }
+
+  function calendar() {
+    const evDays = [15, 18, 19];
+    let h = '<div class="cal-grid">' + ["L", "M", "M", "J", "V", "S", "D"].map(d => `<div class="dow">${d}</div>`).join("");
+    const cells = [[28, 1], [29, 1], [30, 1]];
+    for (let d = 1; d <= 31; d++) cells.push([d, 0]);
+    cells.push([1, 1]);
+    cells.forEach(([d, out]) => {
+      const cls = out ? "out" : (d === 12 ? "today" : "") + (evDays.includes(d) && !out ? " ev" : "");
+      h += `<div><span class="d ${cls}">${d}</span></div>`;
+    });
+    return h + "</div>";
+  }
+
+  // ---------- Vue Actualités ----------
+  function list() {
+    const cats = ["Toutes", "Enregistrées", ...Object.keys(CATS)];
+    return `
+    <div class="page-head">
+      <div><h1>Actualités</h1><p>Toute l’actualité du siège, des magasins et du réseau Atol.</p></div>
+      <label class="search" for="q">${I.search}<input id="q" type="search" placeholder="Rechercher une actualité" value="${esc(state.q)}" autocomplete="off"></label>
+    </div>
+    <div class="filters" role="group" aria-label="Filtrer par catégorie">
+      ${cats.map(c => `<button type="button" class="chip ${state.cat === c ? "on" : ""}" data-cat="${esc(c)}" aria-pressed="${state.cat === c}">${esc(c)}</button>`).join("")}
+    </div>
+    <div class="grid-news" id="grid">${gridItems()}</div>`;
+  }
+
+  function gridItems() {
+    const q = state.q.trim().toLowerCase();
+    const items = NEWS.filter(n =>
+      (state.cat === "Toutes" || (state.cat === "Enregistrées" ? state.saved.has(n.id) : n.cat === state.cat)) &&
+      (!q || (n.title + " " + n.excerpt).toLowerCase().includes(q)));
+    if (!items.length) return `<div class="card empty" style="grid-column:1/-1">${state.cat === "Enregistrées" ? "Aucune actualité enregistrée. Cliquez sur l’icône signet d’un article pour le retrouver ici." : "Aucune actualité ne correspond à votre recherche."}</div>`;
+    return items.map(n => `
+      <article class="card tile">
+        <a href="#article-${n.id}" tabindex="-1">${thumb(n)}</a>
+        <div class="meta">${fmt(n.date)} · ${catTag(n)} ${isNew(n.date) ? '<span class="news-new">Nouveau</span>' : ""}</div>
+        <h3><a href="#article-${n.id}">${esc(n.title)}</a></h3>
+        <p>${esc(n.excerpt)}</p>
+        ${reactions(n)}
+      </article>`).join("");
+  }
+
+  // ---------- Vue Article ----------
+  const SAMPLE_COMMENTS = [["Margaux DALET", "#d0457f", "Super nouvelle, merci pour le partage !"], ["Florian CAPONE", "#1f8a76", "Hâte d’y être."]];
+  function article(id) {
+    const n = NEWS.find(x => x.id === id);
+    if (!n) return list();
+    const extra = state.extra[n.id] || [];
+    const related = NEWS.filter(x => x.id !== n.id && x.cat === n.cat).slice(0, 2);
+    return `
+    <div class="row">
+      <article class="card article" style="padding:30px">
+        <a class="back" href="#actualites"><span aria-hidden="true">←</span> Toutes les actualités</a>
+        <div class="meta" style="margin-top:18px">${fmt(n.date)} · ${catTag(n)}</div>
+        <h1>${esc(n.title)}</h1>
+        <p style="font-size:17px;color:var(--muted)">${esc(n.excerpt)}</p>
+        ${thumb(n)}
+        <div class="body">${n.body.map(p => `<p>${esc(p)}</p>`).join("")}</div>
+        ${reactions(n)}
+        <div class="comments">
+          ${SAMPLE_COMMENTS.slice(0, Math.min(2, n.comments)).concat(extra).map(c => `<div class="comment"><div class="av" style="background:${c[1]}">${c[0].split(" ").map(w => w[0]).join("")}</div><div><div><b>${esc(c[0])}</b>${esc(c[2])}</div></div></div>`).join("")}
+          <form class="c-form" id="cform" data-id="${n.id}"><input id="comment-input" placeholder="Écrire un commentaire…" aria-label="Votre commentaire" autocomplete="off"><button class="btn" type="submit">Publier</button></form>
+        </div>
+      </article>
+      <aside class="card">
+        <div class="card-h"><h2>À lire aussi</h2></div>
+        <div class="news-list">
+          ${(related.length ? related : NEWS.filter(x => x.id !== n.id).slice(0, 2)).map(r => `
+          <article class="news" style="grid-template-columns:minmax(0,1fr)">
+            <a href="#article-${r.id}" tabindex="-1">${thumb(r)}</a>
+            <div><div class="meta">${fmt(r.date)} · ${catTag(r)}</div><h3><a href="#article-${r.id}">${esc(r.title)}</a></h3></div>
+          </article>`).join("")}
+        </div>
+      </aside>
+    </div>`;
+  }
+
+  // ---------- Routage ----------
+  const view = document.getElementById("view");
+  let timer;
+  function route() {
+    const h = (location.hash || "#accueil").slice(1);
+    const name = h.startsWith("article-") ? "actualites" : (h === "actualites" ? "actualites" : "accueil");
+    document.querySelectorAll("#nav a[data-view]").forEach(a => a.classList.toggle("on", a.dataset.view === name));
+    view.innerHTML = h.startsWith("article-") ? article(h.slice(8)) : h === "actualites" ? list() : home();
+    clearInterval(timer);
+    if (name === "accueil" && !matchMedia("(prefers-reduced-motion: reduce)").matches) timer = setInterval(() => goSlide(1), 7000);
+  }
+  function rerender() { const y = scrollY; route(); scrollTo(0, y); }
+  function goSlide(delta, abs) {
+    const count = NEWS.filter(n => n.une).length;
+    state.slide = abs != null ? abs : (state.slide + delta + count) % count;
+    if ((location.hash || "#accueil") === "#accueil") rerender();
+  }
+
+  document.addEventListener("click", e => {
+    const t = e.target.closest("[data-like],[data-save],[data-slide],[data-dot],[data-cat],[data-inert]");
+    if (!t) return;
+    if (t.dataset.inert != null) { e.preventDefault(); return; }
+    if (t.dataset.like) { const id = t.dataset.like; state.liked.has(id) ? state.liked.delete(id) : state.liked.add(id); persist(); }
+    if (t.dataset.save) { const id = t.dataset.save; state.saved.has(id) ? state.saved.delete(id) : state.saved.add(id); persist(); }
+    if (t.dataset.slide) { goSlide(+t.dataset.slide); clearInterval(timer); return; }
+    if (t.dataset.dot) { goSlide(0, +t.dataset.dot); clearInterval(timer); return; }
+    if (t.dataset.cat) { state.cat = t.dataset.cat; }
+    if (t.dataset.cat || !document.getElementById("grid")) rerender();
+    else document.getElementById("grid").innerHTML = gridItems();
+  });
+  document.addEventListener("input", e => {
+    if (e.target.id === "q") { state.q = e.target.value; document.getElementById("grid").innerHTML = gridItems(); }
+  });
+  document.addEventListener("submit", e => {
+    if (e.target.id !== "cform") return;
+    e.preventDefault();
+    const input = document.getElementById("comment-input"), txt = input.value.trim();
+    if (!txt) return;
+    const id = e.target.dataset.id;
+    (state.extra[id] = state.extra[id] || []).push(["Briac FERTE", "#15396b", txt]);
+    rerender();
+  });
+  addEventListener("hashchange", () => { route(); scrollTo(0, 0); });
+  route();
+})();
+</script>
