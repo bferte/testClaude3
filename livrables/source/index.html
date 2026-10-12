@@ -49,11 +49,11 @@ const el=(tag,cls,parent,css)=>{const e=document.createElement(tag);if(cls)e.cla
 const stage=document.getElementById('stage');
 
 // title builder: lines = array of strings; last line coloured accent
-function makeTitle(parent,lines,{x,y,size,color,accent,width,align='left'}){
+function makeTitle(parent,lines,{x,y,size,color,accent,width,align='left',accentSingle:opts1=false}){
   const box=el('div','title',parent,{left:x+'px',top:y+'px',fontSize:size+'px',color,width:width?width+'px':'auto',textAlign:align});
   const words=[];
   lines.forEach((ln,i)=>{
-    const l=el('span','line',box); if(i===lines.length-1&&lines.length>1) l.style.color=accent;
+    const l=el('span','line',box); if(i===lines.length-1&&(lines.length>1||opts1)) l.style.color=accent;
     ln.split(' ').forEach((wd,j,arr)=>{const s=el('span','w',l);s.textContent=wd;words.push(s);if(j<arr.length-1)l.appendChild(document.createTextNode(' '))});
   });
   return {box,words};
@@ -179,7 +179,7 @@ function productScene({from,to,bg,dark,lines,sub,clip,hl,cardBox,src}){
     const titleC=dark?'#fff':C.nuit, subC=dark?C.pale:C.gris;
     const shapes=bgShapes(s,dark?[{x:1880,y:1040,r:300,fill:C.nuit,o:.5},{x:60,y:40,r:180,ring:2,color:C.moyen,o:.25}]
                                  :[{x:1880,y:1060,r:320,fill:C.pale,o:.7},{x:40,y:30,r:200,fill:C.pale,o:.45}]);
-    const tt=makeTitle(s,lines,{x:110,y:0,size:118,color:titleC,accent:C.moyen});
+    const tt=makeTitle(s,lines,{x:110,y:0,size:118,color:titleC,accent:C.moyen,accentSingle:true});
     fitTitle(tt,cardBox.textW||690);
     const sb=makeSub(s,sub,{x:112,y:0,width:cardBox.textW?Math.min(cardBox.textW,640):620,color:subC});
     const th=tt.box.offsetHeight, sh=sb.box.offsetHeight, gap=40, tot=th+gap+sh;
@@ -224,9 +224,9 @@ productScene({from:T.s3,to:T.s4,bg:C.casse,dark:false,
   cardBox:wideCard, clip:{start:0.3,segs:[{dir:'s3',n:272,speed:1.15}]},
   hl:[{at:8.3,r:{x:1062,y:450,w:714,h:58}},{at:8.9,r:{x:1270,y:12,w:248,h:70}}]});
 // signature: wide still, text on top
-const signCard={x:110,y:560,w:1700,h:1700*370/1780,srcW:1780,srcH:370,textTop:150,textW:860,subPos:{x:1060,y:250,w:700}};
+const signCard={x:110,y:560,w:1700,h:1700*370/1780,srcW:1780,srcH:370,textTop:225,textW:860,subPos:{x:1060,y:250,w:700}};
 productScene({from:T.s4,to:T.ben,bg:C.atol,dark:true,
-  lines:['Un plan.','Une signature.'],
+  lines:['Une signature.'],
   sub:'Le PAF rejoint l’espace Signatures, aux côtés du PAL et du PAM : l’état de chaque plan se suit d’un coup d’œil.',
   cardBox:signCard, src:'stills/sign.jpg', hl:[{at:3.0,r:{x:1196,y:105,w:576,h:258}}]});
 

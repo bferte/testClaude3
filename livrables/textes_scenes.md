@@ -11,7 +11,7 @@ Textes à valider. Les minutages renvoient à la vidéo ; les sources renvoient 
 | 1 | 13,2 – 24,4 s | blanc cassé | **Vos équipes.** / **Leurs chiffres.** / *Le bon parcours.* | Pour chaque collaborateur : ses indicateurs face à la moyenne nationale, et le parcours de formation suggéré selon ses résultats. | source 0:09 → 0:19 (×1), contour sur la colonne « Parcours suggéré » |
 | 2 | 24,4 – 37,3 s | bleu ATOL | **Un parcours.** / **Des sessions.** / *Réservé.* | Choisissez le parcours, puis réservez les sessions en présentiel et à distance, selon les places disponibles. | source 0:21 → 0:24,4 (×1) puis 0:35,5 → 0:44,6 (×1,15), cadré sur la fenêtre « Planification du parcours » |
 | 3 | 37,3 – 48,5 s | blanc cassé | **Les programmes.** / *En un clic.* | Les programmes Fondamentaux et Perfectionnement se téléchargent en PDF, tout comme le guide de présentation du PAF. | source 0:53 → 1:02 (×1,15), contours sur « Voir le programme… » et « Télécharger le guide » |
-| 4 | 48,5 – 55,9 s | bleu ATOL | **Un plan.** / *Une signature.* | Le PAF rejoint l’espace Signatures, aux côtés du PAL et du PAM : l’état de chaque plan se suit d’un coup d’œil. | capture à 1:07, contour sur la carte PAF |
+| 4 | 48,5 – 55,9 s | bleu ATOL | *Une signature.* | Le PAF rejoint l’espace Signatures, aux côtés du PAL et du PAM : l’état de chaque plan se suit d’un coup d’œil. | capture à 1:07, contour sur la carte PAF |
 | Final | 55,9 – 63,3 s | blanc cassé | **Plus clair.** / **Plus rapide.** / *Plus ciblé.* | — | — |
 | Outro | 63,3 – 68 s | bleu nuit | logo ATOL + « PLAN ANNUEL DE FORMATION » | — | flash sur la dernière frappe du morceau, fondu au noir |
 
