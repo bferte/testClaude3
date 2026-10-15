@@ -4,3 +4,7 @@ __pycache__/
 .pytest_cache/
 *_controle.html
 *_controle.xlsx
+*_resultats.xlsx
+*_resultats_non_reservables.xlsx
+*.encours.csv
+~tmp_*.xlsx
