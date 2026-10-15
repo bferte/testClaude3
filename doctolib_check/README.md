@@ -1,9 +1,26 @@
 # Contrôle des fiches magasins Doctolib
 
-Script qui ouvre chaque URL Doctolib d'un fichier Excel et détecte si la fiche affiche
-**« n'est pas réservable en ligne »**.
+Outil qui ouvre chaque URL Doctolib d'un fichier CSV ou Excel et détecte si la fiche affiche
+**« n'est pas réservable en ligne »**. Deux façons de l'utiliser : l'interface web (glisser-déposer)
+ou la ligne de commande.
 
-## 1. Installation (une seule fois)
+## Interface web (Windows) — le plus simple
+
+1. Installer **Python 3.10 ou plus récent** (https://www.python.org/downloads/, cocher *« Add python.exe to PATH »*).
+2. Double-cliquer sur **`lancer.bat`**. Le premier lancement installe les composants et Chromium
+   (quelques minutes), puis la page s'ouvre dans le navigateur (http://localhost:8502).
+3. Glisser-déposer le fichier CSV ou Excel des URL ; vérifier la colonne détectée.
+4. Faire un essai avec « Ne traiter que les N premières » = 10, puis lancer sur tout le fichier.
+5. Télécharger les résultats : **Résultats complets** et **Non réservables uniquement** (.xlsx).
+   Une copie est aussi enregistrée dans le dossier `resultats/`.
+
+En cas d'arrêt (fenêtre fermée, coupure…), redéposer le même fichier et cocher **« Reprendre »** :
+seules les URL manquantes ou en erreur sont refaites. Les réglages (onglets en parallèle, délais,
+pause…) sont dans la barre latérale. L'application n'est accessible que depuis ce poste.
+
+## Ligne de commande
+
+### 1. Installation (une seule fois)
 
 ```bash
 # Dépendances Python
@@ -17,9 +34,10 @@ python -m playwright install chromium
 > Poste d'entreprise où le téléchargement de Chromium est bloqué : sauter la 2ᵉ commande et ajouter
 > `--chrome` à l'exécution pour utiliser le Google Chrome déjà installé.
 
-## 2. Fichier d'entrée
+### 2. Fichier d'entrée
 
-Un fichier Excel avec une colonne **`URL`** (les autres colonnes sont ignorées).
+Un fichier Excel ou CSV (séparateur `;` ou `,`) avec une colonne d'URL, détectée automatiquement
+(les autres colonnes sont ignorées).
 Exemple fourni : `urls_magasins_exemple.xlsx` (régénérable avec `python generer_exemple.py`).
 
 | Code magasin | URL |
@@ -30,7 +48,7 @@ Exemple fourni : `urls_magasins_exemple.xlsx` (régénérable avec `python gener
 Si la colonne porte un autre nom : `--colonne "Lien Doctolib"`. Autre onglet : `--onglet "Feuil2"`.
 Les doublons et cellules vides sont ignorés.
 
-## 3. Exécution
+### 3. Exécution
 
 ```bash
 # Essai sur 10 URL, navigateur visible pour vérifier
@@ -45,7 +63,7 @@ python verifier_doctolib.py mes_urls.xlsx --reprendre
 
 Sous Windows : glisser-déposer le fichier Excel sur **`verifier.bat`**.
 
-## 4. Résultats
+### 4. Résultats
 
 | Fichier | Contenu |
 |---|---|
@@ -58,7 +76,7 @@ Statuts : **Réservable**, **Non réservable**, ou **Indéterminé** quand la pa
 Le fichier Excel est mis à jour toutes les 10 URL (`--frequence-sauvegarde`) ; s'il est ouvert dans
 Excel à ce moment-là, les résultats sont écrits dans un fichier `~tmp_…` à côté.
 
-## 5. Réglages
+### 5. Réglages
 
 | Option | Défaut | Rôle |
 |---|---|---|

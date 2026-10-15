@@ -1,0 +1,8 @@
+# Application strictement locale : pas d'accès depuis d'autres postes, pas de télémétrie.
+[server]
+address = "localhost"
+port = 8502
+maxUploadSize = 50
+
+[browser]
+gatherUsageStats = false

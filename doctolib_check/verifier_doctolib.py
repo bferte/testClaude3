@@ -13,12 +13,14 @@ from __future__ import annotations
 import argparse
 import asyncio
 import csv
+import io
 import random
 import re
 import sys
 import time
 from dataclasses import asdict, dataclass
 from pathlib import Path
+from typing import Callable
 
 import pandas as pd
 from playwright.async_api import Browser, Page, async_playwright
@@ -64,23 +66,37 @@ class Resultat:
 
 # --------------------------------------------------------------------------- lecture
 
-def lire_urls(fichier: Path, colonne: str | None, onglet: str | int) -> list[str]:
-    df = pd.read_excel(fichier, sheet_name=onglet, dtype=str)
-    if colonne is None:
-        candidates = [c for c in df.columns if str(c).strip().lower() in ("url", "urls", "lien", "liens")]
-        if not candidates:
-            raise SystemExit(
-                f"Aucune colonne 'URL' trouvée dans {fichier} (colonnes : {list(df.columns)}). "
-                "Préciser la colonne avec --colonne."
-            )
-        colonne = candidates[0]
-    elif colonne not in df.columns:
-        raise SystemExit(f"Colonne '{colonne}' absente de {fichier} (colonnes : {list(df.columns)}).")
+def lire_tableau(source, nom: str, onglet: str | int = 0) -> pd.DataFrame:
+    """Lit un fichier CSV (séparateur et encodage détectés) ou Excel ; `source` = chemin ou flux."""
+    if nom.lower().endswith((".csv", ".txt")):
+        brut = source.read() if hasattr(source, "read") else Path(source).read_bytes()
+        for encodage in ("utf-8-sig", "cp1252"):
+            try:
+                texte = brut.decode(encodage)
+                break
+            except UnicodeDecodeError:
+                continue
+        return pd.read_csv(io.StringIO(texte), sep=None, engine="python", dtype=str)
+    return pd.read_excel(source, sheet_name=onglet, dtype=str)
 
+
+def colonne_url(df: pd.DataFrame) -> str | None:
+    """Devine la colonne des URL : contenu 'doctolib', sinon contenu 'http', sinon nom 'URL'/'Lien'."""
+    for motif in ("doctolib", r"^\s*https?://"):
+        for c in df.columns:
+            if df[c].astype(str).str.contains(motif, case=False, na=False, regex=True).any():
+                return c
+    for c in df.columns:
+        if any(mot in str(c).strip().lower() for mot in ("url", "lien")):
+            return c
+    return None
+
+
+def extraire_urls(df: pd.DataFrame, colonne: str) -> list[str]:
     urls, vues = [], set()
     for brute in df[colonne].dropna():
         url = str(brute).strip()
-        if not url:
+        if not url or " " in url or "." not in url:  # pas une adresse web (code magasin, libellé…)
             continue
         if not url.lower().startswith(("http://", "https://")):
             url = "https://" + url
@@ -88,6 +104,20 @@ def lire_urls(fichier: Path, colonne: str | None, onglet: str | int) -> list[str
             vues.add(url)
             urls.append(url)
     return urls
+
+
+def lire_urls(fichier: Path, colonne: str | None, onglet: str | int) -> list[str]:
+    df = lire_tableau(fichier, fichier.name, onglet)
+    if colonne is None:
+        colonne = colonne_url(df)
+        if colonne is None:
+            raise SystemExit(
+                f"Aucune colonne 'URL' trouvée dans {fichier} (colonnes : {list(df.columns)}). "
+                "Préciser la colonne avec --colonne."
+            )
+    elif colonne not in df.columns:
+        raise SystemExit(f"Colonne '{colonne}' absente de {fichier} (colonnes : {list(df.columns)}).")
+    return extraire_urls(df, colonne)
 
 
 # --------------------------------------------------------------------------- sauvegarde
@@ -243,7 +273,8 @@ async def analyser_avec_reprises(page: Page, url: str, args: argparse.Namespace)
 
 # --------------------------------------------------------------------------- orchestration
 
-async def onglet_worker(browser: Browser, file: asyncio.Queue, args, sauvegarde: Sauvegarde, barre: tqdm):
+async def onglet_worker(browser: Browser, file: asyncio.Queue, args, sauvegarde: Sauvegarde,
+                        notifier: Callable[[Resultat], None]):
     contexte = await browser.new_context(user_agent=USER_AGENT, locale="fr-FR", viewport={"width": 1366, "height": 900})
     if args.sans_images:
         await contexte.route(
@@ -259,17 +290,33 @@ async def onglet_worker(browser: Browser, file: asyncio.Queue, args, sauvegarde:
                 return
             res = await analyser_avec_reprises(page, url, args)
             sauvegarde.ajouter(res)
-            barre.update(1)
-            if res.statut == NON_RESERVABLE:
-                barre.set_postfix_str(f"non réservables : {compter(sauvegarde, NON_RESERVABLE)}")
-            if res.erreur and res.statut == INDETERMINE:
-                tqdm.write(f"✗ {url} → {res.erreur}")
+            notifier(res)
             if page.is_closed():  # onglet planté : on en rouvre un
                 page = await contexte.new_page()
             if args.pause > 0:
                 await asyncio.sleep(args.pause * random.uniform(0.5, 1.5))
     finally:
         await contexte.close()
+
+
+async def verifier(urls: list[str], args: argparse.Namespace, sauvegarde: Sauvegarde,
+                   notifier: Callable[[Resultat], None]) -> None:
+    """Contrôle les URL avec `args.onglets` onglets en parallèle ; `notifier` est appelé après chaque URL."""
+    file: asyncio.Queue[str] = asyncio.Queue()
+    for url in urls:
+        file.put_nowait(url)
+    async with async_playwright() as p:
+        options = {"headless": not args.visible}
+        if args.executable:
+            options["executable_path"] = args.executable
+        elif args.chrome:
+            options["channel"] = "chrome"
+        browser = await p.chromium.launch(**options)
+        try:
+            nb = max(1, min(args.onglets, len(urls) or 1))
+            await asyncio.gather(*(onglet_worker(browser, file, args, sauvegarde, notifier) for _ in range(nb)))
+        finally:
+            await browser.close()
 
 
 def compter(sauvegarde: Sauvegarde, statut: str) -> int:
@@ -293,24 +340,18 @@ async def executer(args: argparse.Namespace) -> None:
     if deja:
         print(f"Reprise : {deja} URL déjà traitées, {len(a_traiter)} restantes.")
 
-    file: asyncio.Queue[str] = asyncio.Queue()
-    for url in a_traiter:
-        file.put_nowait(url)
-
     debut = time.monotonic()
-    async with async_playwright() as p:
-        options = {"headless": not args.visible}
-        if args.executable:
-            options["executable_path"] = args.executable
-        elif args.chrome:
-            options["channel"] = "chrome"
-        browser = await p.chromium.launch(**options)
+    with tqdm(total=len(a_traiter), unit="URL", desc="Contrôle", dynamic_ncols=True) as barre:
+        def notifier(res: Resultat) -> None:
+            barre.update(1)
+            if res.statut == NON_RESERVABLE:
+                barre.set_postfix_str(f"non réservables : {compter(sauvegarde, NON_RESERVABLE)}")
+            if res.erreur and res.statut == INDETERMINE:
+                tqdm.write(f"✗ {res.url} → {res.erreur}")
+
         try:
-            with tqdm(total=len(a_traiter), unit="URL", desc="Contrôle", dynamic_ncols=True) as barre:
-                nb = max(1, min(args.onglets, len(a_traiter) or 1))
-                await asyncio.gather(*(onglet_worker(browser, file, args, sauvegarde, barre) for _ in range(nb)))
+            await verifier(a_traiter, args, sauvegarde, notifier)
         finally:
-            await browser.close()
             df = sauvegarde.exporter(ordre=urls)
 
     non_reservables = df[df["Statut"] == NON_RESERVABLE]
@@ -327,7 +368,7 @@ async def executer(args: argparse.Namespace) -> None:
 
 def parser_arguments(argv: list[str] | None = None) -> argparse.Namespace:
     p = argparse.ArgumentParser(description="Détecte les fiches Doctolib « non réservables en ligne ».")
-    p.add_argument("fichier", help="Fichier Excel contenant les URL")
+    p.add_argument("fichier", help="Fichier Excel ou CSV contenant les URL")
     p.add_argument("--colonne", help="Nom de la colonne des URL (défaut : colonne 'URL')")
     p.add_argument("--onglet", default=0, help="Onglet Excel à lire (nom ou numéro, défaut : le premier)")
     p.add_argument("--sortie", help="Fichier Excel de résultats (défaut : <fichier>_resultats.xlsx)")

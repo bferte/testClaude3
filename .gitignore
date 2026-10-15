@@ -8,3 +8,4 @@ __pycache__/
 *_resultats_non_reservables.xlsx
 *.encours.csv
 ~tmp_*.xlsx
+doctolib_check/resultats/
