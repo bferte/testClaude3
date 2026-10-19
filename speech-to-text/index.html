@@ -1,0 +1,469 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Banc d'essai Speech-to-Text</title>
+<style>
+  :root {
+    --bg: #f6f7f9; --panel: #ffffff; --text: #1d2129; --muted: #6b7280; --border: #e3e6ea;
+    --accent: #2563eb; --ok: #16a34a; --warn: #d97706; --err: #dc2626; --interim: #9ca3af;
+    --code-bg: #f1f3f5; --row-alt: #fafbfc;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0f1115; --panel: #171a21; --text: #e6e8eb; --muted: #9aa3ae; --border: #2a2f39;
+      --accent: #60a5fa; --ok: #4ade80; --warn: #fbbf24; --err: #f87171; --interim: #6b7280;
+      --code-bg: #1e222b; --row-alt: #1a1d24;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text);
+         font: 14px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  header { padding: 16px; border-bottom: 1px solid var(--border); background: var(--panel);
+           display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; }
+  h1 { font-size: 18px; margin: 0; }
+  h2 { font-size: 14px; margin: 0; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
+  main { padding: 16px; display: grid; gap: 16px; grid-template-columns: 1fr 1fr; max-width: 1500px; margin: 0 auto; }
+  @media (max-width: 900px) { main { grid-template-columns: 1fr; } }
+  .panel { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 14px;
+           display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+  .panel-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .full { grid-column: 1 / -1; }
+  .controls { display: flex; flex-wrap: wrap; gap: 12px 18px; align-items: center; }
+  label { display: inline-flex; gap: 6px; align-items: center; }
+  select, input[type=number] { background: var(--panel); color: var(--text); border: 1px solid var(--border);
+           border-radius: 6px; padding: 4px 6px; font: inherit; }
+  input[type=number] { width: 60px; }
+  button { font: inherit; border: 1px solid var(--border); background: var(--panel); color: var(--text);
+           padding: 6px 12px; border-radius: 6px; cursor: pointer; }
+  button:hover:not(:disabled) { border-color: var(--accent); }
+  button:disabled { opacity: .45; cursor: not-allowed; }
+  button.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+  button.small { padding: 3px 8px; font-size: 12px; }
+  .status { display: inline-flex; align-items: center; gap: 8px; font-weight: 600; }
+  .dot { width: 12px; height: 12px; border-radius: 50%; background: var(--muted); }
+  .dot.listening { background: var(--err); animation: pulse 1s infinite; }
+  .dot.speech { background: var(--ok); animation: pulse .5s infinite; }
+  @keyframes pulse { 50% { opacity: .35; } }
+  .flags { display: flex; gap: 6px; flex-wrap: wrap; }
+  .flag { font-size: 11px; padding: 2px 8px; border-radius: 999px; border: 1px solid var(--border); color: var(--muted); }
+  .flag.on { color: var(--ok); border-color: var(--ok); }
+  .meter { height: 8px; background: var(--code-bg); border-radius: 4px; overflow: hidden; flex: 1; min-width: 120px; }
+  .meter > div { height: 100%; width: 0; background: var(--ok); transition: width .05s linear; }
+  .alert { padding: 10px 12px; border-radius: 8px; border: 1px solid var(--err); color: var(--err); }
+  #transcript { min-height: 120px; max-height: 300px; overflow: auto; font-size: 18px; line-height: 1.6;
+                padding: 10px; background: var(--code-bg); border-radius: 8px; white-space: pre-wrap; }
+  #transcript .interim { color: var(--interim); font-style: italic; }
+  .scroll { max-height: 420px; overflow: auto; border: 1px solid var(--border); border-radius: 8px; }
+  table { border-collapse: collapse; width: 100%; font-size: 13px; }
+  th, td { text-align: left; padding: 5px 8px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  th { position: sticky; top: 0; background: var(--panel); font-weight: 600; z-index: 1; }
+  tbody tr:nth-child(even) { background: var(--row-alt); }
+  td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .mono { font-family: ui-monospace, SFMono-Regular, Consolas, monospace; font-size: 12px; }
+  .badge { font-size: 11px; padding: 1px 6px; border-radius: 4px; border: 1px solid currentColor; white-space: nowrap; }
+  .b-final { color: var(--ok); } .b-interim { color: var(--interim); }
+  .b-error { color: var(--err); } .b-lifecycle { color: var(--accent); } .b-audio { color: var(--warn); }
+  .conf-bar { display: inline-block; width: 50px; height: 6px; background: var(--code-bg); border-radius: 3px;
+              vertical-align: middle; margin-right: 6px; overflow: hidden; }
+  .conf-bar > span { display: block; height: 100%; background: var(--accent); }
+  .alts { color: var(--muted); font-size: 12px; }
+  .stats { display: flex; gap: 18px; flex-wrap: wrap; color: var(--muted); font-size: 12px; }
+  .stats b { color: var(--text); font-variant-numeric: tabular-nums; }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .chip { padding: 2px 8px; border-radius: 999px; background: var(--code-bg); font-size: 13px; }
+  .chip small { color: var(--muted); margin-left: 4px; }
+  .log-filters { display: flex; gap: 10px; flex-wrap: wrap; font-size: 12px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>🎙️ Banc d'essai Web Speech API — reconnaissance vocale</h1>
+  <div class="status"><span class="dot" id="dot"></span><span id="statusText">Inactif</span></div>
+</header>
+
+<main>
+  <div id="support" class="full"></div>
+
+  <!-- Réglages -->
+  <section class="panel full">
+    <div class="panel-head"><h2>Réglages</h2>
+      <div class="flags" id="flags">
+        <span class="flag" data-ev="audio">audio</span>
+        <span class="flag" data-ev="sound">son</span>
+        <span class="flag" data-ev="speech">parole</span>
+      </div>
+    </div>
+    <div class="controls">
+      <label>Langue
+        <select id="lang">
+          <option value="fr-FR" selected>Français (fr-FR)</option>
+          <option value="fr-CA">Français (fr-CA)</option>
+          <option value="fr-BE">Français (fr-BE)</option>
+          <option value="en-US">English (en-US)</option>
+          <option value="en-GB">English (en-GB)</option>
+          <option value="es-ES">Español (es-ES)</option>
+          <option value="de-DE">Deutsch (de-DE)</option>
+          <option value="it-IT">Italiano (it-IT)</option>
+          <option value="pt-BR">Português (pt-BR)</option>
+          <option value="nl-NL">Nederlands (nl-NL)</option>
+        </select>
+      </label>
+      <label title="Continue d'écouter après une pause au lieu de s'arrêter au premier résultat final">
+        <input type="checkbox" id="continuous" checked> continuous</label>
+      <label title="Renvoie des résultats provisoires pendant que vous parlez">
+        <input type="checkbox" id="interim" checked> interimResults</label>
+      <label title="Nombre d'hypothèses alternatives demandées par résultat">
+        maxAlternatives <input type="number" id="maxAlt" min="1" max="10" value="3"></label>
+      <label title="Relance automatiquement la reconnaissance quand le navigateur l'arrête (silence, timeout réseau…)">
+        <input type="checkbox" id="autoRestart"> relance auto</label>
+      <label title="Ouvre le micro en parallèle pour afficher le niveau sonore">
+        <input type="checkbox" id="vu" checked> vumètre</label>
+      <div class="meter" title="Niveau micro"><div id="meterBar"></div></div>
+    </div>
+    <div class="controls">
+      <button class="primary" id="btnStart">▶ Démarrer</button>
+      <button id="btnStop" disabled title="stop() : termine et renvoie le résultat en cours">■ Stop</button>
+      <button id="btnAbort" disabled title="abort() : coupe immédiatement sans résultat">✖ Abort</button>
+      <button id="btnClear">Tout effacer</button>
+      <button id="btnExport">Exporter JSON</button>
+    </div>
+    <div class="stats" id="stats"></div>
+  </section>
+
+  <!-- Transcription -->
+  <section class="panel full">
+    <div class="panel-head"><h2>Transcription</h2>
+      <button class="small" id="btnCopy">Copier</button></div>
+    <div id="transcript"><span id="finalText"></span><span class="interim" id="interimText"></span></div>
+  </section>
+
+  <!-- Mots détectés -->
+  <section class="panel">
+    <div class="panel-head"><h2>Mots détectés (finaux)</h2>
+      <label class="small"><input type="checkbox" id="sortFreq"> trier par fréquence</label></div>
+    <div class="chips" id="wordChips"></div>
+    <div class="scroll">
+      <table>
+        <thead><tr><th class="num">#</th><th>Mot</th><th class="num">t (s)</th><th>Confiance segment</th><th class="num">Résultat</th></tr></thead>
+        <tbody id="wordsBody"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- Résultats -->
+  <section class="panel">
+    <div class="panel-head"><h2>Résultats (segments)</h2>
+      <label class="small"><input type="checkbox" id="showInterimRes" checked> afficher provisoires</label></div>
+    <div class="scroll">
+      <table>
+        <thead><tr><th class="num">t (s)</th><th class="num">idx</th><th>Type</th><th>Transcription / alternatives</th><th>Confiance</th></tr></thead>
+        <tbody id="resultsBody"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- Journal -->
+  <section class="panel full">
+    <div class="panel-head"><h2>Journal des événements</h2>
+      <div class="log-filters">
+        <label><input type="checkbox" class="logf" value="lifecycle" checked> cycle de vie</label>
+        <label><input type="checkbox" class="logf" value="audio" checked> audio/son/parole</label>
+        <label><input type="checkbox" class="logf" value="result" checked> result</label>
+        <label><input type="checkbox" class="logf" value="error" checked> erreurs</label>
+        <label><input type="checkbox" id="autoscroll" checked> défilement auto</label>
+      </div>
+    </div>
+    <div class="scroll" id="logScroll">
+      <table>
+        <thead><tr><th>Heure</th><th class="num">+t (s)</th><th class="num">Δ (ms)</th><th>Événement</th><th>Détails</th></tr></thead>
+        <tbody id="logBody"></tbody>
+      </table>
+    </div>
+  </section>
+</main>
+
+<script>
+(() => {
+  const $ = (id) => document.getElementById(id);
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+  const ERROR_HELP = {
+    'no-speech': "Aucune parole détectée (silence trop long).",
+    'aborted': "Reconnaissance interrompue (abort() ou autre onglet).",
+    'audio-capture': "Micro introuvable ou inaccessible.",
+    'network': "Erreur réseau : le service de reconnaissance du navigateur est injoignable.",
+    'not-allowed': "Accès au micro refusé (permission, ou page non servie en HTTPS/localhost).",
+    'service-not-allowed': "Le navigateur refuse le service de reconnaissance (politique, langue non supportée…).",
+    'bad-grammar': "Grammaire invalide.",
+    'language-not-supported': "Langue non supportée.",
+  };
+
+  // ---------- état ----------
+  let rec = null, running = false, userStopped = false;
+  let t0 = null, lastEventAt = null, sessionNo = 0;
+  let finalSegments = [];        // {text, confidence, t, resultNo}
+  let words = [];                // {word, t, confidence, resultNo}
+  let results = [];              // tous les résultats reçus
+  let logs = [];
+  let resultCounter = 0;
+  let audioCtx = null, micStream = null, meterRAF = null;
+
+  // ---------- support ----------
+  const supportBox = $('support');
+  const problems = [];
+  if (!SR) problems.push("Ce navigateur n'expose pas <code>SpeechRecognition</code> / <code>webkitSpeechRecognition</code>. Essayez Chrome, Edge ou Safari.");
+  if (!window.isSecureContext) problems.push("La page n'est pas dans un contexte sécurisé : servez-la en <b>https://</b> ou via <b>http://localhost</b> pour accéder au micro.");
+  if (problems.length) supportBox.innerHTML = '<div class="alert">' + problems.join('<br>') + '</div>';
+  else supportBox.remove();
+
+  // ---------- utilitaires ----------
+  const now = () => performance.now();
+  const rel = (t) => t0 == null ? '—' : ((t - t0) / 1000).toFixed(2);
+  const esc = (s) => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+  const pct = (c) => (c == null || isNaN(c)) ? '—' : (c * 100).toFixed(1) + ' %';
+  const confBar = (c) => `<span class="conf-bar"><span style="width:${(c || 0) * 100}%"></span></span>${pct(c)}`;
+
+  function setStatus(text, mode) {
+    $('statusText').textContent = text;
+    $('dot').className = 'dot' + (mode ? ' ' + mode : '');
+  }
+  function setFlag(name, on) {
+    document.querySelector(`.flag[data-ev="${name}"]`).classList.toggle('on', on);
+    if (name === 'speech' && running) setStatus(on ? 'Parole détectée…' : 'Écoute…', on ? 'speech' : 'listening');
+  }
+  function setButtons() {
+    $('btnStart').disabled = running || !SR;
+    $('btnStop').disabled = !running;
+    $('btnAbort').disabled = !running;
+  }
+
+  // ---------- journal ----------
+  function log(cat, name, details = '') {
+    const t = now();
+    const delta = lastEventAt == null ? '' : Math.round(t - lastEventAt);
+    lastEventAt = t;
+    const entry = { time: new Date().toISOString(), rel: rel(t), delta, cat, name, details };
+    logs.push(entry);
+    console.debug('[SR]', name, details);
+    renderLogRow(entry);
+  }
+  function renderLogRow(e) {
+    const tr = document.createElement('tr');
+    tr.dataset.cat = e.cat;
+    tr.hidden = !activeLogCats().has(e.cat);
+    tr.innerHTML = `<td class="mono">${e.time.slice(11, 23)}</td><td class="num mono">${e.rel}</td>
+      <td class="num mono">${e.delta}</td><td><span class="badge b-${e.cat === 'result' ? 'final' : e.cat}">${esc(e.name)}</span></td>
+      <td class="mono">${e.details}</td>`;
+    $('logBody').appendChild(tr);
+    if ($('autoscroll').checked) $('logScroll').scrollTop = $('logScroll').scrollHeight;
+  }
+  const activeLogCats = () => new Set([...document.querySelectorAll('.logf:checked')].map(i => i.value));
+  document.querySelectorAll('.logf').forEach(cb => cb.addEventListener('change', () => {
+    const cats = activeLogCats();
+    $('logBody').querySelectorAll('tr').forEach(tr => tr.hidden = !cats.has(tr.dataset.cat));
+  }));
+
+  // ---------- rendu ----------
+  function renderStats() {
+    const confs = finalSegments.map(s => s.confidence).filter(c => c > 0);
+    const avg = confs.length ? confs.reduce((a, b) => a + b, 0) / confs.length : null;
+    const uniq = new Set(words.map(w => w.word.toLowerCase())).size;
+    $('stats').innerHTML = `
+      <span>Sessions : <b>${sessionNo}</b></span>
+      <span>Événements result : <b>${resultCounter}</b></span>
+      <span>Segments finaux : <b>${finalSegments.length}</b></span>
+      <span>Mots : <b>${words.length}</b> (uniques : <b>${uniq}</b>)</span>
+      <span>Confiance moyenne : <b>${pct(avg)}</b></span>
+      <span>Durée : <b>${t0 == null ? '—' : rel(now()) + ' s'}</b></span>`;
+  }
+  function renderWords() {
+    const counts = new Map();
+    words.forEach(w => { const k = w.word.toLowerCase(); counts.set(k, (counts.get(k) || 0) + 1); });
+    let entries = [...counts.entries()];
+    if ($('sortFreq').checked) entries.sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
+    $('wordChips').innerHTML = entries.map(([w, n]) => `<span class="chip">${esc(w)}<small>×${n}</small></span>`).join('');
+  }
+  function addWordRows(newWords) {
+    const body = $('wordsBody');
+    newWords.forEach(w => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `<td class="num">${w.index}</td><td><b>${esc(w.word)}</b></td><td class="num mono">${w.rel}</td>
+        <td>${confBar(w.confidence)}</td><td class="num">#${w.resultNo}</td>`;
+      body.prepend(tr);
+    });
+  }
+  function addResultRow(r) {
+    const tr = document.createElement('tr');
+    tr.dataset.final = r.isFinal;
+    tr.hidden = !r.isFinal && !$('showInterimRes').checked;
+    const [best, ...rest] = r.alternatives;
+    const alts = rest.map(a => `<div class="alts">↳ ${esc(a.transcript)} <span class="mono">(${pct(a.confidence)})</span></div>`).join('');
+    tr.innerHTML = `<td class="num mono">${r.rel}</td><td class="num mono">${r.index}</td>
+      <td><span class="badge ${r.isFinal ? 'b-final' : 'b-interim'}">${r.isFinal ? 'final' : 'provisoire'}</span></td>
+      <td>${esc(best.transcript)}${alts}</td><td>${confBar(best.confidence)}</td>`;
+    $('resultsBody').prepend(tr);
+  }
+  $('showInterimRes').addEventListener('change', () => {
+    const show = $('showInterimRes').checked;
+    $('resultsBody').querySelectorAll('tr[data-final="false"]').forEach(tr => tr.hidden = !show);
+  });
+  $('sortFreq').addEventListener('change', renderWords);
+
+  // ---------- vumètre ----------
+  async function startMeter() {
+    if (!$('vu').checked || micStream) return;
+    try {
+      micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      const an = audioCtx.createAnalyser();
+      an.fftSize = 512;
+      audioCtx.createMediaStreamSource(micStream).connect(an);
+      const buf = new Float32Array(an.fftSize);
+      const loop = () => {
+        an.getFloatTimeDomainData(buf);
+        let sum = 0; for (const v of buf) sum += v * v;
+        const rms = Math.sqrt(sum / buf.length);
+        $('meterBar').style.width = Math.min(100, rms * 400) + '%';
+        meterRAF = requestAnimationFrame(loop);
+      };
+      loop();
+      const track = micStream.getAudioTracks()[0];
+      log('audio', 'micro (vumètre)', esc(track ? track.label : 'ouvert'));
+    } catch (e) {
+      log('error', 'vumètre', esc(e.name + ' : ' + e.message));
+    }
+  }
+  function stopMeter() {
+    cancelAnimationFrame(meterRAF);
+    if (micStream) micStream.getTracks().forEach(t => t.stop());
+    if (audioCtx) audioCtx.close();
+    micStream = audioCtx = null;
+    $('meterBar').style.width = '0';
+  }
+
+  // ---------- reconnaissance ----------
+  function createRecognition() {
+    const r = new SR();
+    r.lang = $('lang').value;
+    r.continuous = $('continuous').checked;
+    r.interimResults = $('interim').checked;
+    r.maxAlternatives = Math.max(1, parseInt($('maxAlt').value, 10) || 1);
+
+    r.onstart = () => {
+      running = true; setButtons(); setStatus('Écoute…', 'listening');
+      log('lifecycle', 'start', `session #${sessionNo} · lang=${r.lang} · continuous=${r.continuous} · interim=${r.interimResults} · maxAlt=${r.maxAlternatives}`);
+    };
+    r.onaudiostart = () => { setFlag('audio', true); log('audio', 'audiostart', 'capture audio démarrée'); };
+    r.onsoundstart = () => { setFlag('sound', true); log('audio', 'soundstart', 'son détecté'); };
+    r.onspeechstart = () => { setFlag('speech', true); log('audio', 'speechstart', 'parole détectée'); };
+    r.onspeechend = () => { setFlag('speech', false); log('audio', 'speechend', 'fin de parole'); };
+    r.onsoundend = () => { setFlag('sound', false); log('audio', 'soundend', 'fin du son'); };
+    r.onaudioend = () => { setFlag('audio', false); log('audio', 'audioend', 'capture audio terminée'); };
+    r.onnomatch = () => log('error', 'nomatch', 'parole non reconnue');
+    r.onerror = (e) => {
+      log('error', 'error', `<b>${esc(e.error)}</b> — ${esc(ERROR_HELP[e.error] || '')}${e.message ? ' · ' + esc(e.message) : ''}`);
+      if (e.error === 'not-allowed' || e.error === 'service-not-allowed' || e.error === 'audio-capture') userStopped = true;
+    };
+    r.onend = () => {
+      running = false; setButtons();
+      ['audio', 'sound', 'speech'].forEach(f => setFlag(f, false));
+      $('interimText').textContent = '';
+      log('lifecycle', 'end', userStopped ? 'arrêt demandé' : 'arrêt par le navigateur');
+      if ($('autoRestart').checked && !userStopped) {
+        log('lifecycle', 'relance auto', 'redémarrage…');
+        start();
+      } else {
+        setStatus('Inactif', '');
+        stopMeter();
+      }
+      renderStats();
+    };
+    r.onresult = onResult;
+    return r;
+  }
+
+  function onResult(e) {
+    resultCounter++;
+    const t = now();
+    let interim = '';
+    const parts = [];
+    for (let i = e.resultIndex; i < e.results.length; i++) {
+      const res = e.results[i];
+      const alternatives = [...Array(res.length)].map((_, k) => ({ transcript: res[k].transcript, confidence: res[k].confidence }));
+      const entry = { resultNo: resultCounter, index: i, isFinal: res.isFinal, alternatives, rel: rel(t), time: new Date().toISOString() };
+      results.push(entry);
+      addResultRow(entry);
+      parts.push(`[${i}] ${res.isFinal ? 'FINAL' : 'interim'} « ${esc(alternatives[0].transcript)} » ${pct(alternatives[0].confidence)}` +
+                 (alternatives.length > 1 ? ` (+${alternatives.length - 1} alt.)` : ''));
+
+      if (res.isFinal) {
+        const best = alternatives[0];
+        finalSegments.push({ text: best.transcript.trim(), confidence: best.confidence, rel: rel(t), resultNo: resultCounter });
+        const newWords = best.transcript.trim().split(/\s+/).filter(Boolean).map(w => ({
+          word: w.replace(/^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu, '') || w,
+          index: 0, rel: rel(t), confidence: best.confidence, resultNo: resultCounter,
+        }));
+        newWords.forEach(w => { words.push(w); w.index = words.length; });
+        addWordRows(newWords);
+        $('finalText').textContent = finalSegments.map(s => s.text).join(' ') + ' ';
+      } else {
+        interim += res[0].transcript;
+      }
+    }
+    $('interimText').textContent = interim;
+    log('result', `result #${resultCounter}`, `resultIndex=${e.resultIndex} · results.length=${e.results.length}<br>` + parts.join('<br>'));
+    renderWords();
+    renderStats();
+  }
+
+  function start() {
+    if (!SR) return;
+    if (t0 == null) t0 = now();
+    sessionNo++;
+    userStopped = false;
+    rec = createRecognition();
+    try {
+      rec.start();
+      log('lifecycle', 'start() appelé', '');
+      startMeter();
+    } catch (err) {
+      log('error', 'exception', esc(err.name + ' : ' + err.message));
+    }
+  }
+
+  $('btnStart').onclick = start;
+  $('btnStop').onclick = () => { userStopped = true; log('lifecycle', 'stop() appelé', ''); rec && rec.stop(); };
+  $('btnAbort').onclick = () => { userStopped = true; log('lifecycle', 'abort() appelé', ''); rec && rec.abort(); };
+  $('btnClear').onclick = () => {
+    finalSegments = []; words = []; results = []; logs = []; resultCounter = 0;
+    if (!running) { t0 = null; sessionNo = 0; }
+    lastEventAt = null;
+    ['finalText', 'interimText', 'wordsBody', 'resultsBody', 'logBody', 'wordChips'].forEach(id => $(id).innerHTML = '');
+    renderStats();
+  };
+  $('btnCopy').onclick = () => navigator.clipboard.writeText($('finalText').textContent.trim());
+  $('btnExport').onclick = () => {
+    const data = {
+      exportedAt: new Date().toISOString(), userAgent: navigator.userAgent,
+      settings: { lang: $('lang').value, continuous: $('continuous').checked, interimResults: $('interim').checked, maxAlternatives: +$('maxAlt').value },
+      transcript: finalSegments.map(s => s.text).join(' '),
+      finalSegments, words, results,
+      logs: logs.map(l => ({ ...l, details: l.details.replace(/<br>/g, '\n').replace(/<[^>]+>/g, '') })),
+    };
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' }));
+    a.download = `speech-log-${new Date().toISOString().replace(/[:.]/g, '-')}.json`;
+    a.click();
+    URL.revokeObjectURL(a.href);
+  };
+
+  setInterval(() => { if (running) renderStats(); }, 500);
+  setButtons();
+  renderStats();
+  log('lifecycle', 'page prête', SR ? `API : ${window.SpeechRecognition ? 'SpeechRecognition' : 'webkitSpeechRecognition'} · ${esc(navigator.userAgent)}` : 'API non disponible');
+})();
+</script>
+</body>
+</html>

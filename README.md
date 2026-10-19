@@ -86,3 +86,13 @@ Mineur :
 - 2 marque(s) avec orthographe incohérente
 ...
 ```
+
+## Banc d'essai reconnaissance vocale (Web Speech API)
+
+Page autonome [`speech-to-text/index.html`](speech-to-text/index.html) pour tester la reconnaissance vocale
+native du navigateur (`SpeechRecognition` / `webkitSpeechRecognition`) : transcription en direct, mots
+détectés avec confiance, résultats provisoires/finaux avec alternatives, et journal horodaté de tous les
+événements (`start`, `audiostart`, `speechstart`, `result`, `error`…), exportable en JSON.
+
+Le micro n'est accessible qu'en contexte sécurisé : servir la page en local, par exemple
+`python -m http.server 8000` puis ouvrir http://localhost:8000/speech-to-text/ dans Chrome ou Edge.
