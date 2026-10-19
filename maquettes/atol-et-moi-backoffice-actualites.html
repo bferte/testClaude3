@@ -1,0 +1,780 @@
+<title>Atol &amp; Moi – Back-office Actualités</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap">
+<style>
+/* Layout : même coque que l'intranet (barre latérale + bandeau), contenu dense type outil d'administration : tableau, formulaire 2 colonnes + aperçu. */
+:root {
+  --bg: #f4f6fa;
+  --surface: #ffffff;
+  --surface-2: #eef2f8;
+  --navy: #15396b;
+  --navy-ink: #0f2b52;
+  --sky: #7fb2e5;
+  --accent: #e23d3d;
+  --text: #15396b;
+  --muted: #6b7a90;
+  --line: #e3e8f0;
+  --on-navy: #ffffff;
+  --ok: #1f8a5b;   --ok-bg: #e3f4ec;
+  --warn: #b26a00; --warn-bg: #fdf0d9;
+  --info: #2f6fc0; --info-bg: #e3eefb;
+  --idle: #6b7a90; --idle-bg: #edf0f5;
+  --shadow: 0 1px 2px rgba(15, 43, 82, .05), 0 6px 18px rgba(15, 43, 82, .06);
+  --font: "Poppins", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --radius: 14px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0c1626; --surface: #13223a; --surface-2: #1a2d4a; --navy: #1d4580; --navy-ink: #0e2142;
+    --sky: #8fbcea; --accent: #f06565; --text: #e6edf7; --muted: #9aaac0; --line: #243a5c; --on-navy: #ffffff;
+    --ok: #5fd39b; --ok-bg: #143a2a; --warn: #f2b65a; --warn-bg: #3a2c12; --info: #8fbcea; --info-bg: #17325a; --idle: #9aaac0; --idle-bg: #1f2f48;
+    --shadow: 0 1px 2px rgba(0,0,0,.3), 0 6px 18px rgba(0,0,0,.25); color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0c1626; --surface: #13223a; --surface-2: #1a2d4a; --navy: #1d4580; --navy-ink: #0e2142;
+  --sky: #8fbcea; --accent: #f06565; --text: #e6edf7; --muted: #9aaac0; --line: #243a5c; --on-navy: #ffffff;
+  --ok: #5fd39b; --ok-bg: #143a2a; --warn: #f2b65a; --warn-bg: #3a2c12; --info: #8fbcea; --info-bg: #17325a; --idle: #9aaac0; --idle-bg: #1f2f48;
+  --shadow: 0 1px 2px rgba(0,0,0,.3), 0 6px 18px rgba(0,0,0,.25); color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body { margin: 0; background: var(--bg); color: var(--text); font-family: var(--font); font-size: 14px; line-height: 1.5; }
+a { color: inherit; text-decoration: none; }
+button { font: inherit; color: inherit; background: none; border: 0; cursor: pointer; }
+:focus-visible { outline: 2px solid var(--sky); outline-offset: 2px; border-radius: 6px; }
+h1, h2, h3 { margin: 0; text-wrap: balance; line-height: 1.2; }
+p { margin: 0; }
+
+/* ---------- Coque ---------- */
+.app { display: grid; grid-template-columns: 250px minmax(0, 1fr); min-height: 100vh; }
+.side { background: var(--surface); border-right: 1px solid var(--line); padding: 14px 14px 30px; position: sticky; top: 0; height: 100vh; overflow-y: auto; }
+.logo { font-weight: 800; font-size: 30px; letter-spacing: -1px; color: var(--text); padding-bottom: 4px; }
+.logo span { color: var(--sky); }
+.logo-sub { font-size: 11px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); padding-bottom: 22px; }
+.nav-label { font-size: 11px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); padding: 16px 12px 6px; }
+.nav { display: flex; flex-direction: column; gap: 2px; }
+.nav a { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 10px 12px; border-radius: 8px; font-weight: 500; border-left: 3px solid transparent; }
+.nav a:hover { background: var(--surface-2); }
+.nav a.on { background: var(--surface-2); border-left-color: var(--navy); font-weight: 600; }
+.nav .count { font-size: 11px; font-weight: 700; background: var(--accent); color: #fff; padding: 1px 7px; border-radius: 99px; }
+.nav .dim { color: var(--muted); }
+
+.main { min-width: 0; }
+.topbar { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 12px 28px; background: var(--surface); flex-wrap: wrap; }
+.crumbs { color: var(--muted); font-size: 13px; }
+.crumbs b { color: var(--text); font-weight: 600; }
+.who { display: flex; align-items: center; gap: 10px; font-size: 13px; }
+.who b { font-weight: 600; }
+.role { font-size: 11px; font-weight: 600; padding: 3px 9px; border-radius: 99px; background: var(--info-bg); color: var(--info); }
+.band { height: 12px; background:
+  radial-gradient(ellipse 90px 40px at 12% 0, var(--sky) 60%, transparent 61%),
+  radial-gradient(ellipse 120px 40px at 48% 100%, var(--sky) 60%, transparent 61%),
+  radial-gradient(ellipse 80px 30px at 80% 0, var(--sky) 60%, transparent 61%),
+  var(--navy-ink); }
+.content { padding: 28px 36px 60px; display: flex; flex-direction: column; gap: 20px; max-width: 1500px; }
+
+.card { background: var(--surface); border-radius: var(--radius); box-shadow: var(--shadow); padding: 20px; min-width: 0; }
+.card-h { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; flex-wrap: wrap; }
+.card-h h2 { font-size: 16px; font-weight: 600; }
+.page-head { display: flex; align-items: end; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+.page-head h1 { font-size: 28px; font-weight: 700; }
+.page-head p { color: var(--muted); margin-top: 2px; }
+.actions { display: flex; gap: 10px; flex-wrap: wrap; }
+
+.btn { display: inline-flex; align-items: center; gap: 8px; padding: 9px 16px; border-radius: 10px; font-weight: 600; font-size: 13.5px; border: 1px solid var(--line); background: var(--surface); }
+.btn:hover { border-color: var(--sky); }
+.btn.primary { background: var(--navy); border-color: var(--navy); color: var(--on-navy); }
+.btn.primary:hover { filter: brightness(1.12); }
+.btn.danger { color: var(--accent); }
+.btn.sm { padding: 6px 11px; font-size: 12.5px; border-radius: 8px; }
+.icon-btn { width: 32px; height: 32px; border-radius: 8px; display: inline-grid; place-items: center; color: var(--muted); }
+.icon-btn:hover { background: var(--surface-2); color: var(--text); }
+.icon-btn svg { width: 17px; height: 17px; }
+.icon-btn:disabled { opacity: .3; cursor: default; }
+
+/* ---------- KPI ---------- */
+.kpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; }
+.kpi { padding: 16px 18px; display: flex; flex-direction: column; gap: 2px; }
+.kpi small { font-size: 12px; color: var(--muted); font-weight: 500; }
+.kpi strong { font-size: 28px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.kpi span { font-size: 12px; color: var(--muted); }
+.kpi a { font-size: 12px; font-weight: 600; color: var(--accent); }
+
+/* ---------- Tableau ---------- */
+.toolbar { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+.tabs { display: flex; gap: 4px; flex-wrap: wrap; }
+.tab { padding: 7px 12px; border-radius: 8px; font-weight: 500; font-size: 13px; color: var(--muted); }
+.tab:hover { background: var(--surface-2); }
+.tab.on { background: var(--surface-2); color: var(--text); font-weight: 600; }
+.tab i { font-style: normal; font-size: 11px; margin-left: 4px; opacity: .8; }
+.search { display: flex; align-items: center; gap: 8px; border: 1px solid var(--line); border-radius: 10px; padding: 7px 12px; width: 280px; max-width: 100%; background: var(--surface); }
+.search input { border: 0; outline: 0; background: transparent; font: inherit; color: var(--text); width: 100%; min-width: 0; }
+.search svg { width: 16px; color: var(--muted); flex: none; }
+.table-wrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; min-width: 880px; }
+th { text-align: left; font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); padding: 10px 10px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+td { padding: 12px 10px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+tr:last-child td { border-bottom: 0; }
+tbody tr:hover { background: var(--surface-2); }
+td.num { font-variant-numeric: tabular-nums; text-align: right; color: var(--muted); white-space: nowrap; }
+th.num { text-align: right; }
+.art { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.art .mini { width: 64px; flex: none; }
+.art b { font-weight: 600; display: block; line-height: 1.3; }
+.art b a:hover { text-decoration: underline; }
+.art small { color: var(--muted); font-size: 12px; }
+.status { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; padding: 3px 10px; border-radius: 99px; white-space: nowrap; }
+.status::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+.s-publie { color: var(--ok); background: var(--ok-bg); }
+.s-programme { color: var(--info); background: var(--info-bg); }
+.s-brouillon { color: var(--warn); background: var(--warn-bg); }
+.s-archive { color: var(--idle); background: var(--idle-bg); }
+.date { white-space: nowrap; font-size: 13px; }
+.date small { display: block; color: var(--muted); font-size: 11.5px; }
+.star { color: var(--line); }
+.star.on { color: #f0b429; }
+.star svg { width: 18px; height: 18px; }
+.star.on svg path { fill: currentColor; }
+
+/* ---------- Visuels ---------- */
+.thumb { position: relative; border-radius: 8px; overflow: hidden; aspect-ratio: 16 / 10; max-width: 100%; display: grid; place-items: center; color: rgba(255,255,255,.95); background-size: cover; background-position: center; }
+.thumb svg { width: 36%; height: auto; position: relative; z-index: 1; }
+.thumb::before { content: ""; position: absolute; width: 70%; aspect-ratio: 1; right: -18%; top: -30%; border-radius: 50%; background: rgba(255,255,255,.14); }
+.thumb.photo::before, .thumb.photo svg { display: none; }
+
+/* ---------- Éditeur ---------- */
+.editor { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 20px; align-items: start; }
+.stack { display: flex; flex-direction: column; gap: 20px; min-width: 0; }
+.field { display: flex; flex-direction: column; gap: 6px; }
+.field + .field { margin-top: 16px; }
+.field label, .lbl { font-size: 12.5px; font-weight: 600; }
+.hint { font-size: 12px; color: var(--muted); }
+.hint.over { color: var(--accent); font-weight: 600; }
+input[type=text], input[type=date], input[type=time], select, textarea {
+  font: inherit; color: var(--text); background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 9px 12px; width: 100%; min-width: 0;
+}
+input:focus, select:focus, textarea:focus, .rte-body:focus { outline: 2px solid var(--sky); outline-offset: 0; border-color: transparent; }
+.title-input { font-size: 20px !important; font-weight: 600; }
+textarea { resize: vertical; min-height: 70px; }
+.row2 { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 12px; }
+.rte { border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+.rte-bar { display: flex; gap: 2px; padding: 6px; border-bottom: 1px solid var(--line); background: var(--surface-2); flex-wrap: wrap; }
+.rte-bar button { min-width: 32px; height: 30px; border-radius: 6px; font-weight: 600; font-size: 13px; padding: 0 8px; }
+.rte-bar button:hover { background: var(--surface); }
+.rte-bar .sep { width: 1px; background: var(--line); margin: 4px 4px; }
+.rte-body { min-height: 220px; padding: 14px 16px; font-size: 15px; line-height: 1.65; }
+.rte-body p { margin: 0 0 10px; }
+.drop { border: 2px dashed var(--line); border-radius: 12px; padding: 14px; display: grid; grid-template-columns: 200px minmax(0, 1fr); gap: 16px; align-items: center; }
+.drop.over { border-color: var(--sky); background: var(--surface-2); }
+.drop p { font-size: 13px; color: var(--muted); }
+.drop .links { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+.swatches { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+.swatch { width: 30px; height: 30px; border-radius: 8px; display: grid; place-items: center; color: #fff; border: 2px solid transparent; }
+.swatch svg { width: 16px; }
+.swatch.on { border-color: var(--text); }
+
+.side-card h3 { font-size: 13px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); margin-bottom: 12px; }
+.switch { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; padding: 8px 0; cursor: pointer; }
+.switch + .switch { border-top: 1px solid var(--line); }
+.switch span b { display: block; font-weight: 600; font-size: 13.5px; }
+.switch span small { color: var(--muted); font-size: 12px; }
+.switch input { appearance: none; width: 38px; height: 22px; border-radius: 99px; background: var(--line); position: relative; flex: none; cursor: pointer; transition: background .2s; margin-top: 2px; }
+.switch input::after { content: ""; position: absolute; top: 3px; left: 3px; width: 16px; height: 16px; border-radius: 50%; background: #fff; transition: transform .2s; box-shadow: 0 1px 2px rgba(0,0,0,.2); }
+.switch input:checked { background: var(--navy); }
+:root[data-theme="dark"] .switch input:checked { background: var(--sky); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .switch input:checked { background: var(--sky); } }
+.switch input:checked::after { transform: translateX(16px); }
+.radios { display: flex; flex-direction: column; gap: 6px; }
+.radio { display: flex; align-items: center; gap: 10px; padding: 9px 12px; border: 1px solid var(--line); border-radius: 10px; cursor: pointer; font-size: 13.5px; }
+.radio:has(input:checked) { border-color: var(--navy); background: var(--surface-2); font-weight: 600; }
+.radio input { accent-color: var(--navy); margin: 0; }
+.checks { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 12px; margin-top: 10px; font-size: 13px; }
+.checks label { display: flex; gap: 8px; align-items: center; }
+.checks input { accent-color: var(--navy); }
+.sub { margin-top: 10px; padding: 12px; background: var(--surface-2); border-radius: 10px; display: flex; flex-direction: column; gap: 10px; }
+.reach { font-size: 12.5px; color: var(--muted); margin-top: 10px; }
+.reach b { color: var(--text); }
+.sticky-actions { display: flex; flex-direction: column; gap: 8px; }
+.sticky-actions .btn { justify-content: center; }
+
+/* Aperçu */
+.preview-tabs { display: flex; gap: 4px; }
+.pv { border: 1px solid var(--line); border-radius: 12px; padding: 18px; background: var(--bg); }
+.pv-news { display: grid; grid-template-columns: 180px minmax(0, 1fr); gap: 16px; align-items: center; background: var(--surface); padding: 14px; border-radius: 10px; }
+.pv-une { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 22px; align-items: center; background: var(--surface); padding: 18px; border-radius: 10px; }
+.pv h4 { margin: 4px 0 6px; font-size: 16px; font-weight: 600; line-height: 1.3; }
+.pv-une h4 { font-size: 22px; font-weight: 700; }
+.pv p { font-size: 13px; color: var(--muted); display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.meta { font-size: 12px; color: var(--muted); }
+.meta b { font-weight: 600; }
+.placeholder { color: var(--muted); font-style: italic; }
+
+/* ---------- À la une ---------- */
+.slots { display: flex; flex-direction: column; gap: 10px; }
+.slot { display: grid; grid-template-columns: 28px 110px minmax(0, 1fr) auto; gap: 14px; align-items: center; padding: 10px 12px; border: 1px solid var(--line); border-radius: 12px; }
+.slot .pos { font-size: 18px; font-weight: 700; color: var(--muted); text-align: center; font-variant-numeric: tabular-nums; }
+.slot b { font-weight: 600; display: block; line-height: 1.3; }
+.slot small { color: var(--muted); font-size: 12px; }
+.slot.empty-slot { border-style: dashed; color: var(--muted); grid-template-columns: 28px minmax(0, 1fr); }
+.pick { display: flex; flex-direction: column; }
+.pick-item { display: grid; grid-template-columns: 72px minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 10px 0; border-top: 1px solid var(--line); }
+.pick-item:first-child { border-top: 0; }
+.pick-item b { font-weight: 600; font-size: 13.5px; line-height: 1.3; display: block; }
+
+/* ---------- Modération ---------- */
+.comment { display: grid; grid-template-columns: 40px minmax(0, 1fr) auto; gap: 14px; padding: 14px 0; border-top: 1px solid var(--line); align-items: start; }
+.comment:first-child { border-top: 0; }
+.av { width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; font-weight: 600; font-size: 13px; color: #fff; }
+.comment b { font-weight: 600; }
+.comment q { display: block; margin: 4px 0; quotes: none; }
+.flag { font-size: 11px; font-weight: 700; color: var(--accent); text-transform: uppercase; letter-spacing: .06em; }
+
+/* ---------- Catégories ---------- */
+.cat-row { display: grid; grid-template-columns: 36px minmax(0, 1fr) 120px 90px auto; gap: 14px; align-items: center; padding: 10px 0; border-top: 1px solid var(--line); }
+.cat-row:first-child { border-top: 0; }
+.cat-dot { width: 36px; height: 36px; border-radius: 10px; display: grid; place-items: center; color: #fff; }
+.cat-dot svg { width: 18px; }
+
+/* ---------- Toast ---------- */
+.toast { position: fixed; left: 50%; bottom: calc(24px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); background: var(--navy-ink); color: #fff; padding: 11px 18px; border-radius: 10px; font-weight: 500; box-shadow: var(--shadow); z-index: 10; max-width: calc(100% - 32px); }
+.mock-note { font-size: 12px; color: var(--muted); text-align: center; }
+
+@media (max-width: 1180px) {
+  .editor { grid-template-columns: minmax(0, 1fr); }
+  .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 860px) {
+  .app { grid-template-columns: minmax(0, 1fr); }
+  .side { position: static; height: auto; padding: 12px 16px; border-right: 0; border-bottom: 1px solid var(--line); }
+  .logo { font-size: 24px; } .logo-sub, .nav-label { display: none; }
+  .nav { flex-direction: row; overflow-x: auto; }
+  .nav a { white-space: nowrap; border-left: 0; border-bottom: 3px solid transparent; border-radius: 6px 6px 0 0; }
+  .nav a.on { border-bottom-color: var(--navy); }
+  .content { padding: 20px 16px 40px; }
+  .topbar { padding: 10px 16px; }
+  .drop, .pv-news, .pv-une, .row2 { grid-template-columns: minmax(0, 1fr); }
+  .slot { grid-template-columns: 24px 80px minmax(0, 1fr); }
+  .slot > :last-child { grid-column: 1 / -1; justify-self: end; }
+  .cat-row { grid-template-columns: 36px minmax(0, 1fr) auto; }
+  .cat-row .hide-sm { display: none; }
+  .comment { grid-template-columns: 40px minmax(0, 1fr); }
+  .comment > :last-child { grid-column: 2; }
+}
+</style>
+
+<div class="app">
+  <aside class="side">
+    <div class="logo">ATOL<span>&amp;</span>MOI</div>
+    <div class="logo-sub">Administration</div>
+    <div class="nav-label">Actualités</div>
+    <nav class="nav" id="nav" aria-label="Back-office">
+      <a href="#articles" data-view="articles">Articles</a>
+      <a href="#nouveau" data-view="nouveau">Nouvel article</a>
+      <a href="#une" data-view="une">À la une</a>
+      <a href="#moderation" data-view="moderation">Commentaires <span class="count" id="mod-count"></span></a>
+      <a href="#categories" data-view="categories">Catégories</a>
+    </nav>
+    <div class="nav-label">Autres contenus</div>
+    <nav class="nav" aria-label="Autres modules">
+      <a href="#articles" data-inert class="dim">Newsletters</a>
+      <a href="#articles" data-inert class="dim">Événements</a>
+      <a href="#articles" data-inert class="dim">Documents</a>
+      <a href="#articles" data-inert class="dim">Offres d’emploi</a>
+      <a href="#articles" data-inert class="dim">Utilisateurs et droits</a>
+    </nav>
+  </aside>
+
+  <div class="main">
+    <header class="topbar">
+      <div class="crumbs">Admin › <b id="crumb">Actualités</b></div>
+      <div class="who"><a class="btn sm" href="https://claude.ai/artifact/S2u7EipEfBUGcffZNqhQVo" target="_blank" rel="noopener">Voir l’intranet ↗</a><b>Briac FERTE</b><span class="role">Éditeur</span></div>
+    </header>
+    <div class="band" aria-hidden="true"></div>
+    <main class="content" id="view"></main>
+  </div>
+</div>
+<div class="toast" id="toast" role="status" hidden></div>
+
+<script>
+(function () {
+  const I = {
+    edit: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M4 20h4L19 9l-4-4L4 16z"/></svg>',
+    copy: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V4H4v12h4"/></svg>',
+    archive: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M3 4h18v5H3zM5 9v11h14V9M10 13h4"/></svg>',
+    star: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1-4.4-4.3 6.1-.9z"/></svg>',
+    up: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 15l6-6 6 6"/></svg>',
+    down: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 9l6 6 6-6"/></svg>',
+    x: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>',
+    search: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg>'
+  };
+  const G = {
+    event: '<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linejoin="round"><rect x="8" y="12" width="48" height="44" rx="6"/><path d="M8 24h48M20 6v12M44 6v12"/><path d="M32 30l3.5 7 7.5 1-5.5 5 1.5 7.5L32 47l-7 3.5L26.5 43 21 38l7.5-1z" fill="currentColor"/></svg>',
+    building: '<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linejoin="round"><path d="M10 56V14l22-8v50M32 22h22v34M4 56h56"/><path d="M18 20h6M18 30h6M18 40h6M40 30h6M40 40h6"/></svg>',
+    people: '<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round"><circle cx="22" cy="22" r="8"/><circle cx="44" cy="24" r="6"/><path d="M8 52c0-8 6-14 14-14s14 6 14 14M38 52c0-6 3-11 8-12 6 1 10 6 10 12"/></svg>',
+    ribbon: '<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linejoin="round"><path d="M32 34c-6-7-12-14-12-20a12 12 0 0 1 24 0c0 6-6 13-12 20zM26 26L14 58l8-4 4 8 10-24M38 26l12 32-8-4-4 8-10-24"/></svg>',
+    glasses: '<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linejoin="round"><path d="M4 28h56M6 28l2 12a8 8 0 0 0 8 6h6a8 8 0 0 0 8-7l2-11M58 28l-2 12a8 8 0 0 1-8 6h-6a8 8 0 0 1-8-7l-2-11M8 28l6-12M56 28l-6-12"/></svg>',
+    talk: '<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linejoin="round"><path d="M6 10h34v22H20l-10 8v-8H6z"/><path d="M46 22h12v20h-4v8l-10-8H28v-6"/></svg>',
+    camera: '<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linejoin="round"><path d="M6 20h12l5-8h18l5 8h12v34H6z"/><circle cx="32" cy="35" r="10"/></svg>',
+    home: '<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linejoin="round"><path d="M6 30L32 8l26 22M14 24v32h36V24"/><path d="M26 56V40h12v16"/></svg>',
+    eye: '<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linejoin="round"><path d="M4 32s10-18 28-18 28 18 28 18-10 18-28 18S4 32 4 32z"/><circle cx="32" cy="32" r="9"/></svg>'
+  };
+  const CATS = [
+    { name: "Événement", color: "#2f6fc0", grad: "linear-gradient(135deg,#15396b,#3f86d8)", icon: "event" },
+    { name: "Vie du siège", color: "#4a8fd6", grad: "linear-gradient(135deg,#3f86d8,#8cc0f0)", icon: "building" },
+    { name: "Ressources Humaines", color: "#c4572f", grad: "linear-gradient(135deg,#e26a3a,#f4a87a)", icon: "people" },
+    { name: "Engagement", color: "#d0457f", grad: "linear-gradient(135deg,#d0457f,#f39ac0)", icon: "ribbon" },
+    { name: "Produits & Réseau", color: "#1f8a76", grad: "linear-gradient(135deg,#167a68,#4cc3a5)", icon: "glasses" }
+  ];
+  const cat = n => CATS.find(c => c.name === n) || CATS[0];
+
+  // ---------- Données de démonstration ----------
+  let seq = 100;
+  const A = (o) => Object.assign({ id: "a" + (seq++), author: "Service Communication", audience: "tous", regions: [], comments: true, notify: false, une: false, unePos: 0, views: 0, likes: 0, ncom: 0, photo: null, body: "" }, o);
+  const ARTS = [
+    A({ title: "Inscriptions aux ateliers Atol Days : c’est parti", cat: "Événement", icon: "event", status: "programme", date: "2026-10-20", time: "09:00", excerpt: "Les inscriptions aux douze ateliers métiers ouvrent demain à 9 h. Places limitées à 40 participants par atelier.", author: "Briac FERTE", notify: true }),
+    A({ title: "Atol Days 2026 : le programme complet est en ligne", cat: "Événement", icon: "event", status: "publie", date: "2026-10-12", time: "08:30", excerpt: "Rendez-vous les 19, 20 et 21 novembre à Paris pour trois jours de conférences, d’ateliers métiers et de rencontres.", une: true, unePos: 1, views: 1284, likes: 24, ncom: 6, notify: true }),
+    A({ title: "Siège d’Antony : l’espace collaboratif du 2e étage ouvre ses portes", cat: "Vie du siège", icon: "building", status: "publie", date: "2026-10-09", time: "10:00", excerpt: "Salles de réunion réservables, zone de travail libre et nouveau coin café.", audience: "siege", une: true, unePos: 2, views: 412, likes: 18, ncom: 3, author: "Services généraux" }),
+    A({ title: "Bienvenue aux trois nouvelles recrues du pôle Marketing", cat: "Ressources Humaines", icon: "people", status: "publie", date: "2026-10-08", time: "09:00", excerpt: "Chloé, Mehdi et Inès rejoignent l’équipe pour renforcer le digital, le CRM et l’animation commerciale.", views: 538, likes: 31, ncom: 9, author: "Ressources Humaines" }),
+    A({ title: "Octobre Rose : 120 magasins mobilisés aux côtés de la Ligue", cat: "Engagement", icon: "ribbon", status: "publie", date: "2026-10-06", time: "08:00", excerpt: "Vitrines aux couleurs de la campagne, collecte en magasin et marche solidaire du 18 octobre.", views: 1702, likes: 42, ncom: 4 }),
+    A({ title: "Collection solaire printemps 2027 : les premières montures dévoilées", cat: "Produits & Réseau", icon: "glasses", status: "publie", date: "2026-10-02", time: "14:00", excerpt: "Douze modèles, des acétates biosourcés et trois coloris exclusifs.", audience: "magasins", views: 2210, likes: 15, ncom: 2, author: "Direction Produits" }),
+    A({ title: "Entretiens annuels : comment bien les préparer ?", cat: "Ressources Humaines", icon: "talk", status: "publie", date: "2026-09-25", time: "09:00", excerpt: "La campagne démarre le 1er novembre. Trame, calendrier et conseils.", views: 967, likes: 5, ncom: 2, author: "Ressources Humaines" }),
+    A({ title: "Retour sur le séminaire des adhérents, toutes les photos", cat: "Produits & Réseau", icon: "camera", status: "publie", date: "2026-09-21", time: "11:00", excerpt: "Merci à toutes et à tous pour ces deux jours d’échanges à Lyon.", une: true, unePos: 3, views: 1530, likes: 5, ncom: 2 }),
+    A({ title: "Mutuelle 2027 : ce qui change au 1er janvier", cat: "Ressources Humaines", icon: "people", status: "brouillon", date: "", time: "", excerpt: "Nouvelles garanties optique et dentaire, et simplification des remboursements.", author: "Ressources Humaines" }),
+    A({ title: "Inventaire de fin d’année : le calendrier magasins", cat: "Produits & Réseau", icon: "glasses", status: "brouillon", date: "", time: "", excerpt: "", audience: "magasins", author: "Briac FERTE" }),
+    A({ title: "Journée de dépistage visuel gratuit : bilan 2025", cat: "Engagement", icon: "eye", status: "archive", date: "2025-09-15", time: "09:00", excerpt: "Plus de 3 100 dépistages réalisés en une journée.", views: 2890, likes: 37, ncom: 8 })
+  ];
+  const COMMENTS = [
+    { id: 1, who: "Kevin LEROY", color: "#1f8a76", art: "Octobre Rose : 120 magasins mobilisés aux côtés de la Ligue", txt: "Est-ce que les magasins franchisés peuvent aussi commander le kit vitrine ? On ne l’a pas reçu à Nantes.", when: "il y a 25 min", flag: false },
+    { id: 2, who: "Utilisateur signalé", color: "#6b7a90", art: "Atol Days 2026 : le programme complet est en ligne", txt: "Encore un événement à Paris, les régions sont toujours oubliées…", when: "il y a 1 h", flag: true },
+    { id: 3, who: "Sophie NGUYEN", color: "#c4572f", art: "Bienvenue aux trois nouvelles recrues du pôle Marketing", txt: "Bienvenue à vous trois ! Au plaisir de travailler ensemble sur la rentrée.", when: "il y a 3 h", flag: false }
+  ];
+
+  const state = { filter: "tous", q: "", pvMode: "news", toast: null, draft: null };
+  const MONTHS = ["janv.","févr.","mars","avr.","mai","juin","juil.","août","sept.","oct.","nov.","déc."];
+  const fmt = iso => { if (!iso) return ""; const d = new Date(iso + "T00:00:00"); return d.getDate() + " " + MONTHS[d.getMonth()] + " " + d.getFullYear(); };
+  const esc = s => String(s == null ? "" : s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+  const STATUS = { publie: "Publié", programme: "Programmé", brouillon: "Brouillon", archive: "Archivé" };
+  const AUD = { tous: "Tous les collaborateurs", siege: "Siège", magasins: "Magasins" };
+  const REGIONS = ["Île-de-France", "Nord-Est", "Ouest", "Sud-Est", "Sud-Ouest", "Centre"];
+  const REACH = { tous: 3420, siege: 310, magasins: 3110 };
+  const thumb = (a, cls = "") => a.photo
+    ? `<div class="thumb photo ${cls}" style="background-image:url('${a.photo}')" aria-hidden="true"></div>`
+    : `<div class="thumb ${cls}" style="background:${cat(a.cat).grad}" aria-hidden="true">${G[a.icon] || G[cat(a.cat).icon]}</div>`;
+  const uneList = () => ARTS.filter(a => a.une && a.status !== "archive").sort((x, y) => x.unePos - y.unePos);
+  const renumber = () => uneList().forEach((a, i) => a.unePos = i + 1);
+
+  function toast(msg) {
+    const t = document.getElementById("toast");
+    t.textContent = msg; t.hidden = false;
+    clearTimeout(state.toast); state.toast = setTimeout(() => t.hidden = true, 2600);
+  }
+
+  // ---------- Liste des articles ----------
+  function articles() {
+    const counts = { tous: ARTS.length };
+    Object.keys(STATUS).forEach(s => counts[s] = ARTS.filter(a => a.status === s).length);
+    const q = state.q.trim().toLowerCase();
+    const rows = ARTS.filter(a => (state.filter === "tous" || a.status === state.filter) && (!q || (a.title + a.author + a.cat).toLowerCase().includes(q)));
+    const published = ARTS.filter(a => a.status === "publie");
+    const views30 = published.filter(a => a.date >= "2026-09-19").reduce((s, a) => s + a.views, 0);
+    const pending = COMMENTS.length;
+    return `
+    <div class="page-head">
+      <div><h1>Actualités</h1><p>Rédigez, programmez et mettez en avant les actualités de l’intranet.</p></div>
+      <div class="actions"><a class="btn primary" href="#nouveau">+ Nouvel article</a></div>
+    </div>
+    <div class="kpis">
+      <div class="card kpi"><small>Publiés</small><strong>${counts.publie}</strong><span>dont ${uneList().length} à la une</span></div>
+      <div class="card kpi"><small>Programmés</small><strong>${counts.programme}</strong><span>${ARTS.filter(a => a.status === "programme").map(a => "le " + fmt(a.date)).join(", ") || "aucun"}</span></div>
+      <div class="card kpi"><small>Lectures sur 30 jours</small><strong>${views30.toLocaleString("fr-FR")}</strong><span>sur ${published.filter(a => a.date >= "2026-09-19").length} articles publiés</span></div>
+      <div class="card kpi"><small>Commentaires à modérer</small><strong>${pending}</strong>${pending ? '<a href="#moderation">Modérer →</a>' : "<span>Tout est à jour</span>"}</div>
+    </div>
+    <section class="card">
+      <div class="toolbar">
+        <div class="tabs" role="group" aria-label="Filtrer par statut">
+          ${[["tous", "Tous"], ...Object.entries(STATUS)].map(([k, l]) => `<button type="button" class="tab ${state.filter === k ? "on" : ""}" data-filter="${k}" aria-pressed="${state.filter === k}">${l}<i>${counts[k]}</i></button>`).join("")}
+        </div>
+        <label class="search" for="q">${I.search}<input id="q" type="search" placeholder="Titre, auteur, catégorie" value="${esc(state.q)}" autocomplete="off"></label>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Article</th><th>Statut</th><th>Publication</th><th>Audience</th><th title="À la une">Une</th><th class="num">Lectures</th><th class="num">J’aime</th><th class="num">Comm.</th><th></th></tr></thead>
+          <tbody>
+          ${rows.length ? rows.map(a => `
+            <tr>
+              <td><div class="art"><div class="mini">${thumb(a)}</div><div style="min-width:0"><b><a href="#edition-${a.id}">${esc(a.title)}</a></b><small><span style="color:${cat(a.cat).color};font-weight:600">${esc(a.cat)}</span> · ${esc(a.author)}</small></div></div></td>
+              <td><span class="status s-${a.status}">${STATUS[a.status]}</span></td>
+              <td class="date">${a.date ? fmt(a.date) + `<small>${a.time.replace(":", " h ")}</small>` : '<span class="meta">Non planifiée</span>'}</td>
+              <td style="font-size:13px">${AUD[a.audience]}${a.regions.length ? `<small class="meta" style="display:block">${a.regions.length} région(s)</small>` : ""}</td>
+              <td><button type="button" class="icon-btn star ${a.une ? "on" : ""}" data-une="${a.id}" aria-pressed="${a.une}" aria-label="${a.une ? "Retirer de la une" : "Mettre à la une"}" title="${a.une ? "À la une (position " + a.unePos + ")" : "Mettre à la une"}" ${a.status === "archive" ? "disabled" : ""}>${I.star}</button></td>
+              <td class="num">${a.status === "publie" || a.status === "archive" ? a.views.toLocaleString("fr-FR") : "–"}</td>
+              <td class="num">${a.status === "publie" || a.status === "archive" ? a.likes : "–"}</td>
+              <td class="num">${a.status === "publie" || a.status === "archive" ? a.ncom : "–"}</td>
+              <td style="white-space:nowrap">
+                <a class="icon-btn" href="#edition-${a.id}" aria-label="Modifier" title="Modifier">${I.edit}</a>
+                <button type="button" class="icon-btn" data-dup="${a.id}" aria-label="Dupliquer" title="Dupliquer">${I.copy}</button>
+                ${a.status !== "archive" ? `<button type="button" class="icon-btn" data-archive="${a.id}" aria-label="Archiver" title="Archiver">${I.archive}</button>` : ""}
+              </td>
+            </tr>`).join("") : `<tr><td colspan="9" style="text-align:center;padding:40px;color:var(--muted)">Aucun article ne correspond à ce filtre.</td></tr>`}
+          </tbody>
+        </table>
+      </div>
+    </section>
+    <p class="mock-note">Maquette fonctionnelle · données fictives · les modifications ne sont pas enregistrées</p>`;
+  }
+
+  // ---------- Éditeur ----------
+  function editor(a, isNew) {
+    state.draft = a;
+    const audReach = a.audience === "magasins" && a.regions.length ? Math.round(REACH.magasins * a.regions.length / REGIONS.length) : REACH[a.audience];
+    return `
+    <div class="page-head">
+      <div><a href="#articles" class="meta" style="font-weight:600">← Tous les articles</a><h1 style="margin-top:6px">${isNew ? "Nouvel article" : "Modifier l’article"}</h1>
+      ${!isNew ? `<p><span class="status s-${a.status}">${STATUS[a.status]}</span> &nbsp;Dernière modification par ${esc(a.author)}</p>` : ""}</div>
+    </div>
+    <form class="editor" id="edit-form" data-id="${a.id}" data-new="${isNew ? 1 : 0}" novalidate>
+      <div class="stack">
+        <section class="card">
+          <div class="field"><label for="f-title">Titre</label>
+            <input type="text" id="f-title" class="title-input" value="${esc(a.title)}" placeholder="Ex. : Atol Days 2026 : le programme complet est en ligne" maxlength="110">
+            <span class="hint" id="h-title">${a.title.length} / 90 caractères conseillés</span></div>
+          <div class="field"><label for="f-excerpt">Chapeau</label>
+            <textarea id="f-excerpt" placeholder="Deux phrases qui donnent envie de lire. Affiché sur la carte et dans le carrousel.">${esc(a.excerpt)}</textarea>
+            <span class="hint" id="h-excerpt">${a.excerpt.length} / 180 caractères</span></div>
+          <div class="field"><span class="lbl">Visuel</span>
+            <div class="drop" id="drop">
+              <div id="f-visual">${thumb(a)}</div>
+              <div>
+                <p>Glissez une photo ici (JPG ou PNG, 1600 × 1000 px conseillé) ou gardez l’illustration de la catégorie.</p>
+                <div class="links"><label class="btn sm" for="f-photo">Choisir une photo</label><input type="file" id="f-photo" accept="image/*" hidden>
+                  ${a.photo ? '<button type="button" class="btn sm danger" data-rmphoto>Retirer la photo</button>' : ""}</div>
+                ${!a.photo ? `<div class="swatches" role="group" aria-label="Pictogramme">${Object.keys(G).map(k => `<button type="button" class="swatch ${a.icon === k ? "on" : ""}" data-icon="${k}" style="background:${cat(a.cat).color}" aria-label="Pictogramme ${k}" aria-pressed="${a.icon === k}">${G[k]}</button>`).join("")}</div>` : ""}
+              </div>
+            </div></div>
+          <div class="field"><span class="lbl" id="l-body">Contenu</span>
+            <div class="rte">
+              <div class="rte-bar" role="toolbar" aria-label="Mise en forme">
+                <button type="button" data-cmd="bold" aria-label="Gras"><b>G</b></button>
+                <button type="button" data-cmd="italic" aria-label="Italique"><i>I</i></button>
+                <button type="button" data-cmd="underline" aria-label="Souligné"><u>S</u></button>
+                <span class="sep"></span>
+                <button type="button" data-cmd="formatBlock" data-arg="h3">Titre</button>
+                <button type="button" data-cmd="insertUnorderedList">• Liste</button>
+                <button type="button" data-cmd="createLink">Lien</button>
+                <span class="sep"></span>
+                <button type="button" data-cmd="noop">Image</button>
+                <button type="button" data-cmd="noop">Vidéo</button>
+                <button type="button" data-cmd="noop">Document</button>
+              </div>
+              <div class="rte-body" id="f-body" contenteditable="true" role="textbox" aria-multiline="true" aria-labelledby="l-body">${a.body || "<p>" + esc(a.excerpt || "Rédigez votre article ici…") + "</p>"}</div>
+            </div></div>
+        </section>
+
+        <section class="card">
+          <div class="card-h"><h2>Aperçu sur l’intranet</h2>
+            <div class="tabs" role="group" aria-label="Type d’aperçu">
+              <button type="button" class="tab ${state.pvMode === "news" ? "on" : ""}" data-pv="news">Dernières actualités</button>
+              <button type="button" class="tab ${state.pvMode === "une" ? "on" : ""}" data-pv="une">À la une</button>
+            </div></div>
+          <div class="pv" id="preview">${preview(a)}</div>
+        </section>
+      </div>
+
+      <div class="stack">
+        <section class="card side-card">
+          <h3>Publication</h3>
+          <div class="radios" role="radiogroup" aria-label="Moment de publication">
+            <label class="radio"><input type="radio" name="when" value="now" ${a.status !== "programme" ? "checked" : ""}> Publier immédiatement</label>
+            <label class="radio"><input type="radio" name="when" value="later" ${a.status === "programme" ? "checked" : ""}> Programmer</label>
+          </div>
+          <div class="sub" id="sched" ${a.status === "programme" ? "" : "hidden"}>
+            <div class="row2"><div class="field"><label for="f-date">Date</label><input type="date" id="f-date" value="${a.date || "2026-10-20"}"></div>
+            <div class="field" style="margin-top:0"><label for="f-time">Heure</label><input type="time" id="f-time" value="${a.time || "09:00"}"></div></div>
+          </div>
+          <div class="field"><label for="f-cat">Catégorie</label>
+            <select id="f-cat">${CATS.map(c => `<option ${c.name === a.cat ? "selected" : ""}>${esc(c.name)}</option>`).join("")}</select></div>
+          <div class="field"><label for="f-author">Signé par</label>
+            <select id="f-author">${["Service Communication", "Ressources Humaines", "Direction Produits", "Services généraux", "Briac FERTE"].map(x => `<option ${x === a.author ? "selected" : ""}>${x}</option>`).join("")}</select></div>
+        </section>
+
+        <section class="card side-card">
+          <h3>Mise en avant</h3>
+          <label class="switch"><span><b>Mettre à la une</b><small>Affiché dans le carrousel de l’accueil (3 places).</small></span><input type="checkbox" id="f-une" ${a.une ? "checked" : ""}></label>
+          <div class="sub" id="une-opts" ${a.une ? "" : "hidden"}>
+            <div class="field"><label for="f-unepos">Position dans le carrousel</label>
+              <select id="f-unepos">${[1, 2, 3].map(p => `<option value="${p}" ${a.unePos === p ? "selected" : ""}>${p}${p === 1 ? " (première affichée)" : ""}</option>`).join("")}</select></div>
+            <div class="field"><label for="f-uneend">Retirer de la une le</label><input type="date" id="f-uneend" value="2026-11-22"></div>
+            <span class="hint" id="une-warn"></span>
+          </div>
+        </section>
+
+        <section class="card side-card">
+          <h3>Audience</h3>
+          <div class="radios" role="radiogroup" aria-label="Audience">
+            ${Object.entries(AUD).map(([k, l]) => `<label class="radio"><input type="radio" name="aud" value="${k}" ${a.audience === k ? "checked" : ""}> ${l}</label>`).join("")}
+          </div>
+          <div id="regions" ${a.audience === "magasins" ? "" : "hidden"}>
+            <div class="checks">${REGIONS.map(r => `<label><input type="checkbox" value="${r}" data-region ${a.regions.includes(r) ? "checked" : ""}> ${r}</label>`).join("")}</div>
+            <span class="hint">Aucune région cochée : tous les magasins.</span>
+          </div>
+          <p class="reach" id="reach">Visible par environ <b>${audReach.toLocaleString("fr-FR")}</b> collaborateurs</p>
+        </section>
+
+        <section class="card side-card">
+          <h3>Options</h3>
+          <label class="switch"><span><b>Autoriser les commentaires</b><small>Modérés a posteriori.</small></span><input type="checkbox" id="f-com" ${a.comments ? "checked" : ""}></label>
+          <label class="switch"><span><b>Notifier l’audience</b><small>E-mail et notification à la publication.</small></span><input type="checkbox" id="f-notify" ${a.notify ? "checked" : ""}></label>
+        </section>
+
+        <div class="sticky-actions">
+          <button type="submit" class="btn primary" id="submit-btn">${a.status === "programme" ? "Programmer" : (a.status === "publie" ? "Mettre à jour" : "Publier")}</button>
+          <button type="button" class="btn" data-save-draft>Enregistrer en brouillon</button>
+          ${!isNew && a.status !== "archive" ? '<button type="button" class="btn danger" data-archive-current>Archiver l’article</button>' : ""}
+        </div>
+      </div>
+    </form>`;
+  }
+
+  function preview(a) {
+    const title = a.title ? esc(a.title) : '<span class="placeholder">Titre de l’article</span>';
+    const exc = a.excerpt ? esc(a.excerpt) : '<span class="placeholder">Le chapeau apparaîtra ici.</span>';
+    const dateTxt = a.status === "programme" ? fmt(a.date) : (a.date && a.status === "publie" ? fmt(a.date) : "19 oct. 2026");
+    const meta = `<div class="meta">${dateTxt} · <b style="color:${cat(a.cat).color}">${esc(a.cat)}</b></div>`;
+    return state.pvMode === "une"
+      ? `<div class="pv-une">${thumb(a)}<div><span class="meta" style="font-weight:700;letter-spacing:.1em">À LA UNE</span>${meta}<h4>${title}</h4><p>${exc}</p></div></div>`
+      : `<div class="pv-news">${thumb(a)}<div>${meta}<h4>${title}</h4><p>${exc}</p></div></div>`;
+  }
+
+  function readForm() {
+    const a = state.draft, $ = id => document.getElementById(id);
+    a.title = $("f-title").value; a.excerpt = $("f-excerpt").value;
+    a.cat = $("f-cat").value; a.author = $("f-author").value;
+    a.une = $("f-une").checked; a.unePos = +$("f-unepos").value;
+    a.audience = document.querySelector("input[name=aud]:checked").value;
+    a.regions = [...document.querySelectorAll("[data-region]:checked")].map(x => x.value);
+    a.comments = $("f-com").checked; a.notify = $("f-notify").checked;
+    a.body = $("f-body").innerHTML;
+    a._later = document.querySelector("input[name=when]:checked").value === "later";
+    a._date = $("f-date").value; a._time = $("f-time").value;
+    return a;
+  }
+
+  function refreshEditorBits() {
+    const a = readForm(), $ = id => document.getElementById(id);
+    const ht = $("h-title"); ht.textContent = a.title.length + " / 90 caractères conseillés"; ht.classList.toggle("over", a.title.length > 90);
+    const he = $("h-excerpt"); he.textContent = a.excerpt.length + " / 180 caractères"; he.classList.toggle("over", a.excerpt.length > 180);
+    $("sched").hidden = !a._later;
+    $("une-opts").hidden = !a.une;
+    $("regions").hidden = a.audience !== "magasins";
+    const reach = a.audience === "magasins" && a.regions.length ? Math.round(REACH.magasins * a.regions.length / REGIONS.length) : REACH[a.audience];
+    $("reach").innerHTML = `Visible par environ <b>${reach.toLocaleString("fr-FR")}</b> collaborateurs`;
+    const others = uneList().filter(x => x.id !== a.id);
+    const taken = others.find(x => x.unePos === a.unePos);
+    $("une-warn").textContent = a.une && others.length >= 3 ? `Le carrousel est complet : « ${others[2].title} » en sortira.` : (a.une && taken ? `Remplace la position de « ${taken.title} », qui sera décalé.` : "");
+    $("submit-btn").textContent = a._later ? "Programmer" : (a.status === "publie" ? "Mettre à jour" : "Publier");
+    if (a._date) { a.date = a._date; }
+    const pvStatus = a.status; if (a._later) a.status = "programme";
+    $("preview").innerHTML = preview(a);
+    a.status = pvStatus;
+    $("f-visual").innerHTML = thumb(a);
+  }
+
+  function valid(a, status) {
+    if (!a.title.trim()) { toast("Ajoutez un titre avant d’enregistrer."); document.getElementById("f-title").focus(); return false; }
+    if (status !== "brouillon" && !a.excerpt.trim()) { toast("Ajoutez un chapeau : il s’affiche sur la carte de l’accueil."); document.getElementById("f-excerpt").focus(); return false; }
+    return true;
+  }
+  function commit(a, isNew, status) {
+    a.status = status;
+    if (status === "programme") { a.date = a._date; a.time = a._time; }
+    if (status === "publie" && (!a.date || a.date > "2026-10-19")) { a.date = "2026-10-19"; a.time = new Date().toTimeString().slice(0, 5); }
+    if (status === "brouillon" && !a._later) { a.date = a.date || ""; }
+    if (a.une) {
+      const others = uneList().filter(x => x.id !== a.id);
+      others.forEach(x => { if (x.unePos >= a.unePos) x.unePos++; });
+      others.filter(x => x.unePos > 3).forEach(x => { x.une = false; x.unePos = 0; });
+    }
+    if (isNew) ARTS.unshift(a);
+    renumber();
+    toast(status === "publie" ? "Article publié" + (a.notify ? " · notification envoyée" : "") : status === "programme" ? `Article programmé le ${fmt(a.date)} à ${a.time.replace(":", " h ")}` : "Brouillon enregistré");
+    location.hash = "#articles";
+  }
+
+  // ---------- À la une ----------
+  function une() {
+    const list = uneList();
+    const candidates = ARTS.filter(a => a.status === "publie" && !a.une).slice(0, 6);
+    return `
+    <div class="page-head"><div><h1>À la une</h1><p>Choisissez et ordonnez les 3 actualités du carrousel de l’accueil.</p></div></div>
+    <div class="editor">
+      <section class="card">
+        <div class="card-h"><h2>Carrousel de l’accueil</h2><span class="meta">${list.length} / 3 places · défilement toutes les 7 s</span></div>
+        <div class="slots">
+          ${[0, 1, 2].map(i => list[i] ? `
+            <div class="slot"><span class="pos">${i + 1}</span>${thumb(list[i])}
+              <div style="min-width:0"><b>${esc(list[i].title)}</b><small>${fmt(list[i].date)} · ${esc(list[i].cat)} · ${list[i].views.toLocaleString("fr-FR")} lectures</small></div>
+              <div style="white-space:nowrap">
+                <button type="button" class="icon-btn" data-move="${list[i].id}" data-dir="-1" aria-label="Monter" ${i === 0 ? "disabled" : ""}>${I.up}</button>
+                <button type="button" class="icon-btn" data-move="${list[i].id}" data-dir="1" aria-label="Descendre" ${i === list.length - 1 ? "disabled" : ""}>${I.down}</button>
+                <button type="button" class="icon-btn" data-une="${list[i].id}" aria-label="Retirer de la une">${I.x}</button>
+              </div></div>` : `
+            <div class="slot empty-slot"><span class="pos">${i + 1}</span><span>Place libre : ajoutez un article publié depuis la liste à droite.</span></div>`).join("")}
+        </div>
+      </section>
+      <section class="card">
+        <div class="card-h"><h2>Articles publiés</h2></div>
+        <div class="pick">
+          ${candidates.map(a => `<div class="pick-item">${thumb(a)}<div style="min-width:0"><b>${esc(a.title)}</b><span class="meta">${fmt(a.date)}</span></div>
+            <button type="button" class="btn sm" data-une="${a.id}" ${list.length >= 3 ? 'disabled title="Le carrousel est complet"' : ""}>Ajouter</button></div>`).join("") || '<p class="meta">Tous les articles publiés sont déjà à la une.</p>'}
+        </div>
+      </section>
+    </div>`;
+  }
+
+  // ---------- Modération ----------
+  function moderation() {
+    return `
+    <div class="page-head"><div><h1>Commentaires</h1><p>Les commentaires sont publiés immédiatement. Masquez ceux qui ne respectent pas la charte.</p></div></div>
+    <section class="card">
+      <div class="card-h"><h2>À relire</h2><span class="meta">${COMMENTS.length} commentaire(s)</span></div>
+      ${COMMENTS.length ? COMMENTS.map(c => `
+        <div class="comment">
+          <div class="av" style="background:${c.color}">${c.who.split(" ").map(w => w[0]).join("").slice(0, 2)}</div>
+          <div style="min-width:0">
+            ${c.flag ? '<span class="flag">Signalé par 2 collaborateurs</span>' : ""}
+            <div><b>${esc(c.who)}</b> <span class="meta">· ${c.when}</span></div>
+            <q>${esc(c.txt)}</q>
+            <span class="meta">Sur « ${esc(c.art)} »</span>
+          </div>
+          <div class="actions"><button type="button" class="btn sm" data-mod="${c.id}" data-act="ok">Valider</button><button type="button" class="btn sm danger" data-mod="${c.id}" data-act="hide">Masquer</button></div>
+        </div>`).join("") : '<p class="meta" style="text-align:center;padding:30px">Aucun commentaire à relire.</p>'}
+    </section>`;
+  }
+
+  // ---------- Catégories ----------
+  function categories() {
+    return `
+    <div class="page-head"><div><h1>Catégories</h1><p>La couleur et le pictogramme servent d’illustration quand un article n’a pas de photo.</p></div>
+    <div class="actions"><button type="button" class="btn" data-noop>+ Nouvelle catégorie</button></div></div>
+    <section class="card">
+      ${CATS.map(c => {
+        const n = ARTS.filter(a => a.cat === c.name && a.status !== "archive").length;
+        return `<div class="cat-row"><div class="cat-dot" style="background:${c.grad}">${G[c.icon]}</div><b style="font-weight:600">${esc(c.name)}</b>
+          <span class="meta hide-sm">${n} article(s)</span><span class="meta hide-sm" style="font-family:monospace">${c.color}</span>
+          <button type="button" class="icon-btn" data-noop aria-label="Modifier ${esc(c.name)}">${I.edit}</button></div>`;
+      }).join("")}
+    </section>`;
+  }
+
+  // ---------- Routage ----------
+  const view = document.getElementById("view");
+  function route() {
+    const h = (location.hash || "#articles").slice(1);
+    let name = h, html;
+    if (h.startsWith("edition-")) {
+      const a = ARTS.find(x => x.id === h.slice(8));
+      name = "articles"; html = a ? editor(Object.assign({}, a, { regions: a.regions.slice() }), false) : articles();
+    } else if (h === "nouveau") {
+      html = editor(A({ title: "", cat: "Événement", icon: "event", status: "brouillon", date: "", time: "", excerpt: "", author: "Briac FERTE" }), true);
+    } else if (h === "une") html = une();
+    else if (h === "moderation") html = moderation();
+    else if (h === "categories") html = categories();
+    else { name = "articles"; html = articles(); }
+    document.querySelectorAll("#nav a").forEach(a => a.classList.toggle("on", a.dataset.view === name));
+    document.getElementById("crumb").textContent = { articles: "Actualités", nouveau: "Nouvel article", une: "À la une", moderation: "Commentaires", categories: "Catégories" }[name] || "Actualités";
+    document.getElementById("mod-count").textContent = COMMENTS.length || "";
+    document.getElementById("mod-count").hidden = !COMMENTS.length;
+    view.innerHTML = html;
+  }
+  const rerender = () => { const y = scrollY; route(); scrollTo(0, y); };
+
+  // Applique les modifications du formulaire à l'article d'origine
+  function saveFrom(form, status) {
+    const a = readForm(), isNew = form.dataset.new === "1";
+    if (!valid(a, status)) return;
+    if (status === "brouillon") a.une = false;
+    if (isNew) commit(a, true, status);
+    else { const orig = ARTS.find(x => x.id === a.id); Object.assign(orig, a, { une: false }); orig.une = a.une; commit(orig, false, status); }
+  }
+
+  document.addEventListener("click", e => {
+    const t = e.target.closest("button, a[data-inert]");
+    if (!t) return;
+    const d = t.dataset;
+    if (d.inert != null || d.noop != null) { e.preventDefault(); toast("Hors du périmètre de cette maquette"); return; }
+    if (d.filter) { state.filter = d.filter; rerender(); }
+    else if (d.une) {
+      const a = ARTS.find(x => x.id === d.une);
+      if (a.une) { a.une = false; a.unePos = 0; renumber(); toast("Retiré de la une"); }
+      else if (a.status !== "publie" && a.status !== "programme") { toast("Seul un article publié ou programmé peut être mis à la une."); return; }
+      else if (uneList().length >= 3) { toast("Le carrousel est complet : retirez d’abord un article de la une."); return; }
+      else { a.une = true; a.unePos = uneList().length + 1; renumber(); toast("Ajouté à la une en position " + a.unePos); }
+      rerender();
+    }
+    else if (d.move) {
+      const list = uneList(), i = list.findIndex(x => x.id === d.move), j = i + +d.dir;
+      [list[i].unePos, list[j].unePos] = [list[j].unePos, list[i].unePos];
+      rerender();
+    }
+    else if (d.dup) {
+      const a = ARTS.find(x => x.id === d.dup);
+      const c = A(Object.assign({}, a, { id: undefined, title: a.title + " (copie)", status: "brouillon", date: "", time: "", une: false, unePos: 0, views: 0, likes: 0, ncom: 0, regions: a.regions.slice() }));
+      c.id = "a" + (seq++);
+      ARTS.splice(ARTS.indexOf(a), 0, c); toast("Copie créée en brouillon"); rerender();
+    }
+    else if (d.archive) {
+      const a = ARTS.find(x => x.id === d.archive); a.status = "archive"; a.une = false; renumber();
+      toast("« " + a.title.slice(0, 40) + "… » archivé"); rerender();
+    }
+    else if (d.mod) {
+      const i = COMMENTS.findIndex(c => c.id === +d.mod); COMMENTS.splice(i, 1);
+      toast(d.act === "ok" ? "Commentaire validé" : "Commentaire masqué · l’auteur est prévenu"); rerender();
+    }
+    else if (d.pv) { state.pvMode = d.pv; document.querySelectorAll("[data-pv]").forEach(b => b.classList.toggle("on", b.dataset.pv === d.pv)); refreshEditorBits(); }
+    else if (d.icon) { state.draft.icon = d.icon; document.querySelectorAll("[data-icon]").forEach(b => { b.classList.toggle("on", b.dataset.icon === d.icon); b.setAttribute("aria-pressed", b.dataset.icon === d.icon); }); refreshEditorBits(); }
+    else if (d.rmphoto != null) { readForm(); state.draft.photo = null; const y = scrollY; view.innerHTML = editor(state.draft, document.getElementById("edit-form").dataset.new === "1"); scrollTo(0, y); }
+    else if (d.cmd) {
+      e.preventDefault();
+      if (d.cmd === "noop") { toast("Insertion de médias : hors du périmètre de cette maquette"); return; }
+      document.getElementById("f-body").focus();
+      if (d.cmd === "createLink") document.execCommand("createLink", false, "https://intranet.atol.fr");
+      else document.execCommand(d.cmd, false, d.arg || null);
+    }
+    else if (d.saveDraft != null) saveFrom(document.getElementById("edit-form"), "brouillon");
+    else if (d.archiveCurrent != null) {
+      const a = ARTS.find(x => x.id === document.getElementById("edit-form").dataset.id);
+      a.status = "archive"; a.une = false; renumber(); toast("Article archivé"); location.hash = "#articles";
+    }
+  });
+  document.addEventListener("mousedown", e => { if (e.target.closest("[data-cmd]")) e.preventDefault(); });
+  document.addEventListener("input", e => {
+    if (e.target.id === "q") { state.q = e.target.value; const pos = e.target.selectionStart; rerender(); const q = document.getElementById("q"); q.focus(); q.setSelectionRange(pos, pos); return; }
+    if (e.target.closest("#edit-form") && e.target.id !== "f-photo") refreshEditorBits();
+  });
+  document.addEventListener("change", e => {
+    if (e.target.closest("#edit-form") && e.target.id !== "f-photo") refreshEditorBits();
+    if (e.target.id === "f-photo" && e.target.files[0]) loadPhoto(e.target.files[0]);
+  });
+  function loadPhoto(file) {
+    if (!file.type.startsWith("image/")) { toast("Ce fichier n’est pas une image."); return; }
+    const r = new FileReader();
+    r.onload = () => { readForm(); state.draft.photo = r.result; const y = scrollY; view.innerHTML = editor(state.draft, document.getElementById("edit-form").dataset.new === "1"); scrollTo(0, y); toast("Photo ajoutée"); };
+    r.readAsDataURL(file);
+  }
+  document.addEventListener("dragover", e => { const d = e.target.closest("#drop"); if (d) { e.preventDefault(); d.classList.add("over"); } });
+  document.addEventListener("dragleave", e => { const d = e.target.closest("#drop"); if (d) d.classList.remove("over"); });
+  document.addEventListener("drop", e => { const d = e.target.closest("#drop"); if (d) { e.preventDefault(); d.classList.remove("over"); if (e.dataTransfer.files[0]) loadPhoto(e.dataTransfer.files[0]); } });
+  document.addEventListener("submit", e => {
+    if (e.target.id !== "edit-form") return;
+    e.preventDefault();
+    const later = document.querySelector("input[name=when]:checked").value === "later";
+    saveFrom(e.target, later ? "programme" : "publie");
+  });
+  addEventListener("hashchange", () => { route(); scrollTo(0, 0); });
+  route();
+})();
+</script>
