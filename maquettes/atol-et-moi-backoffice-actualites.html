@@ -198,6 +198,23 @@ textarea { resize: vertical; min-height: 70px; }
 .sub { margin-top: 10px; padding: 12px; background: var(--surface-2); border-radius: 10px; display: flex; flex-direction: column; gap: 10px; }
 .reach { font-size: 12.5px; color: var(--muted); margin-top: 10px; }
 .reach b { color: var(--text); }
+.checks.one { grid-template-columns: minmax(0, 1fr); }
+.checks.one label { justify-content: space-between; }
+.checks.one label span { display: flex; gap: 8px; align-items: center; }
+.checks.one em { font-style: normal; color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; }
+.dot { width: 10px; height: 10px; border-radius: 50%; flex: none; display: inline-block; }
+.pv-links { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+.pv-links a { font-size: 12px; font-weight: 600; padding: 4px 10px; border-radius: 99px; border: 1px solid var(--line); display: inline-flex; gap: 6px; align-items: center; }
+.pv-links a:hover { border-color: var(--sky); }
+.va { position: relative; }
+.va summary { list-style: none; cursor: pointer; }
+.va summary::-webkit-details-marker { display: none; }
+.va-menu { position: absolute; right: 0; top: calc(100% + 6px); background: var(--surface); border: 1px solid var(--line); border-radius: 12px; box-shadow: 0 12px 40px rgba(15, 43, 82, .18); padding: 6px; z-index: 20; width: 270px; max-width: calc(100vw - 32px); }
+.va-menu p { font-size: 11px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); padding: 6px 10px; margin: 0; }
+.va-menu a { display: flex; gap: 10px; align-items: center; padding: 8px 10px; border-radius: 8px; font-size: 13px; font-weight: 500; }
+.va-menu a:hover { background: var(--surface-2); }
+.grp-cell { font-size: 13px; display: flex; flex-direction: column; gap: 2px; }
+.grp-cell span { display: inline-flex; gap: 6px; align-items: center; white-space: nowrap; }
 .sticky-actions { display: flex; flex-direction: column; gap: 8px; }
 .sticky-actions .btn { justify-content: center; }
 
@@ -291,7 +308,7 @@ textarea { resize: vertical; min-height: 70px; }
   <div class="main">
     <header class="topbar">
       <div class="crumbs">Admin › <b id="crumb">Actualités</b></div>
-      <div class="who"><a class="btn sm" href="https://claude.ai/artifact/S2u7EipEfBUGcffZNqhQVo" target="_blank" rel="noopener">Voir l’intranet ↗</a><b>Briac FERTE</b><span class="role">Éditeur</span></div>
+      <div class="who"><details class="va" id="va"><summary class="btn sm">Voir l’intranet en tant que ▾</summary><div class="va-menu" id="va-menu"></div></details><b>Briac FERTE</b><span class="role">Éditeur</span></div>
     </header>
     <div class="band" aria-hidden="true"></div>
     <main class="content" id="view"></main>
@@ -333,18 +350,22 @@ textarea { resize: vertical; min-height: 70px; }
 
   // ---------- Données de démonstration ----------
   let seq = 100;
-  const A = (o) => Object.assign({ id: "a" + (seq++), author: "Service Communication", audience: "tous", regions: [], comments: true, notify: false, une: false, unePos: 0, views: 0, likes: 0, ncom: 0, photo: null, body: "" }, o);
+  const A = (o) => Object.assign({ id: "a" + (seq++), author: "Service Communication", groups: [], comments: true, notify: false, une: false, unePos: 0, views: 0, likes: 0, ncom: 0, photo: null, body: "" }, o);
   const ARTS = [
     A({ title: "Inscriptions aux ateliers Atol Days : c’est parti", cat: "Événement", icon: "event", status: "programme", date: "2026-10-20", time: "09:00", excerpt: "Les inscriptions aux douze ateliers métiers ouvrent demain à 9 h. Places limitées à 40 participants par atelier.", author: "Briac FERTE", notify: true }),
+    A({ title: "Paie de novembre : le calendrier de clôture avance d’une semaine", cat: "Ressources Humaines", icon: "talk", status: "publie", date: "2026-10-16", time: "11:00", excerpt: "Les variables de paie sont à saisir avant le 13 novembre.", groups: ["rh"], views: 17, likes: 4, ncom: 1, author: "Ressources Humaines", comments: false }),
+    A({ title: "Aides auditives rechargeables : la nouvelle gamme arrive en centre", cat: "Produits & Réseau", icon: "eye", status: "publie", date: "2026-10-15", time: "09:00", excerpt: "Autonomie de 30 heures, recharge en 3 heures et application de réglage.", groups: ["audition"], views: 356, likes: 19, ncom: 5, author: "Direction Produits" }),
+    A({ title: "Plateforme de Beaune : le nouveau quai de chargement est opérationnel", cat: "Produits & Réseau", icon: "building", status: "publie", date: "2026-10-14", time: "07:30", excerpt: "Deux portes supplémentaires et un créneau d’expédition à 16 h.", groups: ["beaune"], views: 148, likes: 11, ncom: 2, author: "Services généraux" }),
+    A({ title: "Abeye : la collection automne s’installe en magasin", cat: "Produits & Réseau", icon: "glasses", status: "publie", date: "2026-10-13", time: "08:00", excerpt: "Nouveau mobilier, vitrines et argumentaire de vente pour le 24 octobre.", groups: ["abeye"], views: 231, likes: 14, ncom: 3, author: "Direction Produits" }),
     A({ title: "Atol Days 2026 : le programme complet est en ligne", cat: "Événement", icon: "event", status: "publie", date: "2026-10-12", time: "08:30", excerpt: "Rendez-vous les 19, 20 et 21 novembre à Paris pour trois jours de conférences, d’ateliers métiers et de rencontres.", une: true, unePos: 1, views: 1284, likes: 24, ncom: 6, notify: true }),
-    A({ title: "Siège d’Antony : l’espace collaboratif du 2e étage ouvre ses portes", cat: "Vie du siège", icon: "building", status: "publie", date: "2026-10-09", time: "10:00", excerpt: "Salles de réunion réservables, zone de travail libre et nouveau coin café.", audience: "siege", une: true, unePos: 2, views: 412, likes: 18, ncom: 3, author: "Services généraux" }),
+    A({ title: "Siège d’Antony : l’espace collaboratif du 2e étage ouvre ses portes", cat: "Vie du siège", icon: "building", status: "publie", date: "2026-10-09", time: "10:00", excerpt: "Salles de réunion réservables, zone de travail libre et nouveau coin café.", groups: ["antony", "rh"], une: true, unePos: 2, views: 412, likes: 18, ncom: 3, author: "Services généraux" }),
     A({ title: "Bienvenue aux trois nouvelles recrues du pôle Marketing", cat: "Ressources Humaines", icon: "people", status: "publie", date: "2026-10-08", time: "09:00", excerpt: "Chloé, Mehdi et Inès rejoignent l’équipe pour renforcer le digital, le CRM et l’animation commerciale.", views: 538, likes: 31, ncom: 9, author: "Ressources Humaines" }),
     A({ title: "Octobre Rose : 120 magasins mobilisés aux côtés de la Ligue", cat: "Engagement", icon: "ribbon", status: "publie", date: "2026-10-06", time: "08:00", excerpt: "Vitrines aux couleurs de la campagne, collecte en magasin et marche solidaire du 18 octobre.", views: 1702, likes: 42, ncom: 4 }),
-    A({ title: "Collection solaire printemps 2027 : les premières montures dévoilées", cat: "Produits & Réseau", icon: "glasses", status: "publie", date: "2026-10-02", time: "14:00", excerpt: "Douze modèles, des acétates biosourcés et trois coloris exclusifs.", audience: "magasins", views: 2210, likes: 15, ncom: 2, author: "Direction Produits" }),
+    A({ title: "Collection solaire printemps 2027 : les premières montures dévoilées", cat: "Produits & Réseau", icon: "glasses", status: "publie", date: "2026-10-02", time: "14:00", excerpt: "Douze modèles, des acétates biosourcés et trois coloris exclusifs.", groups: ["abeye", "beaune"], views: 2210, likes: 15, ncom: 2, author: "Direction Produits" }),
     A({ title: "Entretiens annuels : comment bien les préparer ?", cat: "Ressources Humaines", icon: "talk", status: "publie", date: "2026-09-25", time: "09:00", excerpt: "La campagne démarre le 1er novembre. Trame, calendrier et conseils.", views: 967, likes: 5, ncom: 2, author: "Ressources Humaines" }),
     A({ title: "Retour sur le séminaire des adhérents, toutes les photos", cat: "Produits & Réseau", icon: "camera", status: "publie", date: "2026-09-21", time: "11:00", excerpt: "Merci à toutes et à tous pour ces deux jours d’échanges à Lyon.", une: true, unePos: 3, views: 1530, likes: 5, ncom: 2 }),
     A({ title: "Mutuelle 2027 : ce qui change au 1er janvier", cat: "Ressources Humaines", icon: "people", status: "brouillon", date: "", time: "", excerpt: "Nouvelles garanties optique et dentaire, et simplification des remboursements.", author: "Ressources Humaines" }),
-    A({ title: "Inventaire de fin d’année : le calendrier magasins", cat: "Produits & Réseau", icon: "glasses", status: "brouillon", date: "", time: "", excerpt: "", audience: "magasins", author: "Briac FERTE" }),
+    A({ title: "Inventaire de fin d’année : le calendrier magasins", cat: "Produits & Réseau", icon: "glasses", status: "brouillon", date: "", time: "", excerpt: "", groups: ["audition", "abeye"], author: "Briac FERTE" }),
     A({ title: "Journée de dépistage visuel gratuit : bilan 2025", cat: "Engagement", icon: "eye", status: "archive", date: "2025-09-15", time: "09:00", excerpt: "Plus de 3 100 dépistages réalisés en une journée.", views: 2890, likes: 37, ncom: 8 })
   ];
   const COMMENTS = [
@@ -358,9 +379,18 @@ textarea { resize: vertical; min-height: 70px; }
   const fmt = iso => { if (!iso) return ""; const d = new Date(iso + "T00:00:00"); return d.getDate() + " " + MONTHS[d.getMonth()] + " " + d.getFullYear(); };
   const esc = s => String(s == null ? "" : s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
   const STATUS = { publie: "Publié", programme: "Programmé", brouillon: "Brouillon", archive: "Archivé" };
-  const AUD = { tous: "Tous les collaborateurs", siege: "Siège", magasins: "Magasins" };
-  const REGIONS = ["Île-de-France", "Nord-Est", "Ouest", "Sud-Est", "Sud-Ouest", "Centre"];
-  const REACH = { tous: 3420, siege: 310, magasins: 3110 };
+  const FRONT = "https://claude.ai/artifact/S2u7EipEfBUGcffZNqhQVo";
+  const GROUPS = {
+    antony: { name: "Atol Antony", members: 310, color: "#15396b" },
+    beaune: { name: "Atol Beaune", members: 185, color: "#7a5bc4" },
+    audition: { name: "Audition", members: 420, color: "#1f8a76" },
+    abeye: { name: "Abeye", members: 260, color: "#d0457f" },
+    rh: { name: "Service RH", members: 18, color: "#c4572f" }
+  };
+  const TOTAL = Object.values(GROUPS).reduce((s, g) => s + g.members, 0);
+  const reachOf = gs => gs.length ? gs.reduce((s, k) => s + GROUPS[k].members, 0) : TOTAL;
+  const grpTag = k => `<span><i class="dot" style="background:${GROUPS[k].color}"></i>${GROUPS[k].name}</span>`;
+  const pvLinks = gs => (gs.length ? gs : Object.keys(GROUPS)).map(k => `<a href="${FRONT}#vue-${k}" target="_blank" rel="noopener"><i class="dot" style="background:${GROUPS[k].color}"></i>${GROUPS[k].name} ↗</a>`).join("");
   const thumb = (a, cls = "") => a.photo
     ? `<div class="thumb photo ${cls}" style="background-image:url('${a.photo}')" aria-hidden="true"></div>`
     : `<div class="thumb ${cls}" style="background:${cat(a.cat).grad}" aria-hidden="true">${G[a.icon] || G[cat(a.cat).icon]}</div>`;
@@ -409,7 +439,7 @@ textarea { resize: vertical; min-height: 70px; }
               <td><div class="art"><div class="mini">${thumb(a)}</div><div style="min-width:0"><b><a href="#edition-${a.id}">${esc(a.title)}</a></b><small><span style="color:${cat(a.cat).color};font-weight:600">${esc(a.cat)}</span> · ${esc(a.author)}</small></div></div></td>
               <td><span class="status s-${a.status}">${STATUS[a.status]}</span></td>
               <td class="date">${a.date ? fmt(a.date) + `<small>${a.time.replace(":", " h ")}</small>` : '<span class="meta">Non planifiée</span>'}</td>
-              <td style="font-size:13px">${AUD[a.audience]}${a.regions.length ? `<small class="meta" style="display:block">${a.regions.length} région(s)</small>` : ""}</td>
+              <td><div class="grp-cell">${a.groups.length ? a.groups.map(grpTag).join("") : "<span>Tous</span>"}</div></td>
               <td><button type="button" class="icon-btn star ${a.une ? "on" : ""}" data-une="${a.id}" aria-pressed="${a.une}" aria-label="${a.une ? "Retirer de la une" : "Mettre à la une"}" title="${a.une ? "À la une (position " + a.unePos + ")" : "Mettre à la une"}" ${a.status === "archive" ? "disabled" : ""}>${I.star}</button></td>
               <td class="num">${a.status === "publie" || a.status === "archive" ? a.views.toLocaleString("fr-FR") : "–"}</td>
               <td class="num">${a.status === "publie" || a.status === "archive" ? a.likes : "–"}</td>
@@ -430,7 +460,7 @@ textarea { resize: vertical; min-height: 70px; }
   // ---------- Éditeur ----------
   function editor(a, isNew) {
     state.draft = a;
-    const audReach = a.audience === "magasins" && a.regions.length ? Math.round(REACH.magasins * a.regions.length / REGIONS.length) : REACH[a.audience];
+    const audReach = reachOf(a.groups);
     return `
     <div class="page-head">
       <div><a href="#articles" class="meta" style="font-weight:600">← Tous les articles</a><h1 style="margin-top:6px">${isNew ? "Nouvel article" : "Modifier l’article"}</h1>
@@ -514,14 +544,13 @@ textarea { resize: vertical; min-height: 70px; }
 
         <section class="card side-card">
           <h3>Audience</h3>
-          <div class="radios" role="radiogroup" aria-label="Audience">
-            ${Object.entries(AUD).map(([k, l]) => `<label class="radio"><input type="radio" name="aud" value="${k}" ${a.audience === k ? "checked" : ""}> ${l}</label>`).join("")}
-          </div>
-          <div id="regions" ${a.audience === "magasins" ? "" : "hidden"}>
-            <div class="checks">${REGIONS.map(r => `<label><input type="checkbox" value="${r}" data-region ${a.regions.includes(r) ? "checked" : ""}> ${r}</label>`).join("")}</div>
-            <span class="hint">Aucune région cochée : tous les magasins.</span>
+          <label class="switch"><span><b>Tous les collaborateurs</b><small>Décochez pour cibler un ou plusieurs groupes.</small></span><input type="checkbox" id="f-all" ${a.groups.length ? "" : "checked"}></label>
+          <div id="grp-box" ${a.groups.length ? "" : "hidden"}>
+            <div class="checks one">${Object.entries(GROUPS).map(([k, g]) => `<label><span><input type="checkbox" value="${k}" data-grp ${a.groups.includes(k) ? "checked" : ""}><i class="dot" style="background:${g.color}"></i>${g.name}</span><em>${g.members} pers.</em></label>`).join("")}</div>
           </div>
           <p class="reach" id="reach">Visible par environ <b>${audReach.toLocaleString("fr-FR")}</b> collaborateurs</p>
+          <span class="lbl" style="display:block;margin-top:12px">Ouvrir l’intranet en tant que</span>
+          <div class="pv-links" id="pv-links">${pvLinks(a.groups)}</div>
         </section>
 
         <section class="card side-card">
@@ -554,8 +583,7 @@ textarea { resize: vertical; min-height: 70px; }
     a.title = $("f-title").value; a.excerpt = $("f-excerpt").value;
     a.cat = $("f-cat").value; a.author = $("f-author").value;
     a.une = $("f-une").checked; a.unePos = +$("f-unepos").value;
-    a.audience = document.querySelector("input[name=aud]:checked").value;
-    a.regions = [...document.querySelectorAll("[data-region]:checked")].map(x => x.value);
+    a.groups = $("f-all").checked ? [] : [...document.querySelectorAll("[data-grp]:checked")].map(x => x.value);
     a.comments = $("f-com").checked; a.notify = $("f-notify").checked;
     a.body = $("f-body").innerHTML;
     a._later = document.querySelector("input[name=when]:checked").value === "later";
@@ -569,8 +597,9 @@ textarea { resize: vertical; min-height: 70px; }
     const he = $("h-excerpt"); he.textContent = a.excerpt.length + " / 180 caractères"; he.classList.toggle("over", a.excerpt.length > 180);
     $("sched").hidden = !a._later;
     $("une-opts").hidden = !a.une;
-    $("regions").hidden = a.audience !== "magasins";
-    const reach = a.audience === "magasins" && a.regions.length ? Math.round(REACH.magasins * a.regions.length / REGIONS.length) : REACH[a.audience];
+    $("grp-box").hidden = $("f-all").checked;
+    $("pv-links").innerHTML = pvLinks(a.groups);
+    const reach = reachOf(a.groups);
     $("reach").innerHTML = `Visible par environ <b>${reach.toLocaleString("fr-FR")}</b> collaborateurs`;
     const others = uneList().filter(x => x.id !== a.id);
     const taken = others.find(x => x.unePos === a.unePos);
@@ -584,6 +613,7 @@ textarea { resize: vertical; min-height: 70px; }
   }
 
   function valid(a, status) {
+    if (!document.getElementById("f-all").checked && !a.groups.length) { toast("Cochez au moins un groupe, ou choisissez « Tous les collaborateurs »."); return false; }
     if (!a.title.trim()) { toast("Ajoutez un titre avant d’enregistrer."); document.getElementById("f-title").focus(); return false; }
     if (status !== "brouillon" && !a.excerpt.trim()) { toast("Ajoutez un chapeau : il s’affiche sur la carte de l’accueil."); document.getElementById("f-excerpt").focus(); return false; }
     return true;
@@ -677,7 +707,7 @@ textarea { resize: vertical; min-height: 70px; }
     let name = h, html;
     if (h.startsWith("edition-")) {
       const a = ARTS.find(x => x.id === h.slice(8));
-      name = "articles"; html = a ? editor(Object.assign({}, a, { regions: a.regions.slice() }), false) : articles();
+      name = "articles"; html = a ? editor(Object.assign({}, a, { groups: a.groups.slice() }), false) : articles();
     } else if (h === "nouveau") {
       html = editor(A({ title: "", cat: "Événement", icon: "event", status: "brouillon", date: "", time: "", excerpt: "", author: "Briac FERTE" }), true);
     } else if (h === "une") html = une();
@@ -722,7 +752,7 @@ textarea { resize: vertical; min-height: 70px; }
     }
     else if (d.dup) {
       const a = ARTS.find(x => x.id === d.dup);
-      const c = A(Object.assign({}, a, { id: undefined, title: a.title + " (copie)", status: "brouillon", date: "", time: "", une: false, unePos: 0, views: 0, likes: 0, ncom: 0, regions: a.regions.slice() }));
+      const c = A(Object.assign({}, a, { id: undefined, title: a.title + " (copie)", status: "brouillon", date: "", time: "", une: false, unePos: 0, views: 0, likes: 0, ncom: 0, groups: a.groups.slice() }));
       c.id = "a" + (seq++);
       ARTS.splice(ARTS.indexOf(a), 0, c); toast("Copie créée en brouillon"); rerender();
     }
@@ -774,6 +804,10 @@ textarea { resize: vertical; min-height: 70px; }
     const later = document.querySelector("input[name=when]:checked").value === "later";
     saveFrom(e.target, later ? "programme" : "publie");
   });
+  document.getElementById("va-menu").innerHTML = '<p>Ouvre l’intranet publié</p>' +
+    Object.entries(GROUPS).map(([k, g]) => `<a href="${FRONT}#vue-${k}" target="_blank" rel="noopener"><i class="dot" style="background:${g.color}"></i>${g.name}<span class="meta" style="margin-left:auto">${g.members} pers.</span></a>`).join("") +
+    `<a href="${FRONT}" target="_blank" rel="noopener"><i class="dot" style="background:var(--muted)"></i>Ma vue (administrateur)</a>`;
+  document.addEventListener("click", e => { const d = document.getElementById("va"); if (d.open && !e.target.closest("#va")) d.open = false; });
   addEventListener("hashchange", () => { route(); scrollTo(0, 0); });
   route();
 })();
