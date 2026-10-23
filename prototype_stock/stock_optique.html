@@ -1,0 +1,808 @@
+<title>Stock Optique Prototype</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout : barre d'en-tête + onglets ; tableau de bord en grille (indicateurs, alertes, graphes, scène 3D facultative) ; listes en tableaux défilants. */
+:root {
+  --bg: #eef1f4;
+  --surface: #ffffff;
+  --sunk: #f6f8fa;
+  --ink: #15202b;
+  --muted: #5a6776;
+  --line: #d8dee5;
+  --accent: #2b47b5;
+  --accent-soft: #e3e8fb;
+  --ok: #2c7d52;
+  --ok-soft: #e1f2e8;
+  --warn: #a86d00;
+  --warn-soft: #fbefd6;
+  --crit: #b8372a;
+  --crit-soft: #fbe3df;
+  --scene: #e4e8ee;
+  --f-display: "Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --f-body: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --f-mono: "IBM Plex Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0e1319; --surface: #151c24; --sunk: #111820; --ink: #e5eaf0; --muted: #98a5b4; --line: #26313d;
+    --accent: #93a6ff; --accent-soft: #1e2748; --ok: #5cc28a; --ok-soft: #14301f; --warn: #e3b04b; --warn-soft: #33270e;
+    --crit: #ff7f70; --crit-soft: #3a1915; --scene: #1a222c; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0e1319; --surface: #151c24; --sunk: #111820; --ink: #e5eaf0; --muted: #98a5b4; --line: #26313d;
+  --accent: #93a6ff; --accent-soft: #1e2748; --ok: #5cc28a; --ok-soft: #14301f; --warn: #e3b04b; --warn-soft: #33270e;
+  --crit: #ff7f70; --crit-soft: #3a1915; --scene: #1a222c; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font-family: var(--f-body); font-size: 14px; line-height: 1.45; }
+.wrap { max-width: 1280px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 20px 48px; }
+h1, h2, h3 { font-family: var(--f-display); text-wrap: balance; margin: 0; letter-spacing: -0.01em; }
+h1 { font-size: 1.6rem; font-weight: 700; }
+h2 { font-size: 1.15rem; font-weight: 700; }
+h3 { font-size: 1rem; font-weight: 500; }
+.mono, td.num, .kpi .val { font-family: var(--f-mono); font-variant-numeric: tabular-nums; }
+.muted { color: var(--muted); }
+.small { font-size: 12.5px; }
+
+header.top { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 12px 24px; padding-bottom: 14px; border-bottom: 1px solid var(--line); }
+.brand { display: flex; gap: 14px; align-items: center; }
+.brand svg { flex: none; }
+.eyebrow { font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); font-weight: 600; }
+.demo { font-size: 12px; padding: 3px 9px; border-radius: 999px; background: var(--warn-soft); color: var(--warn); font-weight: 600; }
+
+nav.tabs { display: flex; gap: 4px; flex-wrap: wrap; margin: 16px 0 20px; }
+nav.tabs a { text-decoration: none; color: var(--muted); font-weight: 600; padding: 8px 14px; border-radius: 8px; border: 1px solid transparent; }
+nav.tabs a:hover { color: var(--ink); background: var(--surface); }
+nav.tabs a[aria-current="page"] { color: var(--accent); background: var(--surface); border-color: var(--line); }
+a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible, label.switch:focus-within { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.grid { display: grid; gap: 16px; }
+.kpis { grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); }
+@media (min-width: 1000px) { .kpis { grid-template-columns: repeat(3, 1fr); } }
+.kpi { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; display: grid; gap: 4px; }
+.kpi .val { font-size: 1.7rem; font-weight: 500; line-height: 1.1; }
+.kpi .sub { font-size: 12.5px; color: var(--muted); }
+.kpi.crit .val { color: var(--crit); }
+.kpi.warn .val { color: var(--warn); }
+
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 16px; min-width: 0; display: grid; gap: 12px; align-content: start; }
+.panel-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px; }
+.cols-2 { grid-template-columns: repeat(auto-fit, minmax(min(100%, 380px), 1fr)); }
+
+.alerts { list-style: none; margin: 0; padding: 0; display: grid; }
+.alerts li { display: grid; grid-template-columns: auto 1fr auto; gap: 10px; align-items: baseline; padding: 9px 0; border-top: 1px solid var(--line); }
+.alerts li:first-child { border-top: 0; }
+.alerts .what { min-width: 0; }
+.alerts .act { font-size: 12.5px; color: var(--muted); text-align: right; }
+
+.pill { display: inline-block; font-size: 11.5px; font-weight: 600; padding: 2px 8px; border-radius: 999px; white-space: nowrap; }
+.p-crit { background: var(--crit-soft); color: var(--crit); }
+.p-warn { background: var(--warn-soft); color: var(--warn); }
+.p-ok { background: var(--ok-soft); color: var(--ok); }
+.p-acc { background: var(--accent-soft); color: var(--accent); }
+.p-neu { background: var(--sunk); color: var(--muted); border: 1px solid var(--line); }
+
+.bars { display: grid; gap: 7px; }
+.bar-row { display: grid; grid-template-columns: 112px 1fr 64px; gap: 10px; align-items: center; font-size: 12.5px; }
+.bar-row .lbl { color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.bar-track { height: 14px; background: var(--sunk); border-radius: 3px; overflow: hidden; border: 1px solid var(--line); }
+.bar-fill { height: 100%; background: var(--accent); }
+.bar-fill.ok { background: var(--ok); } .bar-fill.warn { background: var(--warn); } .bar-fill.crit { background: var(--crit); }
+.bar-row .v { font-family: var(--f-mono); font-variant-numeric: tabular-nums; text-align: right; }
+
+.controls { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; background: var(--sunk); }
+.seg button { font: inherit; font-size: 13px; border: 0; background: transparent; color: var(--muted); padding: 6px 12px; cursor: pointer; }
+.seg button + button { border-left: 1px solid var(--line); }
+.seg button[aria-pressed="true"] { background: var(--surface); color: var(--accent); font-weight: 600; }
+input[type="search"], select { font: inherit; font-size: 13px; padding: 6px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--ink); min-width: 0; }
+input[type="search"] { width: 220px; max-width: 100%; }
+.btn { font: inherit; font-size: 13px; padding: 6px 12px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); cursor: pointer; }
+.btn:hover { border-color: var(--accent); color: var(--accent); }
+
+label.switch { display: inline-flex; align-items: center; gap: 8px; cursor: pointer; font-weight: 600; font-size: 13px; user-select: none; border-radius: 999px; }
+label.switch input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+label.switch .track { width: 36px; height: 20px; border-radius: 999px; background: var(--line); position: relative; transition: background .15s; }
+label.switch .track::after { content: ""; position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; border-radius: 50%; background: var(--surface); transition: transform .15s; box-shadow: 0 1px 2px rgba(0,0,0,.25); }
+label.switch input:checked + .track { background: var(--accent); }
+label.switch input:checked + .track::after { transform: translateX(16px); }
+
+.table-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 8px; }
+table { border-collapse: collapse; width: 100%; font-size: 13px; }
+th { text-align: left; font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); font-weight: 600; background: var(--sunk); padding: 8px 10px; border-bottom: 1px solid var(--line); white-space: nowrap; position: sticky; top: 0; }
+td { padding: 7px 10px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+tr:last-child td { border-bottom: 0; }
+td.num, th.num { text-align: right; white-space: nowrap; }
+td.mono, td.nw { white-space: nowrap; }
+td .model { font-weight: 600; }
+.scroll-y { max-height: 560px; overflow-y: auto; }
+.agebar { display: inline-block; vertical-align: middle; width: 70px; height: 6px; border-radius: 3px; background: var(--sunk); border: 1px solid var(--line); margin-right: 8px; overflow: hidden; }
+.agebar i { display: block; height: 100%; }
+.count-line { font-size: 12.5px; color: var(--muted); }
+
+/* Scène 3D */
+.scene-layout { display: grid; grid-template-columns: minmax(0, 1fr) 280px; gap: 16px; }
+@media (max-width: 860px) { .scene-layout { grid-template-columns: 1fr; } }
+#scene { position: relative; height: 480px; max-width: 100%; border-radius: 8px; overflow: hidden; background: var(--scene); border: 1px solid var(--line); touch-action: none; cursor: grab; }
+#scene.dragging { cursor: grabbing; }
+#scene canvas { display: block; }
+#scene .fallback { position: absolute; inset: 0; display: grid; place-items: center; padding: 24px; text-align: center; color: var(--muted); }
+.scene-side { display: grid; gap: 14px; align-content: start; min-width: 0; }
+.legend { display: grid; gap: 6px; font-size: 12.5px; }
+.legend span { display: flex; align-items: center; gap: 8px; }
+.legend i { width: 12px; height: 12px; border-radius: 3px; flex: none; }
+.selection { background: var(--sunk); border: 1px solid var(--line); border-radius: 8px; padding: 12px; font-size: 13px; display: grid; gap: 6px; min-height: 120px; }
+.selection dl { display: grid; grid-template-columns: auto 1fr; gap: 3px 10px; margin: 0; }
+.selection dt { color: var(--muted); }
+.selection dd { margin: 0; min-width: 0; }
+
+/* Pistes */
+.ideas { grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); }
+.idea { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 16px; display: grid; gap: 8px; align-content: start; }
+.idea p { margin: 0; color: var(--muted); max-width: 65ch; }
+.idea .tags { display: flex; gap: 6px; flex-wrap: wrap; }
+.roadmap { display: grid; gap: 0; grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr)); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; background: var(--surface); }
+.roadmap > div { padding: 16px; display: grid; gap: 8px; align-content: start; border-right: 1px solid var(--line); }
+.roadmap > div:last-child { border-right: 0; }
+.roadmap ul { margin: 0; padding-left: 18px; display: grid; gap: 4px; }
+section[hidden] { display: none; }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <div class="brand">
+      <svg width="44" height="44" viewBox="0 0 44 44" aria-hidden="true">
+        <circle cx="12" cy="24" r="8" fill="none" stroke="var(--accent)" stroke-width="3"/>
+        <circle cx="32" cy="24" r="8" fill="none" stroke="var(--accent)" stroke-width="3"/>
+        <path d="M20 22 q2 -3 4 0" fill="none" stroke="var(--accent)" stroke-width="3" stroke-linecap="round"/>
+        <path d="M4 22 L1 17 M40 22 L43 17" stroke="var(--muted)" stroke-width="2.5" stroke-linecap="round"/>
+      </svg>
+      <div>
+        <div class="eyebrow">Gestion de stock · magasin d'optique</div>
+        <h1>Stock Optique</h1>
+      </div>
+    </div>
+    <div class="controls">
+      <span class="demo">Données de démonstration</span>
+      <span class="muted small" id="today"></span>
+    </div>
+  </header>
+
+  <nav class="tabs" aria-label="Sections">
+    <a href="#tableau" data-tab="tableau">Tableau de bord</a>
+    <a href="#lentilles" data-tab="lentilles">Lentilles &amp; consommables</a>
+    <a href="#montures" data-tab="montures">Montures &amp; rotation</a>
+    <a href="#pistes" data-tab="pistes">Autres idées</a>
+  </nav>
+
+  <!-- ===================================================== Tableau de bord -->
+  <section id="v-tableau" class="grid">
+    <div class="grid kpis" id="kpis"></div>
+
+    <div class="grid cols-2">
+      <div class="panel">
+        <div class="panel-head"><h2>À traiter cette semaine</h2><span class="muted small">Trié par urgence</span></div>
+        <ul class="alerts" id="alerts"></ul>
+      </div>
+      <div class="grid">
+        <div class="panel">
+          <div class="panel-head"><h2>Ancienneté des montures en magasin</h2><span class="muted small">Nombre de pièces</span></div>
+          <div class="bars" id="chart-age"></div>
+        </div>
+        <div class="panel">
+          <div class="panel-head"><h2>Péremptions à venir</h2><span class="muted small">Boîtes et flacons, par mois</span></div>
+          <div class="bars" id="chart-exp"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head">
+        <div>
+          <h2>Vue 3D du magasin</h2>
+          <div class="muted small">Faites glisser pour tourner, molette ou pincement pour zoomer, cliquez sur une monture ou un tiroir.</div>
+        </div>
+        <label class="switch" for="toggle3d"><input type="checkbox" id="toggle3d" checked><span class="track"></span>Afficher la vue 3D</label>
+      </div>
+      <div id="scene-block" class="scene-layout">
+        <div id="scene"></div>
+        <div class="scene-side">
+          <div class="grid" style="gap:8px">
+            <div class="eyebrow">Colorer selon</div>
+            <div class="seg" id="mode3d" role="group" aria-label="Coloration">
+              <button type="button" data-mode="age" aria-pressed="true">Ancienneté</button>
+              <button type="button" data-mode="dup" aria-pressed="false">Doublons</button>
+              <button type="button" data-mode="exp" aria-pressed="false">Péremption</button>
+            </div>
+            <label class="switch" for="alertsOnly"><input type="checkbox" id="alertsOnly"><span class="track"></span>Alertes seulement</label>
+            <div class="controls">
+              <button type="button" class="btn" id="cam-persp">Vue d'ensemble</button>
+              <button type="button" class="btn" id="cam-top">Vue de dessus</button>
+            </div>
+          </div>
+          <div class="legend" id="legend"></div>
+          <div class="selection" id="selection"><span class="muted">Cliquez sur un élément de la scène pour voir son détail.</span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================================================== Lentilles -->
+  <section id="v-lentilles" class="grid" hidden>
+    <div class="panel">
+      <div class="panel-head">
+        <div>
+          <h2>Lots de lentilles et produits d'entretien</h2>
+          <div class="muted small">Classés par date de péremption : le premier de la liste est le premier à vendre (FEFO).</div>
+        </div>
+      </div>
+      <div class="controls">
+        <div class="seg" id="lens-filter" role="group" aria-label="Statut">
+          <button type="button" data-f="all" aria-pressed="true">Tous</button>
+          <button type="button" data-f="exp" aria-pressed="false">Périmés</button>
+          <button type="button" data-f="30" aria-pressed="false">&lt; 30 j</button>
+          <button type="button" data-f="90" aria-pressed="false">&lt; 90 j</button>
+        </div>
+        <select id="lens-cat" aria-label="Catégorie"></select>
+        <input type="search" id="lens-q" placeholder="Produit, lot, puissance…" aria-label="Rechercher">
+      </div>
+      <div class="count-line" id="lens-count"></div>
+      <div class="table-wrap scroll-y">
+        <table>
+          <thead><tr><th>Produit</th><th>Catégorie</th><th class="num">Puissance</th><th>Lot</th><th>Péremption</th><th class="num">Reste</th><th class="num">Qté</th><th>Tiroir</th><th>Statut</th><th>Action suggérée</th></tr></thead>
+          <tbody id="lens-body"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================================================== Montures -->
+  <section id="v-montures" class="grid" hidden>
+    <div class="grid cols-2">
+      <div class="panel">
+        <div class="panel-head"><h2>Rotation par marque</h2><span class="muted small">Ancienneté moyenne en jours</span></div>
+        <div class="bars" id="chart-brand"></div>
+      </div>
+      <div class="panel">
+        <div class="panel-head"><h2>Comment lire cet onglet</h2></div>
+        <div class="muted" style="max-width:65ch">
+          <p style="margin:0 0 8px">Une monture est <strong>dormante</strong> au-delà de 12 mois en magasin, <strong>critique</strong> au-delà de 24 mois. Un modèle est <strong>en double ou en triple</strong> quand plusieurs pièces partagent la même référence, le même coloris et le même calibre.</p>
+          <p style="margin:0">Les actions proposées suivent une règle simple : garder une pièce en présentation, retourner ou transférer les autres, et démarquer ce qui ne tourne pas.</p>
+        </div>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="controls">
+        <div class="seg" id="frame-view" role="group" aria-label="Vue">
+          <button type="button" data-v="dup" aria-pressed="true">Doublons et triples</button>
+          <button type="button" data-v="old" aria-pressed="false">Dormantes &gt; 12 mois</button>
+          <button type="button" data-v="all" aria-pressed="false">Toutes</button>
+        </div>
+        <select id="frame-brand" aria-label="Marque"></select>
+        <select id="frame-type" aria-label="Type">
+          <option value="">Optique et solaire</option><option value="O">Optique</option><option value="S">Solaire</option>
+        </select>
+        <input type="search" id="frame-q" placeholder="Modèle, coloris, référence…" aria-label="Rechercher">
+      </div>
+      <div class="count-line" id="frame-count"></div>
+      <div class="table-wrap scroll-y">
+        <table>
+          <thead id="frame-head"></thead>
+          <tbody id="frame-body"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================================================== Pistes -->
+  <section id="v-pistes" class="grid" hidden>
+    <div class="panel">
+      <h2>Ce que le logiciel pourrait faire de plus</h2>
+      <p class="muted" style="margin:0;max-width:70ch">Le prototype couvre les péremptions, la rotation des montures et la vue 3D. Voici les fonctions qui prolongent naturellement ces trois blocs, classées par domaine.</p>
+    </div>
+    <div class="grid ideas" id="ideas"></div>
+    <h2 style="margin-top:8px">Feuille de route proposée</h2>
+    <div class="roadmap">
+      <div>
+        <span class="pill p-acc" style="justify-self:start">Étape 1 · 6 à 8 semaines</span>
+        <h3>Socle utile dès le premier jour</h3>
+        <ul>
+          <li>Import du stock depuis l'export du logiciel métier (CSV ou Excel)</li>
+          <li>Péremptions des lots, alertes à 90, 30 et 0 jour</li>
+          <li>Doublons, triples et montures dormantes</li>
+          <li>Tableau de bord et export Excel</li>
+        </ul>
+      </div>
+      <div>
+        <span class="pill p-acc" style="justify-self:start">Étape 2</span>
+        <h3>Stock vivant</h3>
+        <ul>
+          <li>Scan des EAN et Datamatrix (lot et péremption lus sur la boîte)</li>
+          <li>Inventaire tournant à la douchette ou au téléphone</li>
+          <li>Réassort automatique des lentilles selon les ventes</li>
+          <li>Rappels de renouvellement aux porteurs de lentilles</li>
+        </ul>
+      </div>
+      <div>
+        <span class="pill p-acc" style="justify-self:start">Étape 3</span>
+        <h3>Pilotage</h3>
+        <ul>
+          <li>Plan 3D éditable, implantation des présentoirs</li>
+          <li>Transferts entre magasins d'un même groupe</li>
+          <li>Prévisions saisonnières (solaires, rentrée enfants)</li>
+          <li>Marge et rotation par marque pour les négociations</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+(() => {
+"use strict";
+// ------------------------------------------------------------------ Outils
+const DAY = 864e5;
+const TODAY = new Date(); TODAY.setHours(0, 0, 0, 0);
+function mulberry32(a) { return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+const rnd = mulberry32(20261023);
+const pick = a => a[Math.floor(rnd() * a.length)];
+const randInt = (a, b) => a + Math.floor(rnd() * (b - a + 1));
+const addDays = d => new Date(TODAY.getTime() + d * DAY);
+const fmtDate = d => d.toLocaleDateString("fr-FR", { day: "2-digit", month: "2-digit", year: "numeric" });
+const eur = n => n.toLocaleString("fr-FR", { style: "currency", currency: "EUR", maximumFractionDigits: 0 });
+const nf = n => n.toLocaleString("fr-FR");
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const $ = id => document.getElementById(id);
+const store = { get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }, set(k, v) { try { localStorage.setItem(k, v); } catch (e) {} } };
+$("today").textContent = "Situation au " + TODAY.toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" });
+
+// ------------------------------------------------------------------ Données de démonstration : montures
+const TAILLES = { O: ["50□19-140", "52□18-145", "54□17-145", "49□20-140"], S: ["55□14-135", "58□14-140", "54□18-145", "62□14-140"] };
+const MARQUES = [
+  { m: "Ray-Ban", t: "S", modeles: ["RB3025 Aviator", "RB2140 Wayfarer", "RB4171 Erika"], pa: [55, 75] },
+  { m: "Ray-Ban", t: "O", modeles: ["RX5154 Clubmaster", "RX7047", "RX5228"], pa: [45, 60] },
+  { m: "Persol", t: "O", modeles: ["PO3007V", "PO3092V"], pa: [80, 105] },
+  { m: "Persol", t: "S", modeles: ["PO0714 Steve McQueen", "PO3019S"], pa: [95, 120] },
+  { m: "Oakley", t: "S", modeles: ["OO9208 Radar EV", "OO9102 Holbrook"], pa: [70, 95] },
+  { m: "Oakley", t: "O", modeles: ["OX8046 Airdrop", "OX3227 Crosslink"], pa: [55, 70] },
+  { m: "Lafont", t: "O", modeles: ["Issy", "Opéra", "Sorbonne"], pa: [95, 130], f: true },
+  { m: "Silhouette", t: "O", modeles: ["Momentum 5529", "TNG 5540"], pa: [110, 150], f: true },
+  { m: "Lindberg", t: "O", modeles: ["Strip 9704", "Air Titanium Rim"], pa: [190, 260], lux: true },
+  { m: "Tom Ford", t: "O", modeles: ["FT5401", "FT5634-B"], pa: [120, 150], lux: true },
+  { m: "Tom Ford", t: "S", modeles: ["FT0237 Snowdon"], pa: [140, 170], lux: true },
+  { m: "Oliver Peoples", t: "O", modeles: ["OV5186 Gregory Peck", "OV5004 Riley"], pa: [150, 190], lux: true },
+  { m: "Vogue", t: "O", modeles: ["VO5286", "VO5051"], pa: [35, 48], f: true },
+  { m: "Face à Face", t: "O", modeles: ["Bocca Kahlo", "Alexis"], pa: [120, 160], f: true },
+  { m: "Nano Vista", t: "O", modeles: ["Crew", "Replay"], pa: [30, 42], kid: true },
+];
+const COLORIS = ["Noir brillant", "Écaille havane", "Doré", "Argent", "Bleu nuit", "Cristal", "Bordeaux", "Gris mat"];
+
+const montures = [];
+let nid = 1;
+function ajouterMonture(base, age) {
+  montures.push(Object.assign({}, base, { id: "M" + String(nid++).padStart(4, "0"), age, entree: addDays(-age) }));
+}
+for (let i = 0; i < 150; i++) {
+  const b = pick(MARQUES);
+  const sku = { marque: b.m, type: b.t, lux: !!b.lux, kid: !!b.kid, femme: !!b.f, modele: pick(b.modeles), coloris: pick(COLORIS), taille: pick(TAILLES[b.t]) };
+  sku.pa = randInt(b.pa[0], b.pa[1]);
+  sku.pv = Math.round(sku.pa * 2.7 / 5) * 5;
+  const age = Math.floor(Math.pow(rnd(), 1.5) * 980);
+  ajouterMonture(sku, age);
+  if (rnd() < 0.17) { const n = rnd() < 0.3 ? 2 : 1; for (let k = 0; k < n; k++) ajouterMonture(sku, Math.floor(rnd() * age)); }
+}
+const cle = m => [m.marque, m.modele, m.coloris, m.taille].join("|");
+const groupes = new Map();
+montures.forEach(m => { const k = cle(m); if (!groupes.has(k)) groupes.set(k, []); groupes.get(k).push(m); });
+montures.forEach(m => { m.exemplaires = groupes.get(cle(m)).length; });
+
+// ------------------------------------------------------------------ Données de démonstration : lentilles et consommables
+const PRODUITS = [
+  { p: "Acuvue Oasys 1-Day", cat: "Journalières", cond: "boîte 90", pa: 52, puiss: true },
+  { p: "Dailies Total1", cat: "Journalières", cond: "boîte 90", pa: 58, puiss: true },
+  { p: "MyDay", cat: "Journalières", cond: "boîte 30", pa: 21, puiss: true },
+  { p: "Biofinity", cat: "Mensuelles", cond: "boîte 6", pa: 24, puiss: true },
+  { p: "Air Optix plus HydraGlyde", cat: "Mensuelles", cond: "boîte 6", pa: 22, puiss: true },
+  { p: "Biofinity Toric", cat: "Toriques", cond: "boîte 3", pa: 27, puiss: true, toric: true },
+  { p: "Opti-Free PureMoist 300 ml", cat: "Entretien", cond: "flacon", pa: 7 },
+  { p: "AOSept Plus 360 ml", cat: "Entretien", cond: "flacon", pa: 8 },
+  { p: "Biotrue 300 ml", cat: "Entretien", cond: "flacon", pa: 6 },
+  { p: "Hylo-Comod 10 ml", cat: "Larmes artificielles", cond: "flacon", pa: 9 },
+];
+const lots = [];
+PRODUITS.forEach((pr, i) => {
+  const n = pr.puiss ? randInt(6, 9) : randInt(3, 5);
+  for (let k = 0; k < n; k++) {
+    const r = rnd();
+    const reste = r < 0.07 ? -randInt(1, 45) : r < 0.15 ? randInt(1, 30) : r < 0.3 ? randInt(31, 90) : randInt(91, 1000);
+    let puiss = "—";
+    if (pr.puiss) {
+      const s = (randInt(-24, 12) * 0.25);
+      puiss = (s > 0 ? "+" : s < 0 ? "−" : "") + Math.abs(s).toFixed(2).replace(".", ",");
+      if (pr.toric) puiss += " / −0,75 × " + pick([10, 90, 180]);
+    }
+    lots.push({ produit: pr.p, cat: pr.cat, cond: pr.cond, pa: pr.pa, puiss, lot: "B" + randInt(10, 99) + String.fromCharCode(65 + randInt(0, 25)) + randInt(1000, 9999),
+      peremption: addDays(reste), reste, qte: randInt(1, 6), tiroir: i * 2 + (k % 2) });
+  }
+});
+const TIROIR_NOM = d => "ABCD"[Math.floor(d / 6)] + ((d % 6) + 1);
+lots.forEach(l => { l.tiroirNom = TIROIR_NOM(l.tiroir); });
+lots.sort((a, b) => a.reste - b.reste);
+const statutLot = r => r < 0 ? { k: "exp", t: "Périmé", c: "p-crit" } : r <= 30 ? { k: "30", t: "< 30 j", c: "p-crit" } : r <= 90 ? { k: "90", t: "< 90 j", c: "p-warn" } : { k: "ok", t: "OK", c: "p-ok" };
+const actionLot = r => r < 0 ? "Retirer de la vente, déclarer la perte" : r <= 30 ? "Vendre en premier, proposer au prochain porteur compatible" : r <= 90 ? "Placer devant dans le tiroir, ne pas recommander" : "—";
+
+// ------------------------------------------------------------------ Règles montures
+const classeAge = a => a > 730 ? { t: "> 24 mois", c: "p-crit", col: "crit" } : a > 365 ? { t: "12–24 mois", c: "p-warn", col: "warn" } : a > 180 ? { t: "6–12 mois", c: "p-neu", col: "" } : { t: "< 6 mois", c: "p-ok", col: "ok" };
+const ageTxt = a => a < 60 ? a + " j" : (a / 30.4).toFixed(a < 365 ? 0 : 0) + " mois";
+function actionMonture(m) {
+  if (m.exemplaires >= 3) return "Garder 1 en présentation, retourner " + (m.exemplaires - 1);
+  if (m.exemplaires === 2 && m.age > 180) return "Retourner ou transférer 1 exemplaire";
+  if (m.age > 730) return m.lux ? "Retour fournisseur ou opération privée" : "Démarquer −40 % ou retour";
+  if (m.age > 365) return "Déplacer en vitrine ou démarquer −20 %";
+  return "—";
+}
+
+// ------------------------------------------------------------------ Tableau de bord
+function renderKpis() {
+  const valeur = montures.reduce((s, m) => s + m.pa, 0);
+  const dorm = montures.filter(m => m.age > 365);
+  const dups = [...groupes.values()].filter(g => g.length > 1);
+  const surplus = dups.reduce((s, g) => s + g.length - 1, 0);
+  const triples = dups.filter(g => g.length >= 3).length;
+  const lotsExp = lots.filter(l => l.reste < 0);
+  const lots90 = lots.filter(l => l.reste >= 0 && l.reste <= 90);
+  const ageMoy = Math.round(montures.reduce((s, m) => s + m.age, 0) / montures.length);
+  const k = [
+    { t: "Montures en stock", v: nf(montures.length), s: "Valeur d'achat " + eur(valeur) },
+    { t: "Montures dormantes", v: nf(dorm.length), s: "Plus de 12 mois · " + eur(dorm.reduce((s, m) => s + m.pa, 0)) + " immobilisés", c: "warn" },
+    { t: "Modèles en double ou triple", v: nf(dups.length), s: surplus + " pièces en trop dont " + triples + " triple" + (triples > 1 ? "s" : ""), c: "warn" },
+    { t: "Lots périmés", v: nf(lotsExp.length), s: lotsExp.reduce((s, l) => s + l.qte, 0) + " boîtes ou flacons à retirer", c: "crit" },
+    { t: "Lots à écouler sous 90 jours", v: nf(lots90.length), s: lots90.reduce((s, l) => s + l.qte, 0) + " unités · " + eur(lots90.reduce((s, l) => s + l.qte * l.pa, 0)) },
+    { t: "Ancienneté moyenne", v: nf(ageMoy) + " j", s: "Rotation ≈ " + (365 / ageMoy).toFixed(1).replace(".", ",") + " fois par an" },
+  ];
+  $("kpis").innerHTML = k.map(x => `<div class="kpi ${x.c || ""}"><span class="eyebrow">${x.t}</span><span class="val">${x.v}</span><span class="sub">${x.s}</span></div>`).join("");
+}
+
+function renderAlerts() {
+  const items = [];
+  lots.filter(l => l.reste < 0).forEach(l => items.push({ u: 0, p: ["Périmé", "p-crit"], w: `<strong>${esc(l.produit)}</strong>${l.puiss === "—" ? "" : " " + esc(l.puiss)} · lot <span class="mono">${l.lot}</span> · ${l.qte} u.`, a: "Retirer · tiroir " + l.tiroirNom }));
+  lots.filter(l => l.reste >= 0 && l.reste <= 30).forEach(l => items.push({ u: 1, p: [l.reste + " j", "p-crit"], w: `<strong>${esc(l.produit)}</strong>${l.puiss === "—" ? "" : " " + esc(l.puiss)} · lot <span class="mono">${l.lot}</span>`, a: "Vendre en premier" }));
+  [...groupes.values()].filter(g => g.length >= 3).forEach(g => items.push({ u: 2, p: ["×" + g.length, "p-warn"], w: `<strong>${esc(g[0].marque)} ${esc(g[0].modele)}</strong> · ${esc(g[0].coloris)} · <span class="mono">${g[0].taille}</span>`, a: "Retourner " + (g.length - 1) }));
+  montures.filter(m => m.age > 800).sort((a, b) => b.age - a.age).slice(0, 4).forEach(m => items.push({ u: 3, p: [ageTxt(m.age), "p-warn"], w: `<strong>${esc(m.marque)} ${esc(m.modele)}</strong> · ${esc(m.coloris)} · ${esc(m.emplacementNom)}`, a: actionMonture(m) }));
+  $("alerts").innerHTML = items.sort((a, b) => a.u - b.u).slice(0, 12).map(i => `<li><span class="pill ${i.p[1]}">${i.p[0]}</span><span class="what">${i.w}</span><span class="act">${esc(i.a)}</span></li>`).join("");
+}
+
+function bars(el, rows, fmt) {
+  const max = Math.max(1, ...rows.map(r => r.v));
+  el.innerHTML = rows.map(r => `<div class="bar-row"><span class="lbl" title="${esc(r.l)}">${esc(r.l)}</span><span class="bar-track"><span class="bar-fill ${r.c || ""}" style="display:block;width:${(r.v / max * 100).toFixed(1)}%"></span></span><span class="v">${fmt ? fmt(r.v) : nf(r.v)}</span></div>`).join("");
+}
+function renderCharts() {
+  const tranches = [["< 3 mois", 0, 90, "ok"], ["3–6 mois", 90, 180, "ok"], ["6–12 mois", 180, 365, ""], ["12–24 mois", 365, 730, "warn"], ["> 24 mois", 730, 1e9, "crit"]];
+  bars($("chart-age"), tranches.map(t => ({ l: t[0], v: montures.filter(m => m.age >= t[1] && m.age < t[2]).length, c: t[3] })));
+  const mois = [{ l: "Déjà périmé", v: 0, c: "crit" }];
+  for (let i = 0; i < 6; i++) { const d = new Date(TODAY.getFullYear(), TODAY.getMonth() + i, 1); mois.push({ l: d.toLocaleDateString("fr-FR", { month: "long", year: "numeric" }), v: 0, y: d.getFullYear(), m: d.getMonth(), c: i < 1 ? "crit" : i < 3 ? "warn" : "" }); }
+  lots.forEach(l => {
+    if (l.reste < 0) { mois[0].v += l.qte; return; }
+    const r = mois.find(x => x.y === l.peremption.getFullYear() && x.m === l.peremption.getMonth()); if (r) r.v += l.qte;
+  });
+  bars($("chart-exp"), mois);
+  const parMarque = {};
+  montures.forEach(m => { (parMarque[m.marque] = parMarque[m.marque] || []).push(m.age); });
+  const rows = Object.entries(parMarque).map(([k, a]) => ({ l: k + " (" + a.length + ")", v: Math.round(a.reduce((s, x) => s + x, 0) / a.length) }))
+    .sort((a, b) => b.v - a.v).map(r => Object.assign(r, { c: r.v > 365 ? "crit" : r.v > 250 ? "warn" : "ok" }));
+  bars($("chart-brand"), rows, v => v + " j");
+}
+
+// ------------------------------------------------------------------ Onglet lentilles
+const lensState = { f: "all", cat: "", q: "" };
+const cats = [...new Set(PRODUITS.map(p => p.cat))];
+$("lens-cat").innerHTML = `<option value="">Toutes catégories</option>` + cats.map(c => `<option>${esc(c)}</option>`).join("");
+function renderLenses() {
+  const q = lensState.q.trim().toLowerCase();
+  const rows = lots.filter(l => {
+    const s = statutLot(l.reste).k;
+    if (lensState.f === "exp" && s !== "exp") return false;
+    if (lensState.f === "30" && !(l.reste >= 0 && l.reste <= 30)) return false;
+    if (lensState.f === "90" && !(l.reste >= 0 && l.reste <= 90)) return false;
+    if (lensState.cat && l.cat !== lensState.cat) return false;
+    if (q && !(l.produit + " " + l.lot + " " + l.puiss).toLowerCase().includes(q)) return false;
+    return true;
+  });
+  $("lens-count").textContent = rows.length + " lot" + (rows.length > 1 ? "s" : "") + " · " + rows.reduce((s, l) => s + l.qte, 0) + " unités";
+  $("lens-body").innerHTML = rows.map(l => { const s = statutLot(l.reste); return `<tr>
+    <td><span class="model">${esc(l.produit)}</span><div class="muted small">${esc(l.cond)}</div></td><td>${esc(l.cat)}</td>
+    <td class="num mono">${esc(l.puiss)}</td><td class="mono">${l.lot}</td><td class="mono">${fmtDate(l.peremption)}</td>
+    <td class="num">${l.reste < 0 ? "−" + Math.abs(l.reste) : l.reste} j</td><td class="num">${l.qte}</td><td class="mono">${l.tiroirNom}</td>
+    <td><span class="pill ${s.c}">${s.t}</span></td><td class="small">${actionLot(l.reste)}</td></tr>`; }).join("") || `<tr><td colspan="10" class="muted">Aucun lot ne correspond à ces filtres.</td></tr>`;
+}
+segmented("lens-filter", "f", v => { lensState.f = v; renderLenses(); });
+$("lens-cat").addEventListener("change", e => { lensState.cat = e.target.value; renderLenses(); });
+$("lens-q").addEventListener("input", e => { lensState.q = e.target.value; renderLenses(); });
+
+// ------------------------------------------------------------------ Onglet montures
+const frameState = { v: "dup", brand: "", type: "", q: "" };
+$("frame-brand").innerHTML = `<option value="">Toutes marques</option>` + [...new Set(montures.map(m => m.marque))].sort().map(b => `<option>${esc(b)}</option>`).join("");
+function ageCell(a) { const c = classeAge(a); const w = Math.min(100, a / 900 * 100); return `<span class="agebar"><i style="width:${w}%;background:var(--${c.col || "accent"})"></i></span><span class="mono">${ageTxt(a)}</span>`; }
+function filtreMonture(m) {
+  const q = frameState.q.trim().toLowerCase();
+  if (frameState.brand && m.marque !== frameState.brand) return false;
+  if (frameState.type && m.type !== frameState.type) return false;
+  if (q && !(m.id + " " + m.marque + " " + m.modele + " " + m.coloris + " " + m.taille).toLowerCase().includes(q)) return false;
+  return true;
+}
+function renderFrames() {
+  const head = $("frame-head"), body = $("frame-body");
+  if (frameState.v === "dup") {
+    const gs = [...groupes.values()].filter(g => g.length > 1 && filtreMonture(g[0])).sort((a, b) => b.length - a.length || Math.max(...b.map(m => m.age)) - Math.max(...a.map(m => m.age)));
+    $("frame-count").textContent = gs.length + " modèle" + (gs.length > 1 ? "s" : "") + " · " + gs.reduce((s, g) => s + g.length - 1, 0) + " pièces en trop · " + eur(gs.reduce((s, g) => s + (g.length - 1) * g[0].pa, 0)) + " d'achat récupérables";
+    head.innerHTML = `<tr><th>Exemplaires</th><th>Marque et modèle</th><th>Coloris</th><th>Calibre</th><th>Emplacements</th><th>Plus ancien</th><th class="num">Prix d'achat</th><th>Action suggérée</th></tr>`;
+    body.innerHTML = gs.map(g => { const old = Math.max(...g.map(m => m.age)); return `<tr>
+      <td><span class="pill ${g.length >= 3 ? "p-crit" : "p-warn"}">×${g.length}</span></td>
+      <td><span class="model">${esc(g[0].marque)}</span> ${esc(g[0].modele)}<div class="muted small mono">${g.map(m => m.id).join(" · ")}</div></td>
+      <td>${esc(g[0].coloris)}</td><td class="mono">${g[0].taille}</td>
+      <td class="small">${[...new Set(g.map(m => m.emplacementNom))].map(esc).join(", ")}</td>
+      <td class="nw">${ageCell(old)}</td><td class="num mono">${eur(g[0].pa)}</td><td class="small">${actionMonture(g.slice().sort((a, b) => b.age - a.age)[0])}</td></tr>`; }).join("") || `<tr><td colspan="8" class="muted">Aucun doublon pour ces filtres.</td></tr>`;
+    return;
+  }
+  const rows = montures.filter(m => filtreMonture(m) && (frameState.v === "all" || m.age > 365)).sort((a, b) => b.age - a.age);
+  $("frame-count").textContent = rows.length + " pièce" + (rows.length > 1 ? "s" : "") + " · " + eur(rows.reduce((s, m) => s + m.pa, 0)) + " en prix d'achat";
+  head.innerHTML = `<tr><th>Réf.</th><th>Marque et modèle</th><th>Type</th><th>Coloris</th><th>Calibre</th><th>Emplacement</th><th>Entrée</th><th>Ancienneté</th><th class="num">Ex.</th><th class="num">Prix de vente</th><th>Action suggérée</th></tr>`;
+  body.innerHTML = rows.map(m => `<tr>
+    <td class="mono">${m.id}</td><td><span class="model">${esc(m.marque)}</span> ${esc(m.modele)}</td><td>${m.type === "S" ? "Solaire" : "Optique"}</td>
+    <td>${esc(m.coloris)}</td><td class="mono">${m.taille}</td><td class="small">${esc(m.emplacementNom)}</td><td class="mono">${fmtDate(m.entree)}</td>
+    <td class="nw">${ageCell(m.age)}</td><td class="num">${m.exemplaires > 1 ? `<span class="pill ${m.exemplaires >= 3 ? "p-crit" : "p-warn"}">×${m.exemplaires}</span>` : "1"}</td>
+    <td class="num mono">${eur(m.pv)}</td><td class="small">${actionMonture(m)}</td></tr>`).join("") || `<tr><td colspan="11" class="muted">Aucune monture pour ces filtres.</td></tr>`;
+}
+segmented("frame-view", "v", v => { frameState.v = v; renderFrames(); });
+$("frame-brand").addEventListener("change", e => { frameState.brand = e.target.value; renderFrames(); });
+$("frame-type").addEventListener("change", e => { frameState.type = e.target.value; renderFrames(); });
+$("frame-q").addEventListener("input", e => { frameState.q = e.target.value; renderFrames(); });
+
+function segmented(id, attr, cb) {
+  $(id).addEventListener("click", e => {
+    const b = e.target.closest("button"); if (!b) return;
+    $(id).querySelectorAll("button").forEach(x => x.setAttribute("aria-pressed", x === b ? "true" : "false"));
+    cb(b.dataset[attr]);
+  });
+}
+
+// ------------------------------------------------------------------ Pistes
+const IDEAS = [
+  { t: "Rappels de renouvellement lentilles", d: "Chaque vente de lentilles calcule la date de fin de la boîte. Le client reçoit un rappel par SMS dix jours avant, et le magasin sait quoi commander.", g: ["Clients", "Fidélisation"] },
+  { t: "Ordonnances et dates de validité", d: "Suivi des ordonnances et de leur validité selon l'âge du porteur, avec alerte quand un renouvellement en magasin n'est plus possible.", g: ["Clients", "Conformité"] },
+  { t: "Réassort automatique", d: "Seuils mini par produit et par puissance courante (−1,00 à −4,00), bon de commande proposé chaque semaine selon les ventes des 90 derniers jours.", g: ["Achats"] },
+  { t: "Retours fournisseurs et échanges", d: "Le logiciel connaît les conditions de chaque marque (délai, quota de retours, échange de collection) et prépare la liste des pièces à renvoyer.", g: ["Achats", "Montures"] },
+  { t: "Contrôle des catalogues à l'import", d: "Les nouveaux tarifs et collections passent par l'outil de contrôle qualité déjà présent dans ce dépôt avant d'alimenter le stock : EAN, prix, recodifications.", g: ["Achats", "Existant"] },
+  { t: "Traçabilité des lots", d: "Lot et péremption lus dans le Datamatrix de la boîte, rattachés à la vente. En cas de rappel de lot, la liste des clients concernés est immédiate.", g: ["Conformité", "Lentilles"] },
+  { t: "Inventaire tournant", d: "Un présentoir par jour scanné au téléphone. Les écarts apparaissent dans le tableau de bord, sans fermer le magasin pour l'inventaire annuel.", g: ["Magasin"] },
+  { t: "SAV et réparations", d: "Suivi des montures en réparation ou en garantie fabricant, pièces détachées (branches, plaquettes), délais et relances.", g: ["Atelier"] },
+  { t: "Marge et rotation par marque", d: "Marge réelle, rotation et stock dormant par marque pour préparer les rendez-vous avec les commerciaux et arbitrer les implantations.", g: ["Pilotage"] },
+  { t: "Tiers payant et mutuelles", d: "Suivi des prises en charge et des remboursements en attente, rapprochés des ventes. Repère les dossiers bloqués.", g: ["Gestion"] },
+  { t: "Plusieurs magasins", d: "Une monture dormante ici se vend peut-être dans le magasin voisin : propositions de transferts entre points de vente d'un même groupe.", g: ["Pilotage", "Montures"] },
+  { t: "Implantation des présentoirs", d: "Dans la vue 3D, déplacer un modèle d'un mur à la vitrine et mesurer l'effet sur ses ventes les semaines suivantes.", g: ["Magasin", "3D"] },
+];
+$("ideas").innerHTML = IDEAS.map(i => `<div class="idea"><h3>${esc(i.t)}</h3><p>${esc(i.d)}</p><div class="tags">${i.g.map(g => `<span class="pill p-neu">${esc(g)}</span>`).join("")}</div></div>`).join("");
+
+// ------------------------------------------------------------------ Plan du magasin (mètres, origine au centre)
+const PRESENTOIRS = {
+  "MUR-S": { nom: "Mur solaires", kind: "wall", o: [-6.6, 0.75, -4.42], u: [1, 0, 0], v: [0, 1, 0], w: 4.6, h: 1.5, rows: 5, cols: 12 },
+  "MUR-H": { nom: "Mur optique homme", kind: "wall", o: [-1.6, 0.75, -4.42], u: [1, 0, 0], v: [0, 1, 0], w: 4.6, h: 1.5, rows: 5, cols: 12 },
+  "MUR-F": { nom: "Mur optique femme", kind: "wall", o: [-6.92, 0.75, 2.6], u: [0, 0, -1], v: [0, 1, 0], w: 5.6, h: 1.5, rows: 5, cols: 12 },
+  "ILOT-L": { nom: "Îlot luxe", kind: "table", o: [-2.4, 0.92, -0.6], u: [1, 0, 0], v: [0, 0, 1], w: 2.4, h: 0.9, rows: 3, cols: 8 },
+  "ILOT-E": { nom: "Îlot enfants", kind: "table", o: [1.4, 0.72, 1.2], u: [1, 0, 0], v: [0, 0, 1], w: 1.5, h: 0.6, rows: 2, cols: 6 },
+  "VITRINE": { nom: "Vitrine rue", kind: "table", o: [-6.2, 1.0, 3.75], u: [1, 0, 0], v: [0, 0, 1], w: 4.2, h: 0.5, rows: 2, cols: 10 },
+};
+const CABINET = { o: [3.9, 0.25, -4.25], cols: 6, rows: 4, dw: 0.4, dh: 0.34 };
+Object.values(PRESENTOIRS).forEach(p => { p.libres = []; for (let i = 0; i < p.rows * p.cols; i++) p.libres.push(i); p.items = []; });
+function placer(m, ordre) {
+  for (const id of ordre) { const p = PRESENTOIRS[id]; if (p.libres.length) { m.slot = p.libres.splice(Math.floor(rnd() * p.libres.length), 1)[0]; m.emplacement = id; m.emplacementNom = p.nom; p.items.push(m); return; } }
+  m.emplacement = "RES"; m.emplacementNom = "Réserve";
+}
+let enVitrine = 0;
+montures.slice().sort((a, b) => a.age - b.age).forEach(m => {
+  if (m.type === "S" && enVitrine < 12) { enVitrine++; placer(m, ["VITRINE", "MUR-S"]); return; }
+  if (m.kid) return placer(m, ["ILOT-E", "MUR-H"]);
+  if (m.lux) return placer(m, ["ILOT-L", "MUR-H", "MUR-F"]);
+  if (m.type === "S") return placer(m, ["MUR-S", "VITRINE"]);
+  if (m.femme) return placer(m, ["MUR-F", "MUR-H"]);
+  placer(m, ["MUR-H", "MUR-F"]);
+});
+
+// ------------------------------------------------------------------ Vue 3D
+const COL = { ok: 0x3a9a66, mid: 0x7f8ea3, warn: 0xd99a1e, crit: 0xc9483a, dark: 0x7a1f17, neutral: 0xb8c0cb, empty: 0x9aa3ad };
+const LEGENDES = {
+  age: [["ok", "Moins de 6 mois"], ["mid", "6 à 12 mois"], ["warn", "12 à 24 mois"], ["crit", "Plus de 24 mois"]],
+  dup: [["neutral", "Pièce unique"], ["warn", "En double"], ["crit", "En triple ou plus"]],
+  exp: [["ok", "Tiroir sans alerte"], ["warn", "Lot à moins de 90 jours"], ["crit", "Lot à moins de 30 jours"], ["dark", "Lot périmé"]],
+};
+const hex = n => "#" + n.toString(16).padStart(6, "0");
+let mode3d = "age", alertsOnly = false;
+const couleurMonture = m => mode3d === "dup" ? (m.exemplaires >= 3 ? COL.crit : m.exemplaires === 2 ? COL.warn : COL.neutral)
+  : mode3d === "exp" ? COL.neutral : (m.age > 730 ? COL.crit : m.age > 365 ? COL.warn : m.age > 180 ? COL.mid : COL.ok);
+const alerteMonture = m => mode3d === "dup" ? m.exemplaires > 1 : mode3d === "exp" ? false : m.age > 365;
+const tiroirs = Array.from({ length: CABINET.cols * CABINET.rows }, (_, d) => ({ d, nom: TIROIR_NOM(d), lots: lots.filter(l => l.tiroir === d) }));
+const couleurTiroir = t => { if (!t.lots.length) return COL.empty; const r = Math.min(...t.lots.map(l => l.reste)); return r < 0 ? COL.dark : r <= 30 ? COL.crit : r <= 90 ? COL.warn : COL.ok; };
+const alerteTiroir = t => t.lots.some(l => l.reste <= 90);
+
+function renderLegend() {
+  $("legend").innerHTML = LEGENDES[mode3d].map(([k, t]) => `<span><i style="background:${hex(COL[k])}"></i>${t}</span>`).join("")
+    + (mode3d !== "exp" ? `<span class="muted small">Les tiroirs de la réserve restent colorés selon la péremption de leur lot le plus proche.</span>` : "");
+}
+
+let scene3d = null;
+function init3D() {
+  const host = $("scene");
+  if (!window.THREE) { host.innerHTML = `<div class="fallback">La bibliothèque 3D n'a pas pu être chargée. Le reste du tableau de bord fonctionne normalement.</div>`; return null; }
+  const T = THREE;
+  let renderer;
+  try { renderer = new T.WebGLRenderer({ antialias: true }); } catch (e) { host.innerHTML = `<div class="fallback">Ce navigateur n'autorise pas la 3D (WebGL).</div>`; return null; }
+  renderer.setPixelRatio(Math.min(2, window.devicePixelRatio || 1));
+  host.appendChild(renderer.domElement);
+  const scene = new T.Scene();
+  const camera = new T.PerspectiveCamera(38, 1, 0.1, 120);
+  scene.add(new T.HemisphereLight(0xffffff, 0x8a8f99, 0.85));
+  const sun = new T.DirectionalLight(0xffffff, 0.55); sun.position.set(4, 10, 6); scene.add(sun);
+
+  const mat = c => new T.MeshLambertMaterial({ color: c });
+  const box = (w, h, d, c, x, y, z, ry) => { const m = new T.Mesh(new T.BoxGeometry(w, h, d), mat(c)); m.position.set(x, y, z); if (ry) m.rotation.y = ry; scene.add(m); return m; };
+  // Sol, murs, cloison de réserve, comptoir, vitre
+  const sol = new T.Mesh(new T.PlaneGeometry(14, 9), mat(0xcdbfa8)); sol.rotation.x = -Math.PI / 2; scene.add(sol);
+  const reserveSol = new T.Mesh(new T.PlaneGeometry(3.4, 2.5), mat(0xb7bcc4)); reserveSol.rotation.x = -Math.PI / 2; reserveSol.position.set(5.3, 0.005, -3.25); scene.add(reserveSol);
+  box(14, 2.6, 0.12, 0xf1efe9, 0, 1.3, -4.56);
+  box(0.12, 2.6, 9, 0xe9e6df, -7.06, 1.3, 0);
+  box(0.08, 2.2, 2.5, 0xdcd8d0, 3.6, 1.1, -3.25);
+  box(2.6, 0.95, 0.8, 0x4a5568, 4.6, 0.475, 1.4);
+  const vitre = new T.Mesh(new T.BoxGeometry(5, 2.4, 0.03), new T.MeshLambertMaterial({ color: 0x9fc6e0, transparent: true, opacity: 0.18 })); vitre.position.set(-4.1, 1.2, 4.5); scene.add(vitre);
+
+  const pickables = [];
+  const geoMur = new T.BoxGeometry(0.15, 0.055, 0.035);
+  Object.entries(PRESENTOIRS).forEach(([id, p]) => {
+    const o = new T.Vector3(...p.o), u = new T.Vector3(...p.u), v = new T.Vector3(...p.v);
+    const centre = o.clone().addScaledVector(u, p.w / 2).addScaledVector(v, p.h / 2);
+    const ry = Math.atan2(-p.u[2], p.u[0]);
+    if (p.kind === "wall") {
+      const panneau = box(p.w + 0.2, p.h + 0.25, 0.04, 0xffffff, centre.x, centre.y, centre.z, ry);
+      panneau.translateZ(-0.03);
+    } else {
+      box(p.w + 0.2, p.o[1] - 0.01, p.h + 0.2, id === "VITRINE" ? 0x6b7280 : 0xe6e1d8, centre.x, (p.o[1] - 0.01) / 2, centre.z);
+    }
+    p.items.forEach(m => {
+      const r = Math.floor(m.slot / p.cols), c = m.slot % p.cols;
+      const pos = o.clone().addScaledVector(u, p.w * (c + 0.5) / p.cols).addScaledVector(v, p.h * (r + 0.5) / p.rows);
+      const mesh = new T.Mesh(geoMur, new T.MeshLambertMaterial({ color: couleurMonture(m), transparent: true }));
+      mesh.position.copy(pos);
+      if (p.kind === "wall") { mesh.rotation.y = ry; mesh.translateZ(0.02); } else { mesh.position.y += 0.03; mesh.rotation.y = ry; }
+      mesh.userData = { kind: "frame", m, p };
+      scene.add(mesh); pickables.push(mesh);
+    });
+  });
+  // Armoire à lentilles : 4 rangées A–D (A en haut) × 6 colonnes
+  box(CABINET.cols * CABINET.dw + 0.12, CABINET.rows * CABINET.dh + 0.3, 0.45, 0x5b6573, CABINET.o[0] + CABINET.cols * CABINET.dw / 2, (CABINET.rows * CABINET.dh + 0.3) / 2, CABINET.o[2] - 0.05);
+  const geoTiroir = new T.BoxGeometry(CABINET.dw - 0.04, CABINET.dh - 0.04, 0.04);
+  tiroirs.forEach(t => {
+    const r = Math.floor(t.d / CABINET.cols), c = t.d % CABINET.cols;
+    const mesh = new T.Mesh(geoTiroir, new T.MeshLambertMaterial({ color: couleurTiroir(t), transparent: true }));
+    mesh.position.set(CABINET.o[0] + CABINET.dw * (c + 0.5), CABINET.o[1] + 0.05 + CABINET.dh * (CABINET.rows - 1 - r + 0.5), CABINET.o[2] + 0.2);
+    mesh.userData = { kind: "drawer", t };
+    scene.add(mesh); pickables.push(mesh);
+  });
+
+  // Étiquettes de zones
+  function etiquette(texte, x, y, z) {
+    const cv = document.createElement("canvas"), ctx = cv.getContext("2d"), f = 30;
+    ctx.font = `600 ${f}px "IBM Plex Sans", system-ui, sans-serif`;
+    const w = Math.ceil(ctx.measureText(texte).width) + 28; cv.width = w; cv.height = f + 18;
+    ctx.font = `600 ${f}px "IBM Plex Sans", system-ui, sans-serif`;
+    ctx.fillStyle = "rgba(21,32,43,0.86)"; const r = 10;
+    ctx.beginPath(); ctx.moveTo(r, 0); ctx.arcTo(w, 0, w, cv.height, r); ctx.arcTo(w, cv.height, 0, cv.height, r); ctx.arcTo(0, cv.height, 0, 0, r); ctx.arcTo(0, 0, w, 0, r); ctx.fill();
+    ctx.fillStyle = "#ffffff"; ctx.textBaseline = "middle"; ctx.fillText(texte, 14, cv.height / 2 + 1);
+    const tex = new T.CanvasTexture(cv); tex.minFilter = T.LinearFilter;
+    const s = new T.Sprite(new T.SpriteMaterial({ map: tex, depthTest: false }));
+    s.scale.set(w / cv.height * 0.32, 0.32, 1); s.position.set(x, y, z); s.renderOrder = 10; scene.add(s);
+  }
+  etiquette("Mur solaires", -4.3, 2.55, -4.3); etiquette("Mur optique homme", 0.7, 2.55, -4.3); etiquette("Mur optique femme", -6.8, 2.55, -0.2);
+  etiquette("Îlot luxe", -1.2, 1.35, -0.15); etiquette("Îlot enfants", 2.15, 1.1, 1.5); etiquette("Vitrine rue", -4.1, 1.45, 4.0);
+  etiquette("Réserve lentilles", 5.1, 1.95, -4.1); etiquette("Comptoir", 4.6, 1.3, 1.4);
+
+  // Caméra orbitale maison (pas de dépendance supplémentaire)
+  const cam = { tx: 0, ty: 0.6, tz: 0, r: 15.5, th: 0.55, ph: 0.98 };
+  const VUES = { persp: { tx: 0, ty: 0.6, tz: 0, r: 15.5, th: 0.55, ph: 0.98 }, top: { tx: 0, ty: 0, tz: 0, r: 15, th: 0, ph: 0.06 } };
+  function placeCam() {
+    cam.ph = Math.max(0.05, Math.min(1.45, cam.ph)); cam.r = Math.max(4, Math.min(28, cam.r));
+    camera.position.set(cam.tx + cam.r * Math.sin(cam.ph) * Math.sin(cam.th), cam.ty + cam.r * Math.cos(cam.ph), cam.tz + cam.r * Math.sin(cam.ph) * Math.cos(cam.th));
+    camera.lookAt(cam.tx, cam.ty, cam.tz); draw();
+  }
+  function fond() { scene.background = new T.Color(getComputedStyle(document.documentElement).getPropertyValue("--scene").trim() || "#e4e8ee"); draw(); }
+  let raf = 0; function draw() { if (raf) return; raf = requestAnimationFrame(() => { raf = 0; renderer.render(scene, camera); }); }
+  function resize() { const w = host.clientWidth, h = host.clientHeight; if (!w || !h) return; renderer.setSize(w, h); camera.aspect = w / h; camera.updateProjectionMatrix(); draw(); }
+  new ResizeObserver(resize).observe(host);
+
+  const pts = new Map(); let downAt = null, pinch0 = 0;
+  host.addEventListener("pointerdown", e => { host.setPointerCapture(e.pointerId); pts.set(e.pointerId, { x: e.clientX, y: e.clientY }); downAt = { x: e.clientX, y: e.clientY }; host.classList.add("dragging"); if (pts.size === 2) { const [a, b] = [...pts.values()]; pinch0 = Math.hypot(a.x - b.x, a.y - b.y); } });
+  host.addEventListener("pointermove", e => {
+    if (!pts.has(e.pointerId)) { survol(e); return; }
+    const prev = pts.get(e.pointerId); pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (pts.size === 2) { const [a, b] = [...pts.values()]; const d = Math.hypot(a.x - b.x, a.y - b.y); if (pinch0) cam.r *= pinch0 / d; pinch0 = d; placeCam(); return; }
+    const dx = e.clientX - prev.x, dy = e.clientY - prev.y;
+    if (e.shiftKey || e.buttons === 2) { const s = cam.r * 0.0015; cam.tx -= (Math.cos(cam.th) * dx) * s; cam.tz -= (-Math.sin(cam.th) * dx) * s; cam.tx -= Math.sin(cam.th) * dy * s; cam.tz -= Math.cos(cam.th) * dy * s; }
+    else { cam.th -= dx * 0.006; cam.ph -= dy * 0.005; }
+    placeCam();
+  });
+  const fin = e => { pts.delete(e.pointerId); if (pts.size < 2) pinch0 = 0; if (!pts.size) host.classList.remove("dragging");
+    if (downAt && Math.hypot(e.clientX - downAt.x, e.clientY - downAt.y) < 5 && e.type === "pointerup") choisir(e); downAt = null; };
+  host.addEventListener("pointerup", fin); host.addEventListener("pointercancel", fin);
+  host.addEventListener("contextmenu", e => e.preventDefault());
+  host.addEventListener("wheel", e => { e.preventDefault(); cam.r *= Math.exp(e.deltaY * 0.001); placeCam(); }, { passive: false });
+
+  const ray = new T.Raycaster(), ndc = new T.Vector2();
+  function viser(e) { const b = host.getBoundingClientRect(); ndc.set(((e.clientX - b.left) / b.width) * 2 - 1, -((e.clientY - b.top) / b.height) * 2 + 1); ray.setFromCamera(ndc, camera); const h = ray.intersectObjects(pickables, false).find(i => i.object.material.opacity > 0.5); return h ? h.object : null; }
+  let survole = null, choisi = null;
+  function survol(e) { const o = viser(e); if (o === survole) return; if (survole && survole !== choisi) survole.material.emissive.setHex(0); survole = o; if (o && o !== choisi) o.material.emissive.setHex(0x333333); host.style.cursor = o ? "pointer" : ""; draw(); }
+  function choisir(e) {
+    const o = viser(e);
+    if (choisi) choisi.material.emissive.setHex(0);
+    choisi = o; if (o) o.material.emissive.setHex(0x555555); draw();
+    const sel = $("selection");
+    if (!o) { sel.innerHTML = `<span class="muted">Cliquez sur un élément de la scène pour voir son détail.</span>`; return; }
+    if (o.userData.kind === "frame") {
+      const m = o.userData.m, c = classeAge(m.age);
+      sel.innerHTML = `<div><span class="eyebrow">${esc(o.userData.p.nom)}</span><h3>${esc(m.marque)} ${esc(m.modele)}</h3></div>
+        <dl><dt>Réf.</dt><dd class="mono">${m.id}</dd><dt>Coloris</dt><dd>${esc(m.coloris)}</dd><dt>Calibre</dt><dd class="mono">${m.taille}</dd>
+        <dt>Entrée</dt><dd class="mono">${fmtDate(m.entree)}</dd><dt>Ancienneté</dt><dd><span class="pill ${c.c}">${ageTxt(m.age)}</span></dd>
+        <dt>Exemplaires</dt><dd>${m.exemplaires > 1 ? `<span class="pill ${m.exemplaires >= 3 ? "p-crit" : "p-warn"}">×${m.exemplaires}</span>` : "1"}</dd>
+        <dt>Prix</dt><dd class="mono">${eur(m.pv)}</dd><dt>Action</dt><dd>${actionMonture(m)}</dd></dl>`;
+    } else {
+      const t = o.userData.t;
+      sel.innerHTML = `<div><span class="eyebrow">Réserve lentilles</span><h3>Tiroir ${t.nom}</h3></div>` + (t.lots.length
+        ? `<dl>${t.lots.map(l => `<dt class="mono">${fmtDate(l.peremption)}</dt><dd>${esc(l.produit)} ${esc(l.puiss)} · ${l.qte} u. <span class="pill ${statutLot(l.reste).c}">${statutLot(l.reste).t}</span></dd>`).join("")}</dl>`
+        : `<span class="muted">Tiroir vide.</span>`);
+    }
+  }
+  function recolor() {
+    pickables.forEach(o => {
+      const d = o.userData, alerte = d.kind === "frame" ? alerteMonture(d.m) : alerteTiroir(d.t);
+      if (d.kind === "frame") o.material.color.setHex(couleurMonture(d.m));
+      o.material.opacity = alertsOnly && !alerte ? 0.12 : 1;
+    });
+    draw();
+  }
+  $("cam-persp").addEventListener("click", () => { Object.assign(cam, VUES.persp); placeCam(); });
+  $("cam-top").addEventListener("click", () => { Object.assign(cam, VUES.top); placeCam(); });
+  matchMedia("(prefers-color-scheme: dark)").addEventListener("change", fond);
+  new MutationObserver(fond).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+  fond(); resize(); placeCam();
+  return { recolor, resize };
+}
+
+segmented("mode3d", "mode", v => { mode3d = v; renderLegend(); if (scene3d) scene3d.recolor(); });
+$("alertsOnly").addEventListener("change", e => { alertsOnly = e.target.checked; if (scene3d) scene3d.recolor(); });
+const toggle = $("toggle3d");
+toggle.checked = store.get("stock-optique-3d") !== "off";
+function appliquer3D() {
+  $("scene-block").hidden = !toggle.checked;
+  store.set("stock-optique-3d", toggle.checked ? "on" : "off");
+  if (toggle.checked && !$("v-tableau").hidden) { if (!scene3d) scene3d = init3D(); else scene3d.resize(); }
+}
+toggle.addEventListener("change", appliquer3D);
+
+// ------------------------------------------------------------------ Onglets
+const TABS = ["tableau", "lentilles", "montures", "pistes"];
+function ouvrir(tab) {
+  if (!TABS.includes(tab)) tab = "tableau";
+  TABS.forEach(t => { $("v-" + t).hidden = t !== tab; });
+  document.querySelectorAll("nav.tabs a").forEach(a => { if (a.dataset.tab === tab) a.setAttribute("aria-current", "page"); else a.removeAttribute("aria-current"); });
+  if (tab === "tableau") appliquer3D();
+}
+document.querySelectorAll("nav.tabs a").forEach(a => a.addEventListener("click", e => { e.preventDefault(); try { history.replaceState(null, "", "#" + a.dataset.tab); } catch (err) {} ouvrir(a.dataset.tab); }));
+window.addEventListener("hashchange", () => ouvrir(location.hash.slice(1)));
+
+renderKpis(); renderAlerts(); renderCharts(); renderLenses(); renderFrames(); renderLegend();
+ouvrir(location.hash.slice(1));
+})();
+</script>

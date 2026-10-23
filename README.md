@@ -10,6 +10,9 @@ serveur local.
 
 ➡️ Architecture, choix techniques, étapes et analyse du ROI de l'IA : [docs/PROPOSITION.md](docs/PROPOSITION.md)
 
+➡️ Piste suivante : gestion de stock pour un magasin d'optique (péremptions, rotation des montures, vue 3D) :
+[docs/CRM_STOCK_OPTIQUE.md](docs/CRM_STOCK_OPTIQUE.md), prototype [prototype_stock/stock_optique.html](prototype_stock/stock_optique.html).
+
 ## Utilisation (Windows)
 
 ### Prérequis (une seule fois)
