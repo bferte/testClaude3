@@ -19,7 +19,6 @@ import bpy
 from mathutils import Matrix, Quaternion, Vector
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-FONT = "/usr/share/fonts/opentype/inter/Inter-ExtraBold.otf"
 
 bpy.ops.wm.read_factory_settings(use_empty=True)
 scene = bpy.context.scene
@@ -52,6 +51,8 @@ def material(name, color, rough=0.4, metal=0.0, emit=0.0, alpha=1.0, coat=0.0, s
         b.inputs["Alpha"].default_value = alpha
         m.blend_method = "BLEND"
         m.shadow_method = "HASHED"
+    if alpha < 0.5:
+        b.inputs["IOR"].default_value = 1.05  # verres : reflets discrets
     if coat:
         b.inputs["Coat Weight"].default_value = coat
         b.inputs["Coat Roughness"].default_value = 0.08
@@ -61,28 +62,47 @@ def material(name, color, rough=0.4, metal=0.0, emit=0.0, alpha=1.0, coat=0.0, s
     return m
 
 
+
+def image_material(name, path, rough=0.15, emit=0.0):
+    m = bpy.data.materials.new(name)
+    m.use_nodes = True
+    nt = m.node_tree
+    b = nt.nodes["Principled BSDF"]
+    tex = nt.nodes.new("ShaderNodeTexImage")
+    tex.image = bpy.data.images.load(path)
+    nt.links.new(tex.outputs["Color"], b.inputs["Base Color"])
+    if emit:
+        nt.links.new(tex.outputs["Color"], b.inputs["Emission Color"])
+        b.inputs["Emission Strength"].default_value = emit
+    b.inputs["Roughness"].default_value = rough
+    b.inputs["Coat Weight"].default_value = 0.25
+    b.inputs["Coat Roughness"].default_value = 0.03
+    return m
+
+
 M = {
-    "white": material("Robot_White", "#EEF1F5", rough=0.28, coat=0.5),
-    "panel": material("Robot_DarkPanel", "#2A2E35", rough=0.3, coat=0.4),
-    "joint": material("Robot_Joint", "#1B1E23", rough=0.35, metal=0.4),
-    "metal": material("Robot_GunMetal", "#3A3F47", rough=0.3, metal=0.8),
-    "hand": material("Robot_Hand", "#24272D", rough=0.35, metal=0.3),
-    "knuckle": material("Robot_Knuckle", "#6B7280", rough=0.3, metal=0.6),
-    "frame": material("Glasses_Frame", "#0B0C0E", rough=0.18, coat=0.6),
-    "glass": material("Glasses_Lens", "#DDEFFF", rough=0.03, alpha=0.12),
-    "glow": material("Blue_Glow", "#1E9BFF", rough=0.2, emit=6.0),
-    "shirt": material("Tshirt_Blue", "#0F4FC8", rough=0.85, sheen=0.5),
-    "shirt_dark": material("Tshirt_Trim", "#0B3C9C", rough=0.85, sheen=0.5),
-    "print": material("Tshirt_Print_ATOL", "#FFFFFF", rough=0.6),
-    "eye_rim": material("Eye_Rim", "#0A2E73", rough=0.15),
-    "iris": material("Eye_Iris", "#0B5BC4", rough=0.1, emit=0.25),
-    "iris_light": material("Eye_Iris_Light", "#2FA6F2", rough=0.1, emit=0.35),
-    "pupil": material("Eye_Pupil", "#030814", rough=0.1),
+    "white": material("Robot_White", "#F2F4F8", rough=0.25, coat=0.6),
+    "panel": material("Robot_NavyPanel", "#1A2440", rough=0.25, coat=0.6),
+    "seam": material("Robot_Seam", "#AEB6C2", rough=0.4),
+    "joint": material("Robot_Joint", "#1B202B", rough=0.35, metal=0.3),
+    "metal": material("Robot_Silver", "#9AA3AF", rough=0.25, metal=0.9),
+    "hand": material("Robot_Hand", "#20242C", rough=0.35, metal=0.2),
+    "knuckle": material("Robot_Knuckle", "#5C6370", rough=0.3, metal=0.6),
+    "frame": material("Glasses_Frame", "#0D0F13", rough=0.15, coat=0.8),
+    "glass": material("Glasses_Lens", "#E4F2FF", rough=0.0, alpha=0.03),
+    "glow": material("Cyan_Glow", "#2BC4FF", rough=0.2, emit=7.0),
+    "accent": material("Blue_Accent", "#1D57D6", rough=0.2, coat=0.8),
+    "shirt": material("Tshirt_Blue", "#124BC8", rough=0.75, sheen=0.2),
+    "shirt_dark": material("Tshirt_Seam", "#0F3FAE", rough=0.8, sheen=0.4),
+    "print": material("Tshirt_Print_ATOL", "#FFFFFF", rough=0.5),
+    "eye_rim": material("Eye_Rim", "#08163A", rough=0.1, coat=1.0),
+    "iris": image_material("Eye_Iris", os.path.join(HERE, "textures", "iris.png"), emit=0.25),
     "highlight": material("Eye_Highlight", "#FFFFFF", rough=0.1, emit=3.0),
-    "mouth": material("Mouth", "#3A0A12", rough=0.5),
-    "tongue": material("Tongue", "#E2525F", rough=0.45),
-    "cheek": material("Cheek_Blush", "#FF8A9A", rough=0.6, alpha=0.45),
-    "sole": material("Sole", "#1A1C20", rough=0.7),
+    "brow": material("Eyebrow", "#4A5260", rough=0.4),
+    "mouth": material("Mouth", "#5A0E16", rough=0.5),
+    "tongue": material("Tongue", "#F0646A", rough=0.45),
+    "cheek": material("Cheek_Blush", "#FF8E9C", rough=0.6, alpha=0.4),
+    "sole": material("Sole", "#1A1D24", rough=0.7),
 }
 
 
@@ -264,13 +284,66 @@ def ellipse(cx, cz, a, b, count=48):
     return superellipse(cx, cz, a, b, 2.0, count)
 
 
+def frame_quat(zdir, xhint):
+    """Quaternion d'un repère dont l'axe Z suit zdir et l'axe X est au plus près de xhint."""
+    z = Vector(zdir).normalized()
+    x = (Vector(xhint) - z * Vector(xhint).dot(z)).normalized()
+    y = z.cross(x)
+    return Matrix((x, y, z)).transposed().to_quaternion()
+
+
+def uv_dome(name, center, radii, mat, weight, q):
+    """Dôme ellipsoïdal avec UV planaires (face -Y locale) pour une texture d'iris."""
+    ob = ellipsoid(name, center, radii, mat, weight, q=q, seg=48, rings=24)
+    me = ob.data
+    uv = me.uv_layers.new(name="UVMap")
+    for loop in me.loops:
+        co = me.vertices[loop.vertex_index].co
+        uv.data[loop.index].uv = (0.5 + co.x / (2 * radii[0]), 0.5 + co.z / (2 * radii[2]))
+    return ob
+
+
+def import_logo_mesh(width, center_z):
+    """Logo ATOL vectorisé (SVG potrace) -> mesh plat dense, dans le plan XZ, face -Y."""
+    before = set(bpy.data.objects)
+    bpy.ops.import_curve.svg(filepath=os.path.join(HERE, "textures", "atol_logo.svg"))
+    curves = [o for o in bpy.data.objects if o not in before]
+    bpy.context.view_layer.update()
+    dg = bpy.context.evaluated_depsgraph_get()
+    bm = bmesh.new()
+    for o in curves:
+        me = bpy.data.meshes.new_from_object(o.evaluated_get(dg))
+        me.transform(o.matrix_world)
+        bm.from_mesh(me)
+        bpy.data.meshes.remove(me)
+    for o in curves:
+        bpy.data.objects.remove(o)
+    bmesh.ops.remove_doubles(bm, verts=bm.verts, dist=1e-6)
+    bmesh.ops.triangulate(bm, faces=bm.faces, quad_method="BEAUTY", ngon_method="BEAUTY")
+    xs = [v.co.x for v in bm.verts]
+    ys = [v.co.y for v in bm.verts]
+    k = width / (max(xs) - min(xs))
+    cx, cy = (max(xs) + min(xs)) / 2, (max(ys) + min(ys)) / 2
+    for v in bm.verts:
+        v.co = Vector(((v.co.x - cx) * k, -0.6, (v.co.y - cy) * k + center_z))
+    for _ in range(2):
+        bmesh.ops.subdivide_edges(bm, edges=[e for e in bm.edges if e.calc_length() > 0.012], cuts=1, use_grid_fill=True)
+        bmesh.ops.triangulate(bm, faces=[f for f in bm.faces if len(f.verts) > 4])
+    me = bpy.data.meshes.new("Tshirt_Print_ATOL")
+    bm.to_mesh(me)
+    bm.free()
+    ob = bpy.data.objects.new("Tshirt_Print_ATOL", me)
+    COL.objects.link(ob)
+    return ob
+
+
 # ---------------------------------------------------------------- tête
-HC = Vector((0, 0, 1.66))
-RX, RY, RZ = 0.50, 0.45, 0.46
+HC = Vector((0, 0, 1.68))
+RX, RY, RZ = 0.44, 0.42, 0.43
 
 
 def surf(x, z, off=0.0):
-    """Point de la face avant de la tête (coords relatives au centre)."""
+    """Point de la face avant de la tête (x, z relatifs au centre)."""
     a, b, c = RX + off, RY + off, RZ + off
     t = 1 - (x / a) ** 2 - (z / c) ** 2
     return HC + Vector((x, -b * math.sqrt(max(t, 0.0)), z))
@@ -288,45 +361,61 @@ def facing(n):
 
 ellipsoid("Head", HC, (RX, RY, RZ), M["white"], "head", seg=64, rings=32)
 
-# panneau sombre sur le dessus du crâne (intersection booléenne)
-panel = ellipsoid("Head_Panel", HC, (RX * 1.014, RY * 1.014, RZ * 1.014), M["panel"], "head", seg=64, rings=32, subsurf=2)
-cutter = box("cutter", HC + Vector((0, 0.02, 0.40)), (0.15, 0.44, 0.27), M["panel"], None, bevel=0.06, subsurf=1)
+# bande bleu marine sur le dessus du crâne (intersection booléenne)
+panel = ellipsoid("Head_Panel", HC, (RX * 1.012, RY * 1.012, RZ * 1.012), M["panel"], "head", seg=64, rings=32, subsurf=2)
+cutter = box("cutter", HC + Vector((0, 0, 0.47)), (0.20, 0.6, 0.27), M["panel"], None, bevel=0.07, subsurf=1)
 boo = panel.modifiers.new("Bool", "BOOLEAN")
 boo.operation = "INTERSECT"
 boo.solver = "EXACT"
 boo.object = cutter
 
-# oreillettes
-for s, side in ((1, "L"), (-1, "R")):
-    zc = HC.z - 0.05
-    loft(f"EarPod.{side}", (s * 0.40, 0.03, zc), (s * 0.56, 0.03, zc),
-         [(0, 0.12, 0.12), (0.02, 0.155, 0.155), (0.05, 0.168, 0.168), (0.125, 0.168, 0.168),
-          (0.15, 0.152, 0.152), (0.16, 0.125, 0.125)], M["white"], "head", seg=48)
-    torus(f"EarPod_Base.{side}", (s * 0.425, 0.03, zc), (s, 0, 0), 0.158, 0.018, M["joint"], "head")
-    loft(f"EarPod_Disc.{side}", (s * 0.55, 0.03, zc), (s * 0.572, 0.03, zc),
-         [(0, 0.1, 0.1), (0.022, 0.1, 0.1)], M["joint"], "head", seg=48, subsurf=0)
-    torus(f"EarPod_Ring.{side}", (s * 0.566, 0.03, zc), (s, 0, 0), 0.122, 0.016, M["glow"], "head")
-    q = Vector((0, 0, 1)).rotation_difference(Vector((s, 0, 0)))
-    ellipsoid(f"EarPod_Cap.{side}", (s * 0.572, 0.03, zc), (0.055, 0.055, 0.022), M["white"], "head", q=q)
+# rainures de panneaux du casque
+k = math.sqrt(1 - (0.10 / RY) ** 2)
+torus("Head_Seam", HC + Vector((0, 0.10, 0)), (0, 1, 0), RX * k, 0.0045, M["seam"], "head", major_y=RZ * k, seg=96, mseg=8)
+k = math.sqrt(1 - (0.22 / RZ) ** 2)
+torus("Head_Seam_Low", HC + Vector((0, 0, -0.22)), (0, 0, 1), RX * k, 0.0045, M["seam"], "head", major_y=RY * k, seg=96, mseg=8)
+box("Head_BackSlot", HC + Vector((0, 0.305, -0.29)), (0.07, 0.03, 0.022), M["joint"], "head", bevel=0.012)
 
-# lunettes
-LENS_Z, LENS_X, LA, LB, GOFF = -0.08, 0.205, 0.165, 0.125, 0.06
+# casque audio (oreillettes)
+EAR_Z = HC.z - 0.02
 for s, side in ((1, "L"), (-1, "R")):
-    outline = superellipse(s * LENS_X, LENS_Z, LA, LB, 3.6)
-    tube(f"Glasses_Frame.{side}", [surf(x, z, GOFF) for x, z in outline], 0.022, M["frame"], "head", cyclic=True)
-    decal(f"Glasses_Lens.{side}", (s * LENS_X, LENS_Z), superellipse(s * LENS_X, LENS_Z, LA - 0.008, LB - 0.008, 3.6),
+    loft(f"EarPod_Base.{side}", (s * 0.33, 0.03, EAR_Z), (s * 0.47, 0.03, EAR_Z),
+         [(0, 0.15, 0.15), (0.03, 0.178, 0.178), (0.14, 0.178, 0.178)], M["joint"], "head", seg=48)
+    loft(f"EarPod_Face.{side}", (s * 0.46, 0.03, EAR_Z), (s * 0.52, 0.03, EAR_Z),
+         [(0, 0.17, 0.17), (0.035, 0.17, 0.17), (0.05, 0.155, 0.155), (0.055, 0.12, 0.12)], M["accent"], "head", seg=48)
+    loft(f"EarPod_Disc.{side}", (s * 0.505, 0.03, EAR_Z), (s * 0.528, 0.03, EAR_Z),
+         [(0, 0.108, 0.108), (0.023, 0.108, 0.108)], M["joint"], "head", seg=48, subsurf=0)
+    torus(f"EarPod_Ring.{side}", (s * 0.524, 0.03, EAR_Z), (s, 0, 0), 0.088, 0.011, M["glow"], "head")
+    ellipsoid(f"EarPod_Cap.{side}", (s * 0.528, 0.03, EAR_Z), (0.065, 0.065, 0.016), M["eye_rim"], "head",
+              q=Vector((0, 0, 1)).rotation_difference(Vector((s, 0, 0))))
+
+# lunettes : grosses montures rectangulaires + branches "tech" à LEDs
+LENS_Z, LENS_X, LA, LB, GOFF = -0.035, 0.215, 0.175, 0.128, 0.075
+for s, side in ((1, "L"), (-1, "R")):
+    outline = superellipse(s * LENS_X, LENS_Z, LA, LB, 5.0, 72)
+    tube(f"Glasses_Frame.{side}", [surf(x, z, GOFF) for x, z in outline], 0.028, M["frame"], "head", cyclic=True)
+    top = [surf(s * LENS_X + t * LA * 0.92, LENS_Z + LB + 0.008, GOFF + 0.004) for t in (-1, -0.5, 0, 0.5, 1)]
+    tube(f"Glasses_Brow.{side}", top, 0.031, M["frame"], "head", nurbs=True)
+    decal(f"Glasses_Lens.{side}", (s * LENS_X, LENS_Z), superellipse(s * LENS_X, LENS_Z, LA - 0.01, LB - 0.01, 5.0),
           lambda x, z: surf(x, z, GOFF), M["glass"], "head")
-    p0 = surf(s * (LENS_X + LA - 0.01), LENS_Z + 0.04, GOFF)
-    p3 = Vector((s * 0.43, -0.12, HC.z - 0.04))
-    p1 = p0.lerp(p3, 0.35) + Vector((s * 0.05, 0, 0.01))
-    p2 = p0.lerp(p3, 0.75) + Vector((s * 0.035, 0, 0))
-    tube(f"Glasses_Temple.{side}", [p0, p1, p2, p3], 0.017, M["frame"], "head", nurbs=True)
-    led = surf(s * (LENS_X + LA - 0.03), LENS_Z + 0.07, GOFF + 0.018)
-    ellipsoid(f"Glasses_LED.{side}", led, (0.012, 0.008, 0.028), M["glow"], "head", q=facing(surf_normal(led)))
-bridge = [surf(x, LENS_Z + 0.03 + 0.012 * (1 - (x / 0.05) ** 2), GOFF + 0.004) for x in (-0.05, -0.025, 0, 0.025, 0.05)]
-tube("Glasses_Bridge", bridge, 0.02, M["frame"], "head", nurbs=True)
+    p0 = surf(s * (LENS_X + LA - 0.005), LENS_Z + 0.02, GOFF)
+    p1 = Vector((s * 0.41, -0.06, EAR_Z + 0.0))
+    d = p1 - p0
+    q = frame_quat(d, (s, 0, 0))
+    mid = (p0 + p1) / 2
+    box(f"Glasses_Temple.{side}", mid, (0.02, 0.04, d.length / 2 + 0.02), M["frame"], "head", bevel=0.012, q=q)
+    for dz in (-0.045, 0.0):
+        box(f"Glasses_LED{dz}.{side}", mid + q @ Vector((0.019, 0.0, dz + 0.02)), (0.004, 0.006, 0.022),
+            M["glow"], "head", bevel=0.003, q=q, subsurf=0)
+bridge = [surf(x, LENS_Z + 0.06 + 0.012 * (1 - (x / 0.05) ** 2), GOFF + 0.004) for x in (-0.05, -0.025, 0, 0.025, 0.05)]
+tube("Glasses_Bridge", bridge, 0.024, M["frame"], "head", nurbs=True)
 
-# yeux (empilement de dômes aplatis)
+# sourcils
+for s, side in ((1, "L"), (-1, "R")):
+    pts = [surf(s * (0.13 + 0.15 * t), 0.165 + 0.025 * math.sin(math.pi * t), 0.006) for t in (0, 0.25, 0.5, 0.75, 1)]
+    tube(f"Eyebrow.{side}", pts, 0.009, M["brow"], "head", nurbs=True)
+
+# yeux : contour marine + dôme d'iris texturé + reflets
 EYES = {}
 for s, side in ((1, "L"), (-1, "R")):
     e = surf(s * LENS_X, LENS_Z, 0.0)
@@ -338,101 +427,110 @@ for s, side in ((1, "L"), (-1, "R")):
     def at(lx, lz, off):
         return e + q @ Vector((lx, -off, lz))
 
-    ellipsoid(f"Eye_Rim.{side}", at(0, 0, 0.0), (0.102, 0.03, 0.117), M["eye_rim"], bone, q=q)
-    ellipsoid(f"Eye_Iris.{side}", at(0, 0, 0.006), (0.09, 0.03, 0.104), M["iris"], bone, q=q)
-    ellipsoid(f"Eye_IrisLight.{side}", at(0, -0.035, 0.012), (0.05, 0.022, 0.042), M["iris_light"], bone, q=q)
-    ellipsoid(f"Eye_Pupil.{side}", at(0, 0.004, 0.026), (0.05, 0.016, 0.058), M["pupil"], bone, q=q)
-    ellipsoid(f"Eye_Highlight.{side}", at(-0.03, 0.038, 0.036), (0.024, 0.008, 0.026), M["highlight"], bone, q=q)
-    ellipsoid(f"Eye_Highlight2.{side}", at(0.034, -0.036, 0.034), (0.011, 0.006, 0.011), M["highlight"], bone, q=q)
+    ellipsoid(f"Eye_Rim.{side}", at(0, 0, 0.0), (0.112, 0.03, 0.116), M["eye_rim"], bone, q=q)
+    uv_dome(f"Eye_Iris.{side}", at(0, 0, 0.006), (0.1, 0.034, 0.104), M["iris"], bone, q=q)
+    ellipsoid(f"Eye_Highlight.{side}", at(-0.036, 0.04, 0.038), (0.028, 0.008, 0.03), M["highlight"], bone, q=q)
+    ellipsoid(f"Eye_Highlight2.{side}", at(0.038, -0.04, 0.034), (0.012, 0.006, 0.012), M["highlight"], bone, q=q)
 
-# bouche ouverte en "D" + langue
-MOUTH_Z, MW = -0.25, 0.085
+# bouche ouverte + langue, joues
+MOUTH_Z, MW = -0.235, 0.07
 mouth_pts = []
 for i in range(24):  # arc inférieur, de gauche à droite
     x = -MW + 2 * MW * i / 23
-    mouth_pts.append((x, 0.012 - 0.10 * max(0.0, 1 - (x / MW) ** 2) ** 0.55))
+    mouth_pts.append((x, 0.01 - 0.08 * max(0.0, 1 - (x / MW) ** 2) ** 0.6))
 for i in range(1, 23):  # bord supérieur (sourire), de droite à gauche
     x = MW - 2 * MW * i / 23
     mouth_pts.append((x, 0.016 * (x / MW) ** 2))
 mouth_pts = [(x, MOUTH_Z + z) for x, z in mouth_pts]
-decal("Mouth", (0, MOUTH_Z - 0.045), mouth_pts, lambda x, z: surf(x, z, 0.003), M["mouth"], "mouth", thickness=0.004)
-decal("Tongue", (0, MOUTH_Z - 0.062), ellipse(0, MOUTH_Z - 0.062, 0.046, 0.026),
+decal("Mouth", (0, MOUTH_Z - 0.035), mouth_pts, lambda x, z: surf(x, z, 0.003), M["mouth"], "mouth", thickness=0.004)
+decal("Tongue", (0, MOUTH_Z - 0.05), ellipse(0, MOUTH_Z - 0.05, 0.04, 0.022),
       lambda x, z: surf(x, z, 0.0055), M["tongue"], "mouth")
 for s, side in ((1, "L"), (-1, "R")):
-    decal(f"Cheek.{side}", (s * 0.30, -0.25), ellipse(s * 0.30, -0.25, 0.055, 0.032),
+    decal(f"Cheek.{side}", (s * 0.27, -0.205), ellipse(s * 0.27, -0.205, 0.05, 0.028),
           lambda x, z: surf(x, z, 0.0035), M["cheek"], "head")
 
 # ---------------------------------------------------------------- cou
-loft("Neck_Core", (0, 0, 1.04), (0, 0, 1.30), [(0, 0.075, 0.075), (0.26, 0.075, 0.075)], M["metal"], "neck", subsurf=0)
-for i, z in enumerate((1.135, 1.18, 1.225)):
-    torus(f"Neck_Ring{i}", (0, 0, z), (0, 0, 1), 0.085, 0.022, M["joint"], "neck")
+loft("Neck_Core", (0, 0, 1.12), (0, 0, 1.36), [(0, 0.07, 0.07), (0.24, 0.07, 0.07)], M["joint"], "neck", subsurf=0)
+for i, (z, mat) in enumerate(((1.218, "metal"), (1.245, "joint"), (1.272, "metal"))):
+    torus(f"Neck_Ring{i}", (0, 0, z), (0, 0, 1), 0.08, 0.016, M[mat], "neck")
+
+# ---------------------------------------------------------------- torse : body bleu échancré
+Z_HIPS, Z_SPINE, Z_CHEST, Z_NECK, Z_HEAD = 0.62, 0.80, 0.98, 1.16, 1.28
 
 
-# ---------------------------------------------------------------- torse / t-shirt
 def torso_weight(co):
     z = co.z
 
     def ramp(a, b):
         return min(1.0, max(0.0, (z - a) / (b - a)))
 
-    w_spine = ramp(0.68, 0.80)
-    w_chest = ramp(0.90, 1.00)
+    w_spine = ramp(0.76, 0.86)
+    w_chest = ramp(0.98, 1.06)
     return {"hips": 1 - w_spine, "spine": w_spine - w_chest, "chest": w_chest}
 
 
-shirt = loft("Tshirt", (0, 0, 0), (0, 0, 1), [
-    (0.555, 0.27, 0.20), (0.565, 0.30, 0.225), (0.60, 0.31, 0.232), (0.70, 0.315, 0.236), (0.82, 0.33, 0.245),
-    (0.93, 0.345, 0.25), (1.00, 0.34, 0.245), (1.06, 0.30, 0.225), (1.10, 0.22, 0.17), (1.125, 0.13, 0.11)],
-    M["shirt"], torso_weight, seg=40, subsurf=2)
-torus("Tshirt_Hem", (0, 0, 0.572), (0, 0, 1), 0.300, 0.011, M["shirt_dark"], "hips", major_y=0.225, seg=64)
-torus("Tshirt_Collar", (0, 0, 1.115), (0, 0, 1), 0.125, 0.022, M["shirt_dark"], "chest", major_y=0.105)
+TORSO = [(0.57, 0.22, 0.18), (0.60, 0.26, 0.21), (0.66, 0.28, 0.222), (0.75, 0.28, 0.225), (0.88, 0.29, 0.235), (1.00, 0.295, 0.235),
+         (1.08, 0.29, 0.23), (1.14, 0.25, 0.205), (1.19, 0.16, 0.135), (1.215, 0.10, 0.085)]
+HEM_RISE = [0.08, 0.07, 0.035, 0.01]  # échancrure aux hanches (anneaux du bas)
+seg = 48
+verts, faces = [], []
+for r, (z, rx, ry) in enumerate(TORSO):
+    rise = HEM_RISE[r] if r < len(HEM_RISE) else 0.0
+    for i in range(seg):
+        a = 2 * math.pi * i / seg
+        verts.append((rx * math.cos(a), ry * math.sin(a), z + rise * math.cos(a) ** 2))
+for r in range(len(TORSO) - 1):
+    for i in range(seg):
+        j = (i + 1) % seg
+        faces.append((r * seg + i, r * seg + j, (r + 1) * seg + j, (r + 1) * seg + i))
+verts.append((0, 0, TORSO[0][0] - 0.005))
+c = len(verts) - 1
+faces += [(c, (i + 1) % seg, i) for i in range(seg)]
+verts.append((0, 0, TORSO[-1][0]))
+c = len(verts) - 1
+base = (len(TORSO) - 1) * seg
+faces += [(c, base + i, base + (i + 1) % seg) for i in range(seg)]
+shirt = new_object("Tshirt", verts, faces, M["shirt"], torso_weight, subsurf=2)
+torus("Tshirt_Collar", (0, 0, 1.2), (0, 0, 1), 0.112, 0.02, M["shirt_dark"], "chest", major_y=0.098)
 
-# texte ATOL plaqué sur le t-shirt
-cu = bpy.data.curves.new("ATOL_txt", "FONT")
-cu.body = "ATOL"
-cu.font = bpy.data.fonts.load(FONT)
-cu.align_x, cu.align_y = "CENTER", "CENTER"
-cu.size = 0.16
-cu.resolution_u = 6
-txt = bpy.data.objects.new("ATOL_txt", cu)
-COL.objects.link(txt)
-bpy.context.view_layer.update()
-dg = bpy.context.evaluated_depsgraph_get()
-me = bpy.data.meshes.new_from_object(txt.evaluated_get(dg))
-bm = bmesh.new()
-bm.from_mesh(me)
-bmesh.ops.triangulate(bm, faces=bm.faces, quad_method="BEAUTY", ngon_method="BEAUTY")
-for _ in range(2):
-    bmesh.ops.subdivide_edges(bm, edges=bm.edges, cuts=2, use_grid_fill=True)
-w = max(v.co.x for v in bm.verts) - min(v.co.x for v in bm.verts)
-k = 0.42 / w
-for v in bm.verts:
-    v.co = Vector((v.co.x * k, -0.6, v.co.y * k + 0.80))
-bm.to_mesh(me)
-bm.free()
-bpy.data.objects.remove(txt)
-logo = bpy.data.objects.new("Tshirt_Print_ATOL", me)
-COL.objects.link(logo)
-me.materials.append(M["print"])
+
+def torso_radius(z):
+    for (z0, rx0, ry0), (z1, rx1, ry1) in zip(TORSO, TORSO[1:]):
+        if z0 <= z <= z1:
+            t = (z - z0) / (z1 - z0)
+            return rx0 + (rx1 - rx0) * t, ry0 + (ry1 - ry0) * t
+    return TORSO[-1][1:]
+
+
+# couture du panneau de dos
+back = []
+for x, z in superellipse(0, 0.9, 0.17, 0.17, 4.0, 64):
+    rx, ry = torso_radius(z)
+    back.append(Vector((x, ry * 0.97 * math.sqrt(max(0.0, 1 - (x / rx) ** 2)) + 0.0, z)))
+tube("Tshirt_BackSeam", back, 0.006, M["shirt_dark"], torso_weight, cyclic=True)
+
+# logo ATOL officiel (vectorisé) plaqué sur la poitrine
+logo = import_logo_mesh(0.40, 0.975)
+logo.data.materials.append(M["print"])
 sw = logo.modifiers.new("Wrap", "SHRINKWRAP")
 sw.target = shirt
 sw.wrap_method = "PROJECT"
 sw.use_project_y = True
 sw.use_negative_direction = False
 sw.use_positive_direction = True
-sw.offset = 0.0025
+sw.offset = 0.003
 sol = logo.modifiers.new("Solidify", "SOLIDIFY")
 sol.thickness = 0.003
 sol.offset = 1
 PARTS.append((logo, torso_weight))
 
-# bassin mécanique
-loft("Pelvis", (0, 0, 0), (0, 0, 1), [(0.47, 0.10, 0.08), (0.49, 0.20, 0.15), (0.53, 0.23, 0.17),
-                                      (0.62, 0.24, 0.18), (0.66, 0.20, 0.15)], M["metal"], "hips", seg=32)
+# bassin blanc (visible sous l'échancrure)
+loft("Pelvis", (0, 0, 0), (0, 0, 1), [(0.55, 0.12, 0.10), (0.58, 0.22, 0.17), (0.64, 0.24, 0.185),
+                                      (0.72, 0.23, 0.18)], M["white"], "hips", seg=32)
 
 # ---------------------------------------------------------------- bras
-THETA = math.radians(40)  # A-pose : bras à 40° de la verticale
-HS, WRIST = 1.45, -0.42  # échelle des mains, position du poignet le long du bras
+THETA = math.radians(48)  # A-pose : bras à 48° de la verticale
+HS, WRIST = 1.75, -0.35  # échelle des mains, position du poignet le long du bras
 FINGERS = [  # nom, y (avant < 0), longueurs, rayon
     ("index", -0.034, 0.042, 0.036, 0.0135),
     ("middle", -0.0115, 0.046, 0.038, 0.0135),
@@ -442,7 +540,7 @@ FINGERS = [  # nom, y (avant < 0), longueurs, rayon
 ARM = {}  # repères des os de bras, en espace monde
 
 for s, side in ((1, "L"), (-1, "R")):
-    S = Vector((s * 0.31, 0, 1.0))
+    S = Vector((s * 0.27, 0, 1.10))
     st, ct = math.sin(THETA), math.cos(THETA)
     R = Matrix(((ct, 0, -s * st), (0, 1, 0), (s * st, 0, ct)))  # colonnes : X=extérieur, Y=arrière, Z=remontée du bras
 
@@ -454,65 +552,113 @@ for s, side in ((1, "L"), (-1, "R")):
 
     Rq = R.to_quaternion()
     L_ = f".{side}"
-    loft("Sleeve" + L_, P(0, 0, 0), P(0, 0, -1), [(-0.06, 0.08, 0.08), (-0.04, 0.115, 0.115), (0.0, 0.125, 0.125),
-                                                   (0.10, 0.122, 0.122), (0.15, 0.118, 0.118), (0.155, 0.11, 0.11),
-                                                   (0.157, 0.06, 0.06)], M["shirt"], "upper_arm" + L_, seg=32)
-    torus("Sleeve_Hem" + L_, P(0, 0, -0.15), P(0, 0, -1) - S, 0.118, 0.01, M["shirt_dark"], "upper_arm" + L_)
-    capsule("UpperArm" + L_, P(0, 0, -0.03), P(0, 0, -0.20), 0.064, 0.064, M["white"], "upper_arm" + L_)
-    ellipsoid("Elbow" + L_, P(0, 0, -0.22), (0.072,) * 3, M["joint"], "forearm" + L_)
-    loft("Forearm" + L_, P(0, 0, -0.245), P(0, 0, -1), [(0, 0.045, 0.045), (0.005, 0.068, 0.068), (0.025, 0.08, 0.08),
-                                                       (0.085, 0.088, 0.088), (0.135, 0.08, 0.08), (0.155, 0.07, 0.07),
-                                                       (0.16, 0.045, 0.045)], M["white"], "forearm" + L_)
-    loft("Wrist" + L_, P(0, 0, -0.40), P(0, 0, -1), [(0, 0.058, 0.058), (0.03, 0.058, 0.058)], M["joint"], "hand" + L_, subsurf=0)
-    box("Palm" + L_, Ph(-0.003, 0, -0.472), (0.022 * HS, 0.048 * HS, 0.046 * HS), M["hand"], "hand" + L_, bevel=0.016 * HS, q=Rq)
-    box("HandPlate" + L_, Ph(0.018, 0, -0.468), (0.008 * HS, 0.04 * HS, 0.032 * HS), M["knuckle"], "hand" + L_, bevel=0.006 * HS, q=Rq)
+    loft("Sleeve" + L_, P(0, 0, 0), P(0, 0, -1), [(-0.07, 0.08, 0.08), (-0.05, 0.112, 0.112), (0.0, 0.122, 0.122),
+                                                   (0.08, 0.124, 0.124), (0.115, 0.128, 0.128), (0.122, 0.118, 0.118),
+                                                   (0.124, 0.06, 0.06)], M["shirt"], "upper_arm" + L_, seg=32)
+    capsule("UpperArm" + L_, P(0, 0, -0.03), P(0, 0, -0.14), 0.068, 0.068, M["white"], "upper_arm" + L_)
+    loft("Elbow" + L_, P(0, 0, -0.145), P(0, 0, -1), [(0, 0.056, 0.056), (0.005, 0.074, 0.074), (0.055, 0.074, 0.074),
+                                                     (0.06, 0.056, 0.056)], M["joint"], "forearm" + L_)
+    loft("Forearm" + L_, P(0, 0, -0.195), P(0, 0, -1), [(0, 0.05, 0.05), (0.005, 0.076, 0.076), (0.025, 0.085, 0.085),
+                                                       (0.08, 0.09, 0.09), (0.125, 0.082, 0.082), (0.14, 0.072, 0.072),
+                                                       (0.145, 0.05, 0.05)], M["white"], "forearm" + L_)
+    loft("Wrist" + L_, P(0, 0, -0.33), P(0, 0, -1), [(0, 0.058, 0.058), (0.03, 0.058, 0.058)], M["joint"], "hand" + L_, subsurf=0)
+    box("Palm" + L_, Ph(-0.003, 0, -0.402), (0.022 * HS, 0.048 * HS, 0.046 * HS), M["hand"], "hand" + L_, bevel=0.016 * HS, q=Rq)
+    box("HandPlate" + L_, Ph(0.017, 0, -0.398), (0.009 * HS, 0.042 * HS, 0.036 * HS), M["white"], "hand" + L_, bevel=0.007 * HS, q=Rq)
     for name, y, l1, l2, r in FINGERS:
         r *= HS
         b1, b2 = f"{name}_01{L_}", f"{name}_02{L_}"
-        base = Vector((-0.005, y, -0.515))
+        base = Vector((-0.005, y, -0.445))
         d1 = Vector((-0.15, 0, -1)).normalized()
         d2 = Vector((-0.45, 0, -1)).normalized()
         mid, tip = base + d1 * l1, base + d1 * l1 + d2 * l2
         ellipsoid(f"Knuckle_{name}{L_}", Ph(*base), (r * 1.15,) * 3, M["knuckle"], b1, seg=16, rings=8)
         capsule(f"Finger_{name}_01{L_}", Ph(*base), Ph(*mid), r, r, M["hand"], b1, seg=16)
         ellipsoid(f"FingerJoint_{name}{L_}", Ph(*mid), (r * 1.1,) * 3, M["knuckle"], b2, seg=16, rings=8)
-        capsule(f"Finger_{name}_02{L_}", Ph(*mid), Ph(*tip), r * 0.95, r * 0.9, M["hand"], b2, seg=16)
+        capsule(f"Finger_{name}_02{L_}", Ph(*mid), Ph(*tip), r * 0.98, r * 0.95, M["white"], b2, seg=16)
         ARM[b1] = (Ph(*base), Ph(*mid), "hand" + L_)
         ARM[b2] = (Ph(*mid), Ph(*tip), b1)
-    tb = Vector((-0.015, -0.046, -0.45))
+    tb = Vector((-0.015, -0.046, -0.38))
     tm = tb + Vector((-0.35, -0.6, -0.7)).normalized() * 0.036
     tt = tm + Vector((-0.45, -0.35, -0.8)).normalized() * 0.03
     ellipsoid("Knuckle_thumb" + L_, Ph(*tb), (0.017 * HS,) * 3, M["knuckle"], "thumb_01" + L_, seg=16, rings=8)
     capsule("Finger_thumb_01" + L_, Ph(*tb), Ph(*tm), 0.0145 * HS, 0.0145 * HS, M["hand"], "thumb_01" + L_, seg=16)
     ellipsoid("FingerJoint_thumb" + L_, Ph(*tm), (0.016 * HS,) * 3, M["knuckle"], "thumb_02" + L_, seg=16, rings=8)
-    capsule("Finger_thumb_02" + L_, Ph(*tm), Ph(*tt), 0.014 * HS, 0.013 * HS, M["hand"], "thumb_02" + L_, seg=16)
+    capsule("Finger_thumb_02" + L_, Ph(*tm), Ph(*tt), 0.014 * HS, 0.013 * HS, M["white"], "thumb_02" + L_, seg=16)
     ARM["thumb_01" + L_] = (Ph(*tb), Ph(*tm), "hand" + L_)
     ARM["thumb_02" + L_] = (Ph(*tm), Ph(*tt), "thumb_01" + L_)
-    ARM["shoulder" + L_] = (Vector((s * 0.08, 0, 1.0)), S, "chest")
-    ARM["upper_arm" + L_] = (S, P(0, 0, -0.22), "shoulder" + L_)
-    ARM["forearm" + L_] = (P(0, 0, -0.22), P(0, 0, -0.42), "upper_arm" + L_)
-    ARM["hand" + L_] = (P(0, 0, -0.42), Ph(0, 0, -0.515), "forearm" + L_)
+    ARM["shoulder" + L_] = (Vector((s * 0.08, 0, 1.10)), S, "chest")
+    ARM["upper_arm" + L_] = (S, P(0, 0, -0.17), "shoulder" + L_)
+    ARM["forearm" + L_] = (P(0, 0, -0.17), P(0, 0, -0.35), "upper_arm" + L_)
+    ARM["hand" + L_] = (P(0, 0, -0.35), Ph(0, 0, -0.445), "forearm" + L_)
 
-# ---------------------------------------------------------------- jambes
+
+# ---------------------------------------------------------------- jambes et baskets
+SHOE = [  # y (talon -> pointe), demi-largeur, demi-hauteur
+    (0.20, 0.07, 0.05), (0.185, 0.11, 0.085), (0.14, 0.128, 0.098), (0.05, 0.132, 0.096), (-0.06, 0.132, 0.09),
+    (-0.17, 0.13, 0.08), (-0.25, 0.116, 0.07), (-0.30, 0.09, 0.055), (-0.325, 0.05, 0.035)]
+
+
+def shoe_shell(name, x, mat, weight, grow=0.0, flat=None, z_bottom=0.045):
+    """Basket : sections elliptiques le long de -Y, à plat sur le sol."""
+    seg, verts, faces = 32, [], []
+    for y, w, h in SHOE:
+        w, h = w + grow, (flat if flat else h + grow)
+        zc = z_bottom - grow + h
+        for i in range(seg):
+            a = 2 * math.pi * i / seg
+            verts.append((x + w * math.cos(a), y, zc + h * math.sin(a)))
+    n = len(SHOE)
+    for r in range(n - 1):
+        for i in range(seg):
+            j = (i + 1) % seg
+            faces.append((r * seg + i, r * seg + j, (r + 1) * seg + j, (r + 1) * seg + i))
+    for r, sign in ((0, 1), (n - 1, -1)):
+        y, w, h = SHOE[r]
+        verts.append((x, y + sign * 0.004, z_bottom - grow + (flat if flat else h + grow)))
+        c = len(verts) - 1
+        faces += [(c, r * seg + (i + 1) % seg, r * seg + i) for i in range(seg)]
+    ob = new_object(name, verts, faces, mat, weight, subsurf=2)
+    bm = bmesh.new()
+    bm.from_mesh(ob.data)
+    bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+    bm.to_mesh(ob.data)
+    bm.free()
+    return ob
+
+
+def shoe_cap(name, x, ycut, front, weight):
+    """Coque bleue (bout ou talon) : coque légèrement agrandie ∩ demi-espace."""
+    cap = shoe_shell(name, x, M["accent"], weight, grow=0.006)
+    cy = ycut - 0.5 if front else ycut + 0.5
+    cut = box(name + "_cut", (x, cy, 0.30), (0.3, 0.5, 0.3), M["accent"], None, bevel=0.0, subsurf=0)
+    b = cap.modifiers.new("Bool", "BOOLEAN")
+    b.operation = "INTERSECT"
+    b.solver = "EXACT"
+    b.object = cut
+
+
 LEG = {}
 for s, side in ((1, "L"), (-1, "R")):
     L_ = f".{side}"
-    x = s * 0.12
-    H, K, A = Vector((x, 0, 0.53)), Vector((x, 0, 0.34)), Vector((x, 0, 0.13))
-    ellipsoid("HipJoint" + L_, H, (0.07,) * 3, M["joint"], "thigh" + L_)
-    capsule("Thigh" + L_, H + Vector((0, 0, -0.02)), K + Vector((0, 0, 0.03)), 0.066, 0.064, M["white"], "thigh" + L_)
-    ellipsoid("Knee" + L_, K, (0.068,) * 3, M["joint"], "shin" + L_)
-    loft("Shin" + L_, (x, 0, 0), (x, 0, 1), [(0.33, 0.045, 0.045), (0.32, 0.068, 0.068), (0.27, 0.074, 0.074),
-                                            (0.18, 0.086, 0.086), (0.15, 0.082, 0.082), (0.14, 0.06, 0.06)],
+    x = s * 0.155
+    H, K, A = Vector((x, 0, 0.64)), Vector((x, 0, 0.42)), Vector((x, 0, 0.19))
+    ellipsoid("HipJoint" + L_, H, (0.095,) * 3, M["white"], "thigh" + L_)
+    loft("Thigh" + L_, (x, 0, 0), (x, 0, 1), [(0.44, 0.07, 0.07), (0.45, 0.096, 0.096), (0.58, 0.1, 0.1),
+                                             (0.62, 0.08, 0.08)], M["white"], "thigh" + L_)
+    loft("Knee" + L_, (x, 0, 0), (x, 0, 1), [(0.39, 0.08, 0.08), (0.395, 0.102, 0.102), (0.45, 0.102, 0.102),
+                                            (0.455, 0.08, 0.08)], M["joint"], "shin" + L_)
+    box("KneePlate" + L_, (x, -0.099, 0.422), (0.045, 0.012, 0.02), M["metal"], "shin" + L_, bevel=0.008)
+    loft("Shin" + L_, (x, 0, 0), (x, 0, 1), [(0.40, 0.07, 0.07), (0.395, 0.1, 0.1), (0.32, 0.108, 0.108),
+                                            (0.24, 0.122, 0.118), (0.20, 0.12, 0.116), (0.18, 0.08, 0.08)],
          M["white"], "shin" + L_)
-    torus("Shin_Glow" + L_, (x, 0, 0.255), (0, 0, 1), 0.077, 0.007, M["glow"], "shin" + L_)
-    loft("Ankle" + L_, (x, 0, 0.11), (x, 0, 1), [(0, 0.05, 0.05), (0.04, 0.05, 0.05)], M["joint"], "foot" + L_, subsurf=0)
-    box("Boot" + L_, (x, -0.035, 0.078), (0.075, 0.125, 0.058), M["white"], "foot" + L_, bevel=0.045)
-    box("Sole" + L_, (x, -0.035, 0.016), (0.08, 0.13, 0.016), M["sole"], "foot" + L_, bevel=0.012)
-    torus("Boot_Glow" + L_, (x, -0.035, 0.035), (0, 0, 1), 0.075, 0.006, M["glow"], "foot" + L_, major_y=0.126, seg=64)
+    shoe_shell("Shoe" + L_, x, M["white"], "foot" + L_)
+    shoe_cap("Shoe_Toe" + L_, x, -0.15, True, "foot" + L_)
+    shoe_cap("Shoe_Heel" + L_, x, 0.135, False, "foot" + L_)
+    shoe_shell("Sole" + L_, x, M["sole"], "foot" + L_, grow=0.01, flat=0.026, z_bottom=0.01)
     LEG["thigh" + L_] = (H, K, "hips")
     LEG["shin" + L_] = (K, A, "thigh" + L_)
-    LEG["foot" + L_] = (A, Vector((x, -0.16, 0.06)), "shin" + L_)
+    LEG["foot" + L_] = (A, Vector((x, -0.30, 0.09)), "shin" + L_)
+
 
 # ---------------------------------------------------------------- cuisson + fusion
 bpy.context.view_layer.update()
@@ -541,8 +687,6 @@ for ob in list(COL.objects):
 bpy.data.collections.remove(COL)
 for c in list(bpy.data.curves):
     bpy.data.curves.remove(c)
-for f in list(bpy.data.fonts):
-    bpy.data.fonts.remove(f)
 
 bpy.ops.object.select_all(action="DESELECT")
 for ob in baked:
@@ -566,11 +710,11 @@ bpy.ops.object.mode_set(mode="EDIT")
 BACK, UP = Vector((0, 1, 0)), Vector((0, 0, 1))
 BONES = {
     "root": ((0, 0, 0), (0, 0.35, 0), None, UP),
-    "hips": ((0, 0, 0.55), (0, 0, 0.72), "root", BACK),
-    "spine": ((0, 0, 0.72), (0, 0, 0.90), "hips", BACK),
-    "chest": ((0, 0, 0.90), (0, 0, 1.08), "spine", BACK),
-    "neck": ((0, 0, 1.08), (0, 0, 1.22), "chest", BACK),
-    "head": ((0, 0, 1.22), (0, 0, 2.0), "neck", BACK),
+    "hips": ((0, 0, Z_HIPS), (0, 0, Z_SPINE), "root", BACK),
+    "spine": ((0, 0, Z_SPINE), (0, 0, Z_CHEST), "hips", BACK),
+    "chest": ((0, 0, Z_CHEST), (0, 0, Z_NECK), "spine", BACK),
+    "neck": ((0, 0, Z_NECK), (0, 0, Z_HEAD), "chest", BACK),
+    "head": ((0, 0, Z_HEAD), (0, 0, 2.2), "neck", BACK),
 }
 for side, (e, n) in EYES.items():
     BONES[f"eye.{side}"] = (e, e + n * 0.12, "head", UP)
@@ -655,8 +799,8 @@ n_rest = Vector((-math.cos(THETA), 0, -math.sin(THETA)))  # paume vers le corps 
 hello = bpy.data.actions.new("Hello")
 hello.use_fake_user = True
 rig.animation_data.action = hello
-q_up = aim(d_rest, n_rest, Vector((0.95, -0.15, -0.05)), FWD)
-q_fore = aim(d_rest, n_rest, Vector((0.12, -0.2, 1.0)), FWD)
+q_up = aim(d_rest, n_rest, Vector((0.95, -0.2, 0.05)), FWD)
+q_fore = aim(d_rest, n_rest, Vector((0.35, -0.25, 1.0)), FWD)
 for f in range(1, 73, 2):
     w = smooth((f - 1) / 12) * (1 - smooth((f - 60) / 12))
     ph = math.sin((f - 13) / 48 * 2 * math.pi * 3) * w
@@ -698,11 +842,13 @@ scene.render.fps = 24
 # ---------------------------------------------------------------- export
 bpy.ops.object.select_all(action="DESELECT")
 blend = os.path.join(HERE, "robot_atol.blend")
+bpy.ops.file.pack_all()
 bpy.ops.wm.save_as_mainfile(filepath=blend, compress=True)
 bpy.ops.export_scene.gltf(filepath=os.path.join(HERE, "robot_atol.glb"), export_format="GLB",
                           export_animations=True, export_animation_mode="ACTIONS", export_yup=True)
 bpy.ops.export_scene.fbx(filepath=os.path.join(HERE, "robot_atol.fbx"), add_leaf_bones=False, bake_anim=True,
-                         bake_anim_use_all_actions=True, bake_anim_use_nla_strips=False, path_mode="COPY")
+                         bake_anim_use_all_actions=True, bake_anim_use_nla_strips=False, path_mode="COPY",
+                         embed_textures=True)
 bpy.ops.wm.open_mainfile(filepath=blend)
 print("TRIS", sum(len(p.vertices) - 2 for p in bpy.data.objects["ATOL_Robot"].data.polygons))
 print("BUILD OK")

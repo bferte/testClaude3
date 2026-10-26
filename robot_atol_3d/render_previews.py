@@ -56,7 +56,7 @@ scene.camera = cam
 rig = bpy.data.objects["ATOL_Rig"]
 
 
-def shot(name, azimuth, target=(0, 0, 1.05), dist=5.6, elev=8, frame=None, action=None):
+def shot(name, azimuth, target=(0, 0, 1.06), dist=4.5, elev=8, frame=None, action=None):
     rig.animation_data.action = bpy.data.actions[action] if action else None
     if action is None:
         for pb in rig.pose.bones:
@@ -72,14 +72,16 @@ def shot(name, azimuth, target=(0, 0, 1.05), dist=5.6, elev=8, frame=None, actio
     bpy.ops.render.render(write_still=True)
 
 
-shots = sys.argv[sys.argv.index("--") + 3:] if len(argv) > 2 else ["front", "threequarter", "back", "hello", "face"]
+shots = sys.argv[sys.argv.index("--") + 3:] if len(argv) > 2 else ["front", "left", "back", "threequarter", "hello", "face"]
 for s in shots:
     if s == "front":
         shot("front", 0)
     elif s == "threequarter":
-        shot("threequarter", 35)
+        shot("threequarter", -35)
+    elif s == "left":
+        shot("left", 90)
     elif s == "back":
-        shot("back", 155)
+        shot("back", 180)
     elif s == "hello":
         shot("hello", 20, frame=37, action="Hello")
     elif s == "face":
