@@ -4,3 +4,4 @@ __pycache__/
 .pytest_cache/
 *_controle.html
 *_controle.xlsx
+.env
