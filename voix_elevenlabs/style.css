@@ -1,0 +1,72 @@
+:root {
+  --fond: #f6f5f2; --surface: #ffffff; --bord: #e3e1db; --texte: #1d1c1a; --doux: #6b6862;
+  --accent: #1f5eff; --accent-texte: #ffffff;
+  --ok: #17803d; --ok-fond: #e5f4ea; --att: #8a5a00; --att-fond: #fbf0d9; --err: #b42318;
+  --rayon: 12px;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --fond: #141413; --surface: #1e1e1c; --bord: #33322f; --texte: #ecebe7; --doux: #a3a09a;
+    --accent: #6b94ff; --accent-texte: #0b0b0b;
+    --ok: #5cc985; --ok-fond: #183323; --att: #e6b450; --att-fond: #3a2e14; --err: #f97066;
+  }
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--fond); color: var(--texte);
+  font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+.conteneur { max-width: 1100px; margin: 0 auto; padding: 0 16px; }
+.visuel-cache { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+
+.entete { background: var(--surface); border-bottom: 1px solid var(--bord); padding: 28px 0 20px; }
+h1 { margin: 0; font-size: 26px; letter-spacing: -0.01em; }
+.sous-titre { margin: 4px 0 16px; color: var(--doux); }
+.cle { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.cle input[type=password] { flex: 1 1 260px; }
+
+input[type=password], input[type=text], input[type=search], select {
+  font: inherit; color: var(--texte); background: var(--surface);
+  border: 1px solid var(--bord); border-radius: 8px; padding: 9px 11px; min-width: 0; }
+input:focus-visible, select:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+button { font: inherit; cursor: pointer; border-radius: 8px; padding: 8px 14px;
+  border: 1px solid var(--bord); background: var(--surface); color: var(--texte); }
+button:hover { border-color: var(--doux); }
+button:disabled { opacity: .55; cursor: progress; }
+#bouton-charger { background: var(--accent); border-color: var(--accent); color: var(--accent-texte); font-weight: 600; }
+.case { display: inline-flex; gap: 6px; align-items: center; color: var(--doux); font-size: 14px; }
+
+.message { margin: 12px 0 0; padding: 10px 12px; border-radius: 8px; background: var(--att-fond); color: var(--att); }
+.message.erreur { color: var(--err); }
+
+.barre-outils { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin: 22px 0 14px; }
+#recherche { flex: 1 1 240px; }
+.interrupteur { color: var(--texte); }
+
+.test { background: var(--surface); border: 1px solid var(--bord); border-radius: var(--rayon); padding: 12px 14px; }
+.test label { font-size: 13px; color: var(--doux); }
+.test-ligne { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 4px; }
+.test-ligne input { flex: 1 1 260px; }
+.aide { margin: 6px 0 0; font-size: 12.5px; color: var(--doux); }
+
+.resume { color: var(--doux); margin: 18px 0 10px; }
+.grille { list-style: none; padding: 0; margin: 0 0 40px;
+  display: grid; gap: 14px; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); }
+.carte { background: var(--surface); border: 1px solid var(--bord); border-radius: var(--rayon);
+  padding: 16px; display: flex; flex-direction: column; gap: 10px; }
+.carte.indisponible { opacity: .78; }
+.carte-haut { display: flex; justify-content: space-between; gap: 10px; align-items: flex-start; }
+.nom { margin: 0; font-size: 18px; }
+.accroche { margin: 0; color: var(--doux); font-size: 13.5px; }
+.description { margin: 0; font-size: 13.5px; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.description:empty { display: none; }
+.statut { flex: none; font-size: 12px; font-weight: 600; padding: 3px 9px; border-radius: 999px; white-space: nowrap; }
+.statut.ok { background: var(--ok-fond); color: var(--ok); }
+.statut.payant { background: var(--att-fond); color: var(--att); }
+.etiquettes { list-style: none; padding: 0; margin: 0; display: flex; flex-wrap: wrap; gap: 6px; }
+.etiquettes li { font-size: 12px; padding: 2px 8px; border-radius: 6px; border: 1px solid var(--bord); color: var(--doux); }
+.actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: auto; }
+.actions button { padding: 6px 11px; font-size: 13.5px; }
+.id { font-size: 12px; color: var(--doux); word-break: break-all; }
+.retour { margin: 0; font-size: 13px; }
+.retour.erreur { color: var(--err); }
+.retour.ok { color: var(--ok); }
+.vide { text-align: center; color: var(--doux); padding: 40px 0; }
