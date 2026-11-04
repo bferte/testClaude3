@@ -1,0 +1,504 @@
+<meta charset="utf-8">
+<title>Calibre &amp; Épaisseur</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Atkinson+Hyperlegible:wght@400;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Mise en page : établi d'atelier — colonne de saisie à gauche, « paillasse » de résultats à droite
+   (vue de face des verres teintée par l'épaisseur, coupe, comparatif des indices). */
+:root {
+  --bg: #eef1f2;          /* gris lunetier, légèrement bleuté */
+  --panel: #ffffff;
+  --ink: #17242b;
+  --muted: #5b6b73;
+  --line: #cfd8dc;
+  --accent: #0f6e78;      /* bleu-vert « traitement antireflet » */
+  --accent-ink: #ffffff;
+  --warn: #b5541c;
+  --good: #2d7a3e;
+  --ramp-0: #e3f2f1;      /* fin */
+  --ramp-1: #6fb3b8;
+  --ramp-2: #b5541c;      /* épais */
+  --frame: #17242b;
+  --font-display: "Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --font-body: "Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif;
+  --font-data: "IBM Plex Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #11181c; --panel: #192328; --ink: #e4ecef; --muted: #93a4ac; --line: #2c3a41;
+    --accent: #4fb7c1; --accent-ink: #0d1417; --warn: #e88a52; --good: #6cc07c;
+    --ramp-0: #1f3a3d; --ramp-1: #3f8f96; --ramp-2: #f0a26a; --frame: #e4ecef;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #11181c; --panel: #192328; --ink: #e4ecef; --muted: #93a4ac; --line: #2c3a41;
+  --accent: #4fb7c1; --accent-ink: #0d1417; --warn: #e88a52; --good: #6cc07c;
+  --ramp-0: #1f3a3d; --ramp-1: #3f8f96; --ramp-2: #f0a26a; --frame: #e4ecef;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body {
+  background: var(--bg); color: var(--ink); font: 15px/1.45 var(--font-body);
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 20px 40px;
+}
+.wrap { max-width: 1280px; margin: 0 auto; display: grid; gap: 20px; }
+header { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 8px 24px; }
+h1 { font: 700 clamp(24px, 3vw, 32px)/1.1 var(--font-display); margin: 0; letter-spacing: -0.01em; text-wrap: balance; }
+h1 small { font: 500 15px var(--font-body); color: var(--muted); display: block; margin-top: 6px; letter-spacing: 0; }
+h2 { font: 700 13px/1.2 var(--font-body); text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin: 0; }
+.tag { font: 500 12px var(--font-data); color: var(--warn); border: 1px solid var(--warn); border-radius: 3px; padding: 2px 6px; }
+
+.layout { display: grid; grid-template-columns: minmax(300px, 380px) minmax(0, 1fr); gap: 20px; align-items: start; }
+@media (max-width: 900px) { .layout { grid-template-columns: minmax(0, 1fr); } }
+
+form { display: grid; gap: 14px; }
+fieldset { border: 1px solid var(--line); background: var(--panel); border-radius: 6px; margin: 0; padding: 14px; display: grid; gap: 10px; min-width: 0; }
+legend { font: 700 13px var(--font-body); text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); padding: 0 6px; }
+.rx { display: grid; grid-template-columns: 34px repeat(3, minmax(0, 1fr)); gap: 6px 8px; align-items: center; }
+.rx .h { font-size: 12px; color: var(--muted); }
+.eye { font: 500 13px var(--font-data); color: var(--accent); }
+.grid2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.grid3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+label { display: grid; gap: 4px; font-size: 13px; color: var(--muted); min-width: 0; }
+input, select {
+  font: 500 15px var(--font-data); color: var(--ink); background: var(--bg);
+  border: 1px solid var(--line); border-radius: 4px; padding: 7px 8px; width: 100%; min-width: 0;
+}
+select { font-family: var(--font-body); }
+input:focus-visible, select:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.hint { font-size: 12px; color: var(--muted); margin: 0; }
+.file { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.btn { font: 700 13px var(--font-body); border: 1px solid var(--accent); color: var(--accent); background: transparent; border-radius: 4px; padding: 7px 10px; cursor: pointer; }
+.btn:hover { background: var(--accent); color: var(--accent-ink); }
+
+.results { display: grid; gap: 16px; min-width: 0; }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 16px; display: grid; gap: 12px; min-width: 0; }
+.pitch { font: 500 clamp(17px, 1.8vw, 20px)/1.4 var(--font-display); margin: 0; text-wrap: pretty; }
+.pitch b { color: var(--accent); }
+canvas { display: block; width: 100%; max-width: 100%; }
+.legend { display: flex; align-items: center; gap: 10px; font: 12px var(--font-data); color: var(--muted); flex-wrap: wrap; }
+.legend .bar { height: 10px; flex: 1 1 160px; border-radius: 2px; max-width: 280px; }
+
+.stats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+@media (max-width: 560px) { .stats { grid-template-columns: minmax(0, 1fr); } }
+.eyestats { border-top: 2px solid var(--accent); padding-top: 10px; display: grid; gap: 6px; }
+.eyestats h3 { margin: 0; font: 700 15px var(--font-display); display: flex; justify-content: space-between; gap: 8px; }
+.eyestats h3 span { font: 400 12px var(--font-data); color: var(--muted); }
+dl { margin: 0; display: grid; grid-template-columns: auto 1fr; gap: 3px 12px; }
+dt { color: var(--muted); font-size: 13px; }
+dd { margin: 0; font: 500 14px var(--font-data); text-align: right; font-variant-numeric: tabular-nums; }
+dd.big { font-size: 20px; }
+.alert { font-size: 13px; color: var(--warn); margin: 0; }
+
+.tablewrap { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; font-variant-numeric: tabular-nums; }
+th, td { padding: 7px 8px; border-bottom: 1px solid var(--line); text-align: right; white-space: nowrap; }
+th { font: 700 12px var(--font-body); color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; }
+th:first-child, td:first-child { text-align: left; }
+td { font: 500 14px var(--font-data); }
+td:first-child { font-family: var(--font-body); }
+tr.sel td { background: color-mix(in srgb, var(--accent) 12%, transparent); }
+tr[data-id] { cursor: pointer; }
+.gain { color: var(--good); }
+.loss { color: var(--warn); }
+.mini { display: inline-block; height: 8px; background: var(--ramp-1); border-radius: 2px; vertical-align: middle; margin-left: 8px; }
+.err { color: var(--warn); font-size: 14px; margin: 0; }
+footer { font-size: 12px; color: var(--muted); max-width: 75ch; }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>Calibre &amp; Épaisseur
+      <small>Épaisseur au bord d'un verre taillé selon l'ordonnance, l'indice, la géométrie, la monture et les mesures</small></h1>
+    <span class="tag" id="tagExemple">Exemple pré-rempli</span>
+  </header>
+
+  <div class="layout">
+    <form id="f" autocomplete="off">
+      <fieldset>
+        <legend>Ordonnance</legend>
+        <div class="rx">
+          <span></span><span class="h">Sphère</span><span class="h">Cylindre</span><span class="h">Axe °</span>
+          <span class="eye">OD</span>
+          <input id="odSph" type="number" step="0.25" value="-5.50" aria-label="Sphère OD">
+          <input id="odCyl" type="number" step="0.25" value="-0.75" aria-label="Cylindre OD">
+          <input id="odAxe" type="number" step="1" min="0" max="180" value="10" aria-label="Axe OD">
+          <span class="eye">OG</span>
+          <input id="ogSph" type="number" step="0.25" value="-5.00" aria-label="Sphère OG">
+          <input id="ogCyl" type="number" step="0.25" value="-1.00" aria-label="Cylindre OG">
+          <input id="ogAxe" type="number" step="1" min="0" max="180" value="170" aria-label="Axe OG">
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Verre</legend>
+        <div class="grid2">
+          <label>Indice / matériau <select id="materiau"></select></label>
+          <label>Géométrie
+            <select id="geometrie"><option value="spherique">Sphérique</option><option value="aspherique">Asphérique</option></select>
+          </label>
+          <label>Base avant (D, 1.53) <input id="base" type="number" step="0.25" min="0.5" max="10" placeholder="auto"></label>
+          <label>Centre mini (mm) <input id="tcMin" type="number" step="0.1" min="0.8" placeholder="auto"></label>
+        </div>
+        <p class="hint">Laisser « auto » : base selon la règle de Vogel, centre mini usuel du matériau.</p>
+      </fieldset>
+
+      <fieldset>
+        <legend>Monture</legend>
+        <div class="grid2">
+          <label>Forme <select id="forme"></select></label>
+          <label>Montage <select id="montage"></select></label>
+        </div>
+        <div class="grid3">
+          <label>Calibre A <input id="A" type="number" step="0.5" min="30" max="70" value="54"></label>
+          <label>Hauteur B <input id="B" type="number" step="0.5" min="20" max="60" value="40"></label>
+          <label>Pont DBL <input id="DBL" type="number" step="0.5" min="10" max="30" value="17"></label>
+        </div>
+        <div class="grid2">
+          <label>Bord mini (mm) <input id="eMin" type="number" step="0.1" min="0.5" value="1.0"></label>
+          <div class="file">
+            <input id="oma" type="file" accept=".oma,.vca,.dat,.txt" hidden>
+            <button class="btn" type="button" id="omaBtn">Importer un tracé OMA</button>
+          </div>
+        </div>
+        <p class="hint" id="omaInfo">Tracé de la meuleuse ou du traceur (format OMA/VCA, rayons R=) pour la forme exacte.</p>
+      </fieldset>
+
+      <fieldset>
+        <legend>Prise de mesure</legend>
+        <div class="grid2">
+          <label>½ écart OD (mm) <input id="odPD" type="number" step="0.5" value="31.5"></label>
+          <label>½ écart OG (mm) <input id="ogPD" type="number" step="0.5" value="32"></label>
+          <label>Hauteur OD (mm) <input id="odH" type="number" step="0.5" value="21"></label>
+          <label>Hauteur OG (mm) <input id="ogH" type="number" step="0.5" value="21"></label>
+        </div>
+        <p class="hint">Hauteur du centre optique (ou de la pupille) depuis le bas du calibre.</p>
+      </fieldset>
+    </form>
+
+    <div class="results">
+      <section class="card" aria-labelledby="t1">
+        <h2 id="t1">Vue de face (porteur vu de face)</h2>
+        <p class="pitch" id="pitch"></p>
+        <canvas id="face" height="300" aria-label="Verres vus de face, colorés selon l'épaisseur"></canvas>
+        <div class="legend"><span id="legMin"></span><span class="bar" id="legBar"></span><span id="legMax"></span><span>· + centre optique · ▲ bord le plus épais</span></div>
+        <div class="stats" id="stats"></div>
+        <p class="err" id="err" hidden></p>
+      </section>
+
+      <section class="card" aria-labelledby="t2">
+        <h2 id="t2">Coupe horizontale par le centre optique</h2>
+        <canvas id="coupe" height="200" aria-label="Profil des verres en coupe horizontale"></canvas>
+        <p class="hint">Vue de dessus, face avant en haut. Épaisseurs exagérées ×3, courbures à l'échelle. Temporal à l'extérieur, nasal au centre.</p>
+      </section>
+
+      <section class="card" aria-labelledby="t3">
+        <h2 id="t3">Comparatif des indices (même monture, même géométrie)</h2>
+        <div class="tablewrap">
+          <table>
+            <thead><tr><th>Matériau</th><th>Bord max OD</th><th>Bord max OG</th><th>Centre OD/OG</th><th>Poids paire</th><th>Gain vs 1.50</th><th>Abbe</th></tr></thead>
+            <tbody id="comp"></tbody>
+          </table>
+        </div>
+        <p class="hint">Cliquer une ligne pour l'afficher. Abbe bas = plus d'aberrations chromatiques en périphérie.</p>
+      </section>
+
+      <footer>
+        Estimation indicative : verres unifocaux, face avant sphérique ou asphérique modélisée par une conique, face arrière torique,
+        surfaçage optimisé sur la forme, sans prisme prescrit ni biseau. Les épaisseurs du laboratoire peuvent différer
+        de quelques dixièmes selon le design réel du verre. Aucune donnée ne quitte l'appareil.
+      </footer>
+    </div>
+  </div>
+</div>
+
+<script src="calcul.js"></script>
+<script>
+(function () {
+  "use strict";
+  const E = window.Epaisseur;
+  const $ = (id) => document.getElementById(id);
+  const fmt = (x, d = 1) => x.toLocaleString("fr-FR", { minimumFractionDigits: d, maximumFractionDigits: d });
+  const num = (id) => { const v = parseFloat(String($(id).value).replace(",", ".")); return Number.isFinite(v) ? v : NaN; };
+
+  // Listes déroulantes
+  for (const m of E.MATERIAUX) $("materiau").add(new Option(m.nom, m.id));
+  $("materiau").value = "1.60";
+  for (const [k, v] of Object.entries(E.FORMES)) $("forme").add(new Option(v, k));
+  $("forme").value = "rectangle";
+  for (const [k, v] of Object.entries(E.MONTAGES)) $("montage").add(new Option(v.nom, k));
+  $("montage").addEventListener("change", () => { $("eMin").value = E.MONTAGES[$("montage").value].eMin.toFixed(1); calculer(); });
+
+  // Import d'un tracé OMA
+  let trace = null;
+  $("omaBtn").addEventListener("click", () => $("oma").click());
+  $("oma").addEventListener("change", async () => {
+    const f = $("oma").files[0];
+    if (!f) return;
+    try {
+      const t = E.lireOMA(await f.text());
+      trace = t;
+      if (![...$("forme").options].some((o) => o.value === "trace")) $("forme").add(new Option("Tracé importé", "trace"));
+      $("forme").value = "trace";
+      $("A").value = t.A.toFixed(1); $("B").value = t.B.toFixed(1);
+      if (t.DBL) $("DBL").value = t.DBL;
+      $("omaInfo").textContent = `Tracé « ${f.name} » : ${t.contour.length} points, A ${fmt(t.A)} × B ${fmt(t.B)} mm.`;
+      calculer();
+    } catch (e) {
+      $("omaInfo").textContent = "Fichier non reconnu : " + e.message + " Vérifier qu'il contient des lignes TRCFMT= et R=.";
+    }
+  });
+
+  function couleurs() {
+    const cs = getComputedStyle(document.documentElement);
+    const hex = (n) => {
+      const h = cs.getPropertyValue(n).trim().replace("#", "");
+      return [0, 2, 4].map((i) => parseInt(h.slice(i, i + 2), 16));
+    };
+    return { r0: hex("--ramp-0"), r1: hex("--ramp-1"), r2: hex("--ramp-2"), frame: cs.getPropertyValue("--frame").trim(),
+      ink: cs.getPropertyValue("--ink").trim(), muted: cs.getPropertyValue("--muted").trim(),
+      accent: cs.getPropertyValue("--accent").trim(), warn: cs.getPropertyValue("--warn").trim(),
+      line: cs.getPropertyValue("--line").trim(), panel: cs.getPropertyValue("--panel").trim() };
+  }
+  function rampe(c, t) {
+    t = Math.min(1, Math.max(0, t));
+    const [a, b, k] = t < 0.5 ? [c.r0, c.r1, t * 2] : [c.r1, c.r2, (t - 0.5) * 2];
+    return `rgb(${a.map((x, i) => Math.round(x + (b[i] - x) * k)).join(",")})`;
+  }
+
+  function lireParams() {
+    const A = num("A"), B = num("B"), DBL = num("DBL");
+    const forme = $("forme").value;
+    const contour = forme === "trace" && trace ? trace.contour.map(([u, v]) => [u * A / trace.A, v * B / trace.B]) : E.contourForme(forme, A, B);
+    const commun = {
+      materiau: $("materiau").value, geometrie: $("geometrie").value,
+      base: num("base") || undefined, tcMin: num("tcMin") || undefined, eMin: num("eMin") || 1,
+      contour, A, B, DBL,
+    };
+    const od = { ...commun, oeil: "OD", sph: num("odSph") || 0, cyl: num("odCyl") || 0, axe: num("odAxe") || 0, demiEcart: num("odPD"), hauteur: num("odH") };
+    const og = { ...commun, oeil: "OG", sph: num("ogSph") || 0, cyl: num("ogCyl") || 0, axe: num("ogAxe") || 0, demiEcart: num("ogPD"), hauteur: num("ogH") };
+    for (const [k, v] of Object.entries({ "calibre A": A, "hauteur B": B, "pont": DBL, "½ écart OD": od.demiEcart, "½ écart OG": og.demiEcart, "hauteur OD": od.hauteur, "hauteur OG": og.hauteur }))
+      if (!(v > 0)) throw new Error(`Renseigner ${k} (en mm).`);
+    return { od, og };
+  }
+
+  // ------------------------------------------------------------ Dessin vue de face
+  function preparerCanvas(cv, hauteurCss) {
+    const dpr = window.devicePixelRatio || 1;
+    const w = cv.clientWidth;
+    cv.style.height = hauteurCss + "px";
+    cv.width = Math.round(w * dpr); cv.height = Math.round(hauteurCss * dpr);
+    const ctx = cv.getContext("2d");
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, w, hauteurCss);
+    return { ctx, w, h: hauteurCss };
+  }
+
+  function dessinerFace(res, c, tMin, tMax) {
+    const cv = $("face");
+    const { A, B, DBL } = res.p;
+    const largeurMm = 2 * A + DBL + 12, hauteurMm = B + 16;
+    const w = cv.clientWidth;
+    const k = Math.min(w / largeurMm, 360 / hauteurMm);
+    const { ctx } = preparerCanvas(cv, Math.round(hauteurMm * k));
+    const cx = w / 2, cy = (hauteurMm * k) / 2;
+    // u (nasal > 0) -> X écran : OD à gauche de l'image, nasal vers le centre
+    const versEcran = (oeil, u, v) => {
+      const xc = (A + DBL) / 2;
+      const X = oeil === "OD" ? -xc + u : xc - u;
+      return [cx + X * k, cy - v * k];
+    };
+    const pas = Math.max(0.25, 1.5 / k);
+    for (const r of [res.od, res.og]) {
+      const b = E.boite(r._contour);
+      for (let u = b.minU; u < b.maxU; u += pas)
+        for (let v = b.minV; v < b.maxV; v += pas) {
+          const um = u + pas / 2, vm = v + pas / 2;
+          if (!E.dansPolygone(um, vm, r._contour)) continue;
+          const t = E.epaisseurEn(r, um, vm);
+          ctx.fillStyle = rampe(c, (t - tMin) / Math.max(0.01, tMax - tMin));
+          const [x, y] = versEcran(r.oeil, r.oeil === "OD" ? u : u + pas, v + pas);
+          ctx.fillRect(x, y, pas * k + 0.6, pas * k + 0.6);
+        }
+      // cercle (monture)
+      ctx.beginPath();
+      r._contour.forEach(([u, v], i) => { const [x, y] = versEcran(r.oeil, u, v); i ? ctx.lineTo(x, y) : ctx.moveTo(x, y); });
+      ctx.closePath();
+      ctx.lineWidth = Math.max(2, 1.6 * k / 4); ctx.strokeStyle = c.frame; ctx.stroke();
+      // centre optique
+      const [ox, oy] = versEcran(r.oeil, r.decentrement.horizontal, r.decentrement.vertical);
+      ctx.strokeStyle = c.ink; ctx.lineWidth = 1.5;
+      ctx.beginPath(); ctx.moveTo(ox - 7, oy); ctx.lineTo(ox + 7, oy); ctx.moveTo(ox, oy - 7); ctx.lineTo(ox, oy + 7); ctx.stroke();
+      // bord le plus épais
+      const iMax = r.bords.indexOf(Math.max(...r.bords));
+      const [mx, my] = versEcran(r.oeil, r._contour[iMax][0], r._contour[iMax][1]);
+      ctx.fillStyle = c.warn;
+      ctx.beginPath(); ctx.moveTo(mx, my - 7); ctx.lineTo(mx - 6, my + 4); ctx.lineTo(mx + 6, my + 4); ctx.closePath(); ctx.fill();
+      ctx.font = `500 12px ${getComputedStyle(document.body).getPropertyValue("--font-data")}`;
+      const txt = fmt(r.bordMax.e) + " mm";
+      const tw = ctx.measureText(txt).width;
+      let lx = mx + 9, ly = my + 4;
+      if (lx + tw > w - 2) lx = mx - 9 - tw;
+      ctx.fillStyle = c.panel; ctx.fillRect(lx - 3, ly - 12, tw + 6, 16);
+      ctx.fillStyle = c.ink; ctx.fillText(txt, lx, ly);
+      // étiquette œil
+      const [ex, ey] = versEcran(r.oeil, 0, -B / 2);
+      ctx.fillStyle = c.muted; ctx.textAlign = "center"; ctx.fillText(r.oeil, ex, ey + 16); ctx.textAlign = "left";
+    }
+    // pont
+    const [p1x, p1y] = versEcran("OD", A / 2, B / 2 - 6), [p2x, p2y] = versEcran("OG", A / 2, B / 2 - 6);
+    ctx.beginPath(); ctx.moveTo(p1x, p1y); ctx.quadraticCurveTo((p1x + p2x) / 2, p1y - 10, p2x, p2y);
+    ctx.lineWidth = Math.max(2, 1.6 * k / 4); ctx.strokeStyle = c.frame; ctx.stroke();
+  }
+
+  function dessinerCoupe(res, c) {
+    const cv = $("coupe");
+    const { A, DBL } = res.p;
+    const w = cv.clientWidth;
+    const exag = 3;
+    const coupes = [res.od, res.og].map((r) => ({ r, pts: E.coupeHorizontale(r) }));
+    // Courbure à l'échelle réelle, épaisseur exagérée : y = flèche avant + exag × épaisseur.
+    const yAvant = (p) => p.avant, yArriere = (p) => p.avant + exag * (p.arriere - p.avant);
+    let zMin = Infinity, zMax = -Infinity;
+    for (const { pts } of coupes) for (const p of pts) { zMin = Math.min(zMin, yAvant(p)); zMax = Math.max(zMax, yArriere(p)); }
+    const largeurMm = 2 * A + DBL + 12;
+    const k = w / largeurMm;
+    const hauteur = Math.round((zMax - zMin) * k + 60);
+    const { ctx } = preparerCanvas(cv, hauteur);
+    const cx = w / 2;
+    const y0 = 26 - zMin * k;
+    ctx.font = `500 12px ${getComputedStyle(document.body).getPropertyValue("--font-data")}`;
+    for (const { r, pts } of coupes) {
+      if (!pts.length) continue;
+      const X = (u) => cx + (r.oeil === "OD" ? -(A + DBL) / 2 + u : (A + DBL) / 2 - u) * k;
+      ctx.beginPath();
+      pts.forEach((p, i) => { const x = X(p.u), y = y0 + yAvant(p) * k; i ? ctx.lineTo(x, y) : ctx.moveTo(x, y); });
+      for (let i = pts.length - 1; i >= 0; i--) ctx.lineTo(X(pts[i].u), y0 + yArriere(pts[i]) * k);
+      ctx.closePath();
+      ctx.fillStyle = rampe(c, 0.35); ctx.globalAlpha = 0.85; ctx.fill(); ctx.globalAlpha = 1;
+      ctx.strokeStyle = c.ink; ctx.lineWidth = 1.2; ctx.stroke();
+      const etiquette = (p, alignDroite) => {
+        const e = p.arriere - p.avant;
+        const x = X(p.u), y = y0 + yArriere(p) * k + 16;
+        ctx.fillStyle = c.ink; ctx.textAlign = alignDroite ? "right" : "left";
+        ctx.fillText(fmt(e), Math.min(w - 2, Math.max(2, x)), Math.min(hauteur - 4, y));
+      };
+      const gauche = r.oeil === "OD" ? pts[0] : pts[pts.length - 1];
+      const droite = r.oeil === "OD" ? pts[pts.length - 1] : pts[0];
+      etiquette(gauche, false); etiquette(droite, true);
+      ctx.textAlign = "center"; ctx.fillStyle = c.muted;
+      ctx.fillText(`${r.oeil} centre ${fmt(r.centre)}`, X(r.decentrement.horizontal), 16);
+      ctx.textAlign = "left";
+    }
+  }
+
+  // ------------------------------------------------------------ Calcul + rendu
+  let dernier = null;
+  function calculer() {
+    $("err").hidden = true;
+    let p;
+    try {
+      p = lireParams();
+      const od = E.calculerVerre(p.od), og = E.calculerVerre(p.og);
+      dernier = { od, og, p: { A: p.od.A, B: p.od.B, DBL: p.od.DBL }, params: p };
+    } catch (e) {
+      $("err").textContent = e.message; $("err").hidden = false;
+      return;
+    }
+    rendre();
+  }
+
+  function rendre() {
+    if (!dernier) return;
+    const c = couleurs();
+    const { od, og, params } = dernier;
+    const tMin = Math.min(od.centre, og.centre, od.bordMin.e, og.bordMin.e);
+    const tMax = Math.max(od.bordMax.e, og.bordMax.e, od.centre, og.centre);
+    dessinerFace(dernier, c, tMin, tMax);
+    dessinerCoupe(dernier, c);
+    $("legBar").style.background = `linear-gradient(90deg, ${rampe(c, 0)}, ${rampe(c, 0.5)}, ${rampe(c, 1)})`;
+    $("legMin").textContent = fmt(tMin) + " mm";
+    $("legMax").textContent = fmt(tMax) + " mm";
+
+    $("stats").innerHTML = [od, og].map((r) => {
+      const dh = r.decentrement.horizontal, dv = r.decentrement.vertical;
+      const alertes = [];
+      if (r.equivalentSpherique < -3 && dh > 4) alertes.push(`Décentrement de ${fmt(dh)} mm : monture large pour l'écart, le bord temporal s'épaissit.`);
+      if (r.equivalentSpherique > 2 && dh > 4) alertes.push(`Décentrement de ${fmt(dh)} mm : diamètre de palet plus grand, centre plus épais.`);
+      if (r.diametreMini > 75) alertes.push(`Diamètre utile ${fmt(r.diametreMini, 0)} mm : vérifier la disponibilité du palet.`);
+      return `<div class="eyestats">
+        <h3>${r.oeil} <span>${fmt(r.equivalentSpherique, 2)} D éq. sph · base ${fmt(r.base, 2)}</span></h3>
+        <dl>
+          <dt>Bord le plus épais</dt><dd class="big">${fmt(r.bordMax.e)} mm</dd>
+          <dt></dt><dd>${r.bordMax.zone}</dd>
+          <dt>Bord le plus fin</dt><dd>${fmt(r.bordMin.e)} mm · ${r.bordMin.zone}</dd>
+          <dt>Centre</dt><dd>${fmt(r.centre)} mm</dd>
+          <dt>Poids estimé</dt><dd>${fmt(r.poids)} g</dd>
+          <dt>Décentrement</dt><dd>${dh >= 0 ? "nasal" : "temporal"} ${fmt(Math.abs(dh))} · ${dv >= 0 ? "haut" : "bas"} ${fmt(Math.abs(dv))} mm</dd>
+          <dt>Ø palet mini</dt><dd>${fmt(r.diametreMini, 0)} mm</dd>
+        </dl>
+        ${alertes.map((a) => `<p class="alert">${a}</p>`).join("")}
+      </div>`;
+    }).join("");
+
+    // Comparatif
+    const compOD = E.comparerMateriaux({ ...params.od, baseImposee: false });
+    const compOG = E.comparerMateriaux({ ...params.og, baseImposee: false });
+    const ref = compOD.find((r) => r.materiau.id === "1.50");
+    const refOG = compOG.find((r) => r.materiau.id === "1.50");
+    const epRef = Math.max(ref.bordMax?.e ?? 0, refOG.bordMax?.e ?? 0, ref.centre ?? 0, refOG.centre ?? 0);
+    const poidsRef = (ref.poids ?? 0) + (refOG.poids ?? 0);
+    const maxEp = Math.max(...compOD.concat(compOG).map((r) => Math.max(r.bordMax?.e ?? 0, r.centre ?? 0)));
+    $("comp").innerHTML = compOD.map((r, i) => {
+      const g = compOG[i], m = r.materiau;
+      if (r.erreur || g.erreur) return `<tr><td>${m.nom}</td><td colspan="6" class="loss">${r.erreur || g.erreur}</td></tr>`;
+      const ep = Math.max(r.bordMax.e, g.bordMax.e, r.centre, g.centre);
+      const gain = (1 - ep / epRef) * 100;
+      const poids = r.poids + g.poids;
+      return `<tr data-id="${m.id}" class="${m.id === $("materiau").value ? "sel" : ""}">
+        <td>${m.nom}</td>
+        <td>${fmt(r.bordMax.e)}<span class="mini" style="width:${Math.round(40 * r.bordMax.e / maxEp)}px"></span></td>
+        <td>${fmt(g.bordMax.e)}</td>
+        <td>${fmt(r.centre)} / ${fmt(g.centre)}</td>
+        <td>${fmt(poids)} g</td>
+        <td class="${gain > 0.5 ? "gain" : ""}">${m.id === "1.50" ? "réf." : (gain > 0 ? "−" : "+") + fmt(Math.abs(gain), 0) + " %"}</td>
+        <td>${m.abbe}</td></tr>`;
+    }).join("");
+    $("comp").querySelectorAll("tr[data-id]").forEach((tr) => tr.addEventListener("click", () => { $("materiau").value = tr.dataset.id; calculer(); }));
+
+    // Phrase « argument de vente » : comparer au 1.50 sphérique
+    const choix = Math.max(od.bordMax.e, og.bordMax.e, od.centre, og.centre);
+    const poidsChoix = od.poids + og.poids;
+    const ref150 = [E.calculerVerre({ ...params.od, materiau: "1.50", geometrie: "spherique", base: undefined, tcMin: undefined }),
+                    E.calculerVerre({ ...params.og, materiau: "1.50", geometrie: "spherique", base: undefined, tcMin: undefined })];
+    const epStd = Math.max(...ref150.map((r) => Math.max(r.bordMax.e, r.centre)));
+    const poidsStd = ref150[0].poids + ref150[1].poids;
+    const nomChoix = `${od.materiau.nom} ${od.geometrie === "aspherique" ? "asphérique" : "sphérique"}`;
+    const lieu = od.equivalentSpherique + og.equivalentSpherique < 0 ? "le bord le plus épais" : "le point le plus épais";
+    if (od.materiau.id === "1.50" && od.geometrie === "spherique")
+      $("pitch").innerHTML = `En ${nomChoix}, ${lieu} mesure <b>${fmt(choix)} mm</b> et la paire pèse <b>${fmt(poidsChoix)} g</b>.`;
+    else if (choix >= epStd - 0.05)
+      $("pitch").innerHTML = `En ${nomChoix}, ${lieu} mesure <b>${fmt(choix)} mm</b>, sans gain d'épaisseur face au 1.50 standard (${fmt(epStd)} mm) : l'intérêt est ailleurs (poids ${fmt(poidsChoix)} g, résistance).`;
+    else
+      $("pitch").innerHTML = `En ${nomChoix}, ${lieu} passe de ${fmt(epStd)} mm (1.50 standard) à <b>${fmt(choix)} mm</b>, soit <b>${fmt((1 - choix / epStd) * 100, 0)} % plus fin</b>, et la paire pèse <b>${fmt(poidsStd - poidsChoix)} g de moins</b>.`;
+  }
+
+  // Événements
+  $("f").addEventListener("input", () => { $("tagExemple").hidden = true; calculer(); });
+  $("f").addEventListener("submit", (e) => e.preventDefault());
+  let attente;
+  window.addEventListener("resize", () => { clearTimeout(attente); attente = setTimeout(rendre, 120); });
+  const mq = window.matchMedia("(prefers-color-scheme: dark)");
+  mq.addEventListener?.("change", rendre);
+  new MutationObserver(rendre).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+  if (document.fonts?.ready) document.fonts.ready.then(rendre);
+  calculer();
+})();
+</script>

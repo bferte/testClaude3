@@ -8,6 +8,9 @@ Excel / HTML. Une IA locale (facultative) rédige la synthèse et propose des co
 **Aucune donnée ne quitte le poste** : l'application n'écoute que sur `localhost`, et l'IA n'accepte qu'un
 serveur local.
 
+➡️ Autre outil du dépôt : [`epaisseur_verres/`](epaisseur_verres/README.md), calculateur d'épaisseur
+de verres taillés pour l'aide à la vente en magasin.
+
 ➡️ Architecture, choix techniques, étapes et analyse du ROI de l'IA : [docs/PROPOSITION.md](docs/PROPOSITION.md)
 
 ## Utilisation (Windows)
