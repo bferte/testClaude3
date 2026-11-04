@@ -14,7 +14,7 @@ Estime l'épaisseur au bord (et au centre) des deux verres **taillés dans la mo
 
 Résultats : vue de face des verres colorée par épaisseur, bord le plus épais et sa position (temporal, bas…),
 centre, poids estimé, découpes horizontale et verticale de chaque verre avec le cercle, zoom du bord en haut, en bas, côté nasal
-et côté temporal (débord devant/derrière le cercle) et biseau conseillé pour que rien ne dépasse devant, décentrement, diamètre de palet minimal, coupe horizontale, **comparatif de tous les
+et côté temporal (débord devant/derrière le cercle) et biseau conseillé pour que rien ne dépasse devant, décentrement, diamètre de palet minimal, **comparatif de tous les
 indices** et phrase d'argumentaire prête à dire au client (« 30 % plus fin, 6 g de moins »).
 
 ## Utilisation
