@@ -220,7 +220,8 @@
             "no-speech": "aucune parole détectée, relance automatique",
             "network": "le service de reconnaissance (serveurs Google pour Chrome) est injoignable : proxy ou pare-feu de l'entreprise ?",
             "audio-capture": "aucun micro trouvé ou micro utilisé par une autre application",
-            "aborted": "session interrompue (normal lors d'une relance)"
+            "aborted": "session interrompue (normal lors d'une relance)",
+            "phrases-not-supported": "biais « Atol » non pris en charge par ce navigateur, désactivé"
           }[e.erreur] || "";
           ajouterJournal("Erreur : " + e.erreur + (aide ? " — " + aide : ""), e.erreur === "aborted" || e.erreur === "no-speech" ? "relance" : "erreur");
         } else if (e.type === "relance") {

@@ -12,7 +12,7 @@
 
   // Façons dont le moteur transcrit réellement « hey » et « atol » en français.
   var INTERJECTIONS = ["hey", "hei", "hay", "he", "hee", "eh", "e", "et", "ey", "ay", "ai", "haie", "hai", "o", "oh"];
-  var ATOL = ["atol", "atoll", "atolle", "atole", "atolls", "atols", "atoles", "atoll's", "attol", "attoll", "atoal", "atall"];
+  var ATOL = ["atol", "atoll", "atolle", "atole", "atolls", "atols", "atoles", "atoll's", "attol", "attoll", "atoal", "atall", "athol", "atholl", "athole"];
   // « Atol » coupé en deux mots : « a tôle », « à tol », « ha toll »…
   var ATOL_EN_DEUX = {
     premier: ["a", "ha", "ah"],
@@ -139,24 +139,74 @@
     reco.interimResults = true;
     reco.maxAlternatives = 5;
 
+    // Chrome récent : « biais contextuel » pour aider le moteur à reconnaître « Atol ».
+    // Ignoré si le navigateur ne le propose pas ; désactivé s'il le refuse.
+    var biaisActif = false;
+    if (cfg.biais !== false && "phrases" in reco && typeof racine.SpeechRecognitionPhrase === "function") {
+      try {
+        reco.phrases = [new racine.SpeechRecognitionPhrase("hey atol", 5), new racine.SpeechRecognitionPhrase("atol", 3)];
+        biaisActif = true;
+      } catch (e) {}
+    }
+
     var actif = false;
     // Après « hey atol », on capte la question qui suit, dans la même session (sans la
-    // couper, pour ne rien perdre). question = { reveil: index du résultat contenant
-    // « hey atol » (-1 si aucun), debut: index du premier résultat appartenant à la question }
+    // couper, pour ne rien perdre). question = { depuis: index du 1er résultat à relire,
+    // prefixe: texte reporté de la session précédente, avecReveil: le texte relu contient
+    // « hey atol » qu'il faut retirer }
     var question = null;
     var questionTimer = null;
     var nbResultats = 0;
     var dernierReveil = 0;
-    var dejaDeclenche = {}; // index de résultat déjà utilisé pour un réveil
+    var ignorerAvant = 0; // résultats déjà utilisés (anti-rebond)
     var echecsRapides = 0;
     var debutSession = 0;
+    // Fin de la dernière transcription : Chrome coupe souvent la session entre « hey » et
+    // « atol » ; on recolle les derniers mots de la session précédente au début de la suivante.
+    var queue = { texte: "", t: 0 };
+    var prefixe = "";
     var optionsDetection = { tolerance: cfg.tolerance, atolSeulEnDebut: cfg.atolSeulEnDebut };
+
+    function texteResultats(resultats, debut) {
+      var morceaux = [];
+      for (var j = Math.max(0, debut); j < resultats.length; j++) morceaux.push(resultats[j][0].transcript);
+      return morceaux.join(" ").replace(/\s+/g, " ").trim();
+    }
+
+    // Cherche « hey atol » dans les derniers résultats de la session.
+    function chercherReveil(resultats) {
+      var n = resultats.length;
+      var debutMin = Math.max(ignorerAvant, n - 4);
+      var i, k, s, trouve, texte;
+      // 1. Chaque résultat seul, avec toutes ses alternatives (Edge en fournit plusieurs)
+      for (i = debutMin; i < n; i++) {
+        for (k = 0; k < resultats[i].length; k++) {
+          texte = resultats[i][k].transcript;
+          trouve = detecter(texte, optionsDetection);
+          if (trouve) return { depuis: i, prefixe: "", texte: texte, detail: trouve, alternative: k };
+        }
+      }
+      // 2. Plusieurs résultats recollés : Chrome découpe la phrase en morceaux
+      //    (partie stable / partie instable), « hey » et « atol » sont alors séparés.
+      for (s = debutMin; s < n; s++) {
+        var pre = s === 0 ? prefixe : "";
+        texte = (pre + " " + texteResultats(resultats, s)).trim();
+        trouve = detecter(texte, optionsDetection);
+        if (trouve) return { depuis: s, prefixe: pre, texte: texte, detail: trouve, alternative: 0 };
+      }
+      return null;
+    }
 
     reco.onstart = function () {
       debutSession = Date.now();
-      dejaDeclenche = {};
+      ignorerAvant = 0;
       nbResultats = 0;
-      if (question) question = { reveil: -1, debut: 0 }; // nouvelle session : tout est question
+      prefixe = "";
+      if (!question && queue.texte && Date.now() - queue.t < 4000 && !detecter(queue.texte, optionsDetection)) {
+        prefixe = queue.texte;
+      }
+      queue = { texte: "", t: 0 };
+      if (question) question = { depuis: 0, prefixe: "", avecReveil: false }; // nouvelle session : tout est question
       if (cfg.onEtat) cfg.onEtat(question ? "question" : "veille");
     };
 
@@ -167,46 +217,47 @@
         var alternatives = [];
         for (var k = 0; k < res.length; k++) alternatives.push(res[k].transcript);
         log({ type: "transcription", final: res.isFinal, alternatives: alternatives, confiance: res[0].confidence });
-
-        if (question || dejaDeclenche[i]) continue;
-        for (k = 0; k < alternatives.length; k++) {
-          var trouve = detecter(alternatives[k], optionsDetection);
-          if (!trouve) continue;
-          dejaDeclenche[i] = true;
-          if (Date.now() - dernierReveil < 2500) break; // anti-rebond
-          dernierReveil = Date.now();
-          log({ type: "reveil", texte: alternatives[k], detail: trouve, alternative: k });
-          if (cfg.onReveil) cfg.onReveil(trouve);
-          ecouterQuestion({ reveil: i, debut: i + 1 });
-          break;
-        }
       }
-      if (question) suivreQuestion(ev.results);
+      var mots = texteResultats(ev.results, ev.results.length - 2).split(" ");
+      queue = { texte: mots.slice(-3).join(" "), t: Date.now() };
+
+      if (!question) {
+        var trouve = chercherReveil(ev.results);
+        if (!trouve) return;
+        if (Date.now() - dernierReveil < 2500) {
+          ignorerAvant = ev.results.length; // anti-rebond
+          return;
+        }
+        dernierReveil = Date.now();
+        queue = { texte: "", t: 0 };
+        log({ type: "reveil", texte: trouve.texte, detail: trouve.detail, alternative: trouve.alternative });
+        if (cfg.onReveil) cfg.onReveil(trouve.detail);
+        ecouterQuestion({ depuis: trouve.depuis, prefixe: trouve.prefixe, avecReveil: true });
+      }
+      suivreQuestion(ev.results);
     };
 
-    // Reconstitue la question : la fin du résultat « hey atol … » + les résultats suivants.
+    // Reconstitue la question : ce qui suit « hey atol » + les résultats suivants.
     function suivreQuestion(resultats) {
-      var morceaux = [];
+      if (question.depuis >= resultats.length && !question.prefixe) return;
       var toutFinal = true;
-      if (question.reveil >= 0 && question.reveil < resultats.length) {
-        var r = resultats[question.reveil];
-        var trouve = detecter(r[0].transcript, optionsDetection);
-        if (trouve && trouve.suite) morceaux.push(trouve.suite);
-        toutFinal = r.isFinal;
+      for (var j = question.depuis; j < resultats.length; j++) toutFinal = toutFinal && resultats[j].isFinal;
+      var texte = (question.prefixe + " " + texteResultats(resultats, question.depuis)).trim();
+      if (question.avecReveil) {
+        var trouve = detecter(texte, optionsDetection);
+        texte = trouve ? trouve.suite : texteResultats(resultats, question.depuis + 1);
       }
-      for (var j = question.debut; j < resultats.length; j++) {
-        morceaux.push(resultats[j][0].transcript.trim());
-        toutFinal = resultats[j].isFinal;
+      if (!texte) {
+        armerDelai();
+        return;
       }
-      var texte = morceaux.join(" ").replace(/\s+/g, " ").trim();
-      if (!texte) return;
       if (cfg.onQuestionPartielle) cfg.onQuestionPartielle(texte);
       if (toutFinal) terminerQuestion(texte);
       else armerDelai(); // l'utilisateur parle encore : on prolonge
     }
 
     function ecouterQuestion(depart) {
-      question = depart || { reveil: -1, debut: nbResultats };
+      question = depart || { depuis: nbResultats, prefixe: "", avecReveil: false };
       if (cfg.onEtat) cfg.onEtat("question");
       armerDelai();
     }
@@ -221,6 +272,7 @@
     function terminerQuestion(texte) {
       clearTimeout(questionTimer);
       question = null;
+      queue = { texte: "", t: 0 };
       if (cfg.onEtat) cfg.onEtat("veille");
       if (texte && cfg.onQuestion) cfg.onQuestion(texte);
       if (!texte && cfg.onSilence) cfg.onSilence();
@@ -230,6 +282,12 @@
 
     reco.onerror = function (ev) {
       log({ type: "erreur", erreur: ev.error, message: ev.message });
+      if (ev.error === "phrases-not-supported" && biaisActif) {
+        biaisActif = false;
+        try {
+          reco.phrases = [];
+        } catch (e) {}
+      }
       if (ev.error === "not-allowed" || ev.error === "service-not-allowed") {
         actif = false;
         if (cfg.onEtat) cfg.onEtat("refuse");
@@ -243,7 +301,7 @@
         return;
       }
       // Évite de boucler à toute vitesse si le moteur échoue en permanence
-      echecsRapides = Date.now() - debutSession < 1000 ? echecsRapides + 1 : 0;
+      echecsRapides = Date.now() - debutSession < 1000 && !nbResultats ? echecsRapides + 1 : 0;
       var attente = Math.min(250 * Math.pow(2, echecsRapides), 10000);
       log({ type: "relance", attenteMs: attente });
       setTimeout(lancer, echecsRapides ? attente : 0);

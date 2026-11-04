@@ -20,6 +20,10 @@ Le micro n'est autorisé que sur `localhost` ou en HTTPS (pas en ouvrant le fich
 | Langue non précisée | `lang = "fr-FR"` |
 | La question qui suit est perdue ou mélangée avec « hey atol » | La question est lue dans la même session : « Hey Atol, quels sont vos horaires ? » d'une traite ou avec une pause |
 | Double déclenchement | Anti-rebond de 2,5 s |
+| **Marche sur Edge mais mal sur Chrome** : Chrome (moteur Google) découpe la phrase en plusieurs résultats (partie « stable » / partie « instable », ou deux phrases finales) et coupe souvent la session sur un silence, donc « hey » et « atol » arrivent séparés. Edge (moteur Microsoft) renvoie la phrase entière. | Détection sur les derniers résultats **recollés**, et report des derniers mots d'une session à la suivante (moins de 4 s) |
+| Chrome transcrit « Athol », « Atholl » | Variantes ajoutées |
+| Une session courte mais avec de la parole était comptée comme un échec et rendait le micro sourd jusqu'à 10 s | Seules les sessions courtes **sans résultat** déclenchent la temporisation |
+| Chrome récent sait favoriser certains mots (biais contextuel) | `phrases` = « hey atol », « atol » si le navigateur le propose, désactivé automatiquement sinon |
 
 Le **journal** de la page affiche ce que le navigateur comprend réellement, ainsi que les erreurs expliquées
 (micro refusé, service bloqué par le réseau de l'entreprise…). C'est l'outil de diagnostic principal.
@@ -37,4 +41,4 @@ Le **journal** de la page affiche ce que le navigateur comprend réellement, ain
 ```
 
 ## Tester la détection sans micro
-`node test-wake-word.js`. La page propose aussi un champ « Tester la détection au clavier ».
+`node test-wake-word.js` (phrases isolées) et `node test-ecouteur.js` (simulation des découpages de Chrome et d'Edge). La page propose aussi un champ « Tester la détection au clavier ».
