@@ -124,6 +124,9 @@ def _message_erreur(reponse: requests.Response) -> str:
         detail = reponse.text[:300]
     if reponse.status_code == 401:
         return f"Clé API refusée (401). {detail}".strip()
+    if reponse.status_code == 402:
+        return ("Voix ou fonction réservée aux abonnements payants (402) : avec un compte gratuit, "
+                f"choisissez une voix « premade ». {detail}").strip()
     if reponse.status_code == 429:
         return f"Trop de requêtes ou quota atteint (429). {detail}".strip()
     return f"Erreur ElevenLabs {reponse.status_code}. {detail}".strip()

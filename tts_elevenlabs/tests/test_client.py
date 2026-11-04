@@ -78,3 +78,9 @@ def test_statut_conserve_dans_l_erreur():
     with pytest.raises(ErreurElevenLabs) as exc:
         client.voix()
     assert exc.value.statut == 401
+
+
+def test_voix_payante_message_explicite():
+    client, _ = client_avec(reponse(402, {"detail": {"message": "Free users cannot use library voices"}}))
+    with pytest.raises(ErreurElevenLabs, match="premade"):
+        client.synthetiser("Bonjour", "voix_library")
