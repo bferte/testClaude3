@@ -22,6 +22,33 @@
   </header>
 
   <main class="conteneur" id="contenu" hidden>
+    <section class="tts" aria-labelledby="titre-tts">
+      <h2 id="titre-tts">Synthèse vocale</h2>
+      <label for="texte" class="visuel-cache">Texte à lire</label>
+      <textarea id="texte" rows="5" placeholder="Tapez ou collez le texte à lire…">Bonjour ! Ceci est un essai de synthèse vocale en français avec ElevenLabs.</textarea>
+      <div class="tts-ligne">
+        <label>Voix <select id="voix"></select></label>
+        <label>Modèle <select id="modele"></select></label>
+        <span id="compteur" class="compteur-car"></span>
+      </div>
+      <p id="info-modele" class="aide"></p>
+      <details class="reglages">
+        <summary>Réglages de la voix</summary>
+        <div class="curseurs">
+          <label>Stabilité <output id="v-stabilite">0.50</output><input id="stabilite" type="range" min="0" max="1" step="0.05" value="0.5"></label>
+          <label>Similarité <output id="v-similarite">0.75</output><input id="similarite" type="range" min="0" max="1" step="0.05" value="0.75"></label>
+          <label>Style <output id="v-style">0.00</output><input id="style" type="range" min="0" max="1" step="0.05" value="0"></label>
+          <label>Vitesse <output id="v-vitesse">1.00</output><input id="vitesse" type="range" min="0.7" max="1.2" step="0.05" value="1"></label>
+        </div>
+      </details>
+      <div class="tts-ligne">
+        <button type="button" id="generer" class="principal">Générer l'audio</button>
+        <p id="retour-tts" class="retour" role="status" hidden></p>
+      </div>
+      <ol id="historique" class="historique"></ol>
+    </section>
+
+    <h2 class="titre-section">Voix du compte</h2>
     <section class="barre-outils" aria-label="Filtres">
       <input id="recherche" type="search" placeholder="Rechercher (nom, description, ID)…">
       <select id="filtre-langue" aria-label="Langue"><option value="">Toutes les langues</option></select>
@@ -29,18 +56,6 @@
       <label class="case interrupteur"><input id="filtre-api" type="checkbox" checked> Utilisables via l'API uniquement</label>
     </section>
 
-    <section class="test" aria-label="Phrase de test">
-      <label for="texte-test">Phrase pour le bouton « Tester »</label>
-      <div class="test-ligne">
-        <input id="texte-test" type="text" maxlength="200" value="Bonjour, voici un aperçu de ma voix en français.">
-        <select id="modele" aria-label="Modèle">
-          <option value="eleven_multilingual_v2">Multilingual v2</option>
-          <option value="eleven_flash_v2_5">Flash v2.5 (rapide)</option>
-          <option value="eleven_v3">v3</option>
-        </select>
-      </div>
-      <p class="aide">Chaque test consomme quelques crédits (≈ un caractère par caractère du texte).</p>
-    </section>
 
     <p id="resume" class="resume"></p>
     <ul id="liste" class="grille"></ul>
@@ -60,7 +75,7 @@
       <ul class="etiquettes"></ul>
       <div class="actions">
         <button type="button" class="ecouter" aria-label="Écouter l'extrait">▶ Extrait</button>
-        <button type="button" class="tester">Tester</button>
+        <button type="button" class="choisir">Choisir</button>
         <button type="button" class="copier" title="Copier l'ID de la voix">Copier l'ID</button>
       </div>
       <code class="id"></code>

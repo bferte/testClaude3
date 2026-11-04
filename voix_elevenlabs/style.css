@@ -31,7 +31,7 @@ button { font: inherit; cursor: pointer; border-radius: 8px; padding: 8px 14px;
   border: 1px solid var(--bord); background: var(--surface); color: var(--texte); }
 button:hover { border-color: var(--doux); }
 button:disabled { opacity: .55; cursor: progress; }
-#bouton-charger { background: var(--accent); border-color: var(--accent); color: var(--accent-texte); font-weight: 600; }
+#bouton-charger, .principal { background: var(--accent); border-color: var(--accent); color: var(--accent-texte); font-weight: 600; }
 .case { display: inline-flex; gap: 6px; align-items: center; color: var(--doux); font-size: 14px; }
 
 .message { margin: 12px 0 0; padding: 10px 12px; border-radius: 8px; background: var(--att-fond); color: var(--att); }
@@ -41,10 +41,35 @@ button:disabled { opacity: .55; cursor: progress; }
 #recherche { flex: 1 1 240px; }
 .interrupteur { color: var(--texte); }
 
-.test { background: var(--surface); border: 1px solid var(--bord); border-radius: var(--rayon); padding: 12px 14px; }
-.test label { font-size: 13px; color: var(--doux); }
-.test-ligne { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 4px; }
-.test-ligne input { flex: 1 1 260px; }
+.tts { margin-top: 22px; background: var(--surface); border: 1px solid var(--bord); border-radius: var(--rayon);
+  padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+.tts h2, .titre-section { margin: 0; font-size: 19px; }
+.titre-section { margin-top: 28px; }
+textarea { font: inherit; color: var(--texte); background: var(--fond); border: 1px solid var(--bord);
+  border-radius: 8px; padding: 10px 12px; width: 100%; resize: vertical; min-height: 110px; }
+textarea:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.tts-ligne { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center; }
+.tts-ligne label { display: inline-flex; gap: 8px; align-items: center; font-size: 14px; color: var(--doux); min-width: 0; }
+.tts-ligne select { max-width: 100%; }
+#voix { max-width: 320px; }
+.compteur-car { margin-left: auto; font-size: 13px; color: var(--doux); font-variant-numeric: tabular-nums; }
+.compteur-car.trop { color: var(--err); font-weight: 600; }
+.tts .aide { margin: -4px 0 0; }
+.principal { font-weight: 600; }
+.reglages summary { cursor: pointer; color: var(--doux); font-size: 14px; }
+.curseurs { display: grid; gap: 10px 20px; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); margin-top: 10px; }
+.curseurs label { display: grid; grid-template-columns: 1fr auto; gap: 2px 8px; font-size: 13.5px; }
+.curseurs input { grid-column: 1 / -1; accent-color: var(--accent); }
+.curseurs output { font-variant-numeric: tabular-nums; color: var(--doux); }
+.historique { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 8px; }
+.historique:empty { display: none; }
+.historique li { display: grid; grid-template-columns: 1fr auto; gap: 6px 12px; align-items: center;
+  border-top: 1px solid var(--bord); padding-top: 10px; }
+.historique .meta { font-size: 13px; color: var(--doux); }
+.historique .extrait { grid-column: 1 / -1; margin: 0; font-size: 13.5px; overflow-wrap: anywhere; }
+.historique audio { grid-column: 1 / -1; width: 100%; }
+.historique a { font-size: 13.5px; color: var(--accent); }
+.carte.choisie { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
 .aide { margin: 6px 0 0; font-size: 12.5px; color: var(--doux); }
 
 .resume { color: var(--doux); margin: 18px 0 10px; }

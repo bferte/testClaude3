@@ -110,11 +110,12 @@ function afficher() {
     const ecouter = carte.querySelector(".ecouter");
     if (!v.preview_url) ecouter.hidden = true;
     ecouter.addEventListener("click", () => jouer(v.preview_url, ecouter));
-    carte.querySelector(".tester").addEventListener("click", (e) => tester(v, e.currentTarget, carte));
+    carte.querySelector(".choisir").addEventListener("click", () => choisir(v));
     carte.querySelector(".copier").addEventListener("click", (e) => copier(v.voice_id, e.currentTarget));
     return carte;
   }));
   $("#vide").hidden = voix.length > 0;
+  marquerCarteChoisie();
 }
 
 // --------------------------------------------------------------- actions
@@ -133,33 +134,123 @@ function jouer(source, bouton) {
   audio.play().catch(() => { bouton.textContent = "▶ Extrait"; audioEnCours = null; });
 }
 
-async function tester(v, bouton, carte) {
-  const retour = carte.querySelector(".retour");
-  const texte = $("#texte-test").value.trim() || "Bonjour.";
-  bouton.disabled = true; bouton.textContent = "Synthèse…";
-  retour.hidden = true;
+// ------------------------------------------------------- synthèse vocale
+// Modèles qui parlent français (vérifié via /v1/models). Utilisés si la clé ne peut pas lire la liste.
+const MODELES_FR = [
+  { id: "eleven_multilingual_v2", nom: "Multilingual v2", limite: 10000 },
+  { id: "eleven_v4", nom: "Eleven v4", limite: 10000 },
+  { id: "eleven_v4_turbo", nom: "Eleven v4 Turbo", limite: 10000 },
+  { id: "eleven_v3", nom: "Eleven v3", limite: 5000 },
+  { id: "eleven_v3_conversational", nom: "Eleven v3 Conversational", limite: 5000 },
+  { id: "eleven_flash_v2_5", nom: "Flash v2.5", limite: 40000 },
+  { id: "eleven_turbo_v2_5", nom: "Turbo v2.5", limite: 40000 },
+];
+const NOTES_MODELES = {
+  eleven_multilingual_v2: "Le plus stable pour de longs textes, très naturel en français. Choix par défaut.",
+  eleven_v4: "Dernière génération, la plus expressive.",
+  eleven_v4_turbo: "Version rapide d'Eleven v4.",
+  eleven_v3: "Très expressif ; comprend les balises d'émotion comme [rire] ou [chuchote].",
+  eleven_v3_conversational: "Variante d'Eleven v3 réglée pour le dialogue.",
+  eleven_flash_v2_5: "Latence la plus faible, moitié moins de crédits par caractère.",
+  eleven_turbo_v2_5: "Bon compromis entre qualité et vitesse, moitié moins de crédits.",
+};
+const ORDRE_MODELES = MODELES_FR.map((m) => m.id);
+let modeles = MODELES_FR;
+
+async function chargerModeles() {
+  try {
+    const liste = await (await appel("/v1/models")).json();
+    const fr = liste.filter((m) => m.can_do_text_to_speech && (m.languages || []).some((l) => l.language_id === "fr"))
+      .map((m) => ({ id: m.model_id, nom: m.name.replace(/^Eleven (?=Multilingual|Flash|Turbo)/, ""),
+        limite: m.max_characters_request_free_user || 5000 }));
+    if (fr.length) modeles = fr.sort((a, b) => rang(a.id) - rang(b.id));
+  } catch { modeles = MODELES_FR; } // clé sans « Models : read » : liste connue
+  const sel = $("#modele"), actuel = sel.value;
+  sel.replaceChildren(...modeles.map((m) => new Option(m.nom, m.id)));
+  sel.value = modeles.some((m) => m.id === actuel) ? actuel : "eleven_multilingual_v2";
+  majModele();
+}
+function rang(id) { const i = ORDRE_MODELES.indexOf(id); return i < 0 ? 99 : i; }
+function modeleChoisi() { return modeles.find((m) => m.id === $("#modele").value) || modeles[0]; }
+
+function majModele() {
+  const m = modeleChoisi();
+  $("#info-modele").textContent = `${NOTES_MODELES[m.id] || ""} Jusqu'à ${m.limite.toLocaleString("fr-FR")} caractères par requête.`.trim();
+  majCompteur();
+}
+function majCompteur() {
+  const n = $("#texte").value.trim().length, max = modeleChoisi().limite;
+  const c = $("#compteur");
+  c.textContent = `${n.toLocaleString("fr-FR")} / ${max.toLocaleString("fr-FR")} caractères`;
+  c.classList.toggle("trop", n > max);
+  $("#generer").disabled = n === 0 || n > max;
+}
+
+function remplirVoix() {
+  const sel = $("#voix"), actuel = sel.value;
+  const groupe = (libelle, liste) => {
+    const g = document.createElement("optgroup"); g.label = libelle;
+    liste.forEach((v) => g.append(new Option(decouperNom(v.name)[0] + " · " + (LANGUES[v.labels?.language] || "?") +
+      (v.labels?.gender ? " · " + (GENRES[v.labels.gender] || v.labels.gender) : ""), v.voice_id)));
+    return g;
+  };
+  const ok = etat.voix.filter((v) => statutApi(v) === "ok"), payant = etat.voix.filter((v) => statutApi(v) !== "ok");
+  sel.replaceChildren(groupe("Utilisables via l'API", ok), ...(payant.length ? [groupe("Abonnement requis", payant)] : []));
+  const parDefaut = ok.find((v) => v.name.startsWith("George")) || ok[0] || etat.voix[0];
+  sel.value = etat.voix.some((v) => v.voice_id === actuel) ? actuel : parDefaut?.voice_id || "";
+  marquerCarteChoisie();
+}
+
+function choisir(v) {
+  $("#voix").value = v.voice_id;
+  $("#retour-tts").hidden = true;
+  marquerCarteChoisie();
+  $(".tts").scrollIntoView({ behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
+  $("#texte").focus({ preventScroll: true });
+}
+function marquerCarteChoisie() {
+  document.querySelectorAll(".carte").forEach((c) => c.classList.toggle("choisie", c.dataset.id === $("#voix").value));
+}
+
+async function generer() {
+  const bouton = $("#generer"), retour = $("#retour-tts");
+  const texte = $("#texte").value.trim();
+  const v = etat.voix.find((x) => x.voice_id === $("#voix").value);
+  const m = modeleChoisi();
+  if (!texte || !v) return;
+  bouton.disabled = true; bouton.textContent = "Synthèse en cours…"; retour.hidden = true;
   try {
     const reponse = await appel(`/v1/text-to-speech/${v.voice_id}?output_format=mp3_44100_128`, {
       method: "POST", headers: { "Content-Type": "application/json", Accept: "audio/mpeg" },
-      body: JSON.stringify({ text: texte, model_id: $("#modele").value }) });
+      body: JSON.stringify({ text: texte, model_id: m.id, voice_settings: {
+        stability: +$("#stabilite").value, similarity_boost: +$("#similarite").value,
+        style: +$("#style").value, speed: +$("#vitesse").value } }) });
     const url = URL.createObjectURL(await reponse.blob());
-    etat.verifications[v.voice_id] = "ok";
-    afficher();
-    const nouvelleCarte = document.querySelector(`.carte[data-id="${v.voice_id}"]`);
-    if (nouvelleCarte) jouer(url, nouvelleCarte.querySelector(".ecouter"));
-    else new Audio(url).play();
+    if (!etat.verifications[v.voice_id]) { etat.verifications[v.voice_id] = "ok"; afficher(); }
+    ajouterHistorique({ url, texte, voix: decouperNom(v.name)[0], modele: m.nom });
   } catch (e) {
     if (e.statut === 402) {
-      etat.verifications[v.voice_id] = "payant";
-      afficher(); // la carte est redessinée : le message va sur la nouvelle
-      const nouvelle = document.querySelector(`.carte[data-id="${v.voice_id}"] .retour`);
-      if (nouvelle) afficherRetour(nouvelle, "Refusée par l'API : cette voix demande un abonnement payant.", true);
-      return;
-    }
-    afficherRetour(retour, messageErreur(e), true);
+      etat.verifications[v.voice_id] = "payant"; afficher(); remplirVoix();
+      afficherRetour(retour, `${decouperNom(v.name)[0]} est une voix de la Voice Library : l'API la refuse avec l'offre gratuite. Choisissez une voix « ✓ API ».`, true);
+    } else afficherRetour(retour, messageErreur(e), true);
   } finally {
-    bouton.disabled = false; bouton.textContent = "Tester";
+    bouton.textContent = "Générer l'audio"; majCompteur();
   }
+}
+
+function ajouterHistorique({ url, texte, voix, modele }) {
+  const heure = new Date().toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+  const li = document.createElement("li");
+  const meta = Object.assign(document.createElement("span"), { className: "meta", textContent: `${heure} · ${voix} · ${modele}` });
+  const lien = Object.assign(document.createElement("a"), { href: url, textContent: "Télécharger le MP3",
+    download: `tts_${voix.toLowerCase().replace(/[^a-z0-9]+/g, "-")}_${heure.replace(/:/g, "")}.mp3` });
+  const extrait = Object.assign(document.createElement("p"), { className: "extrait",
+    textContent: texte.length > 160 ? texte.slice(0, 160) + "…" : texte });
+  const audio = Object.assign(document.createElement("audio"), { controls: true, src: url });
+  li.append(meta, lien, extrait, audio);
+  $("#historique").prepend(li);
+  audio.addEventListener("play", () => document.querySelectorAll("#historique audio").forEach((a) => a !== audio && a.pause()));
+  audio.play().catch(() => {});
 }
 
 async function copier(id, bouton) {
@@ -202,6 +293,8 @@ async function charger(evt) {
     remplirFiltres();
     $("#contenu").hidden = false;
     afficher();
+    remplirVoix();
+    await chargerModeles();
   } catch (e) {
     message(e.statut === 401 && /voices_read/.test(e.message)
       ? "Cette clé n'a pas la permission « Voices : read ». Ajoutez-la dans ElevenLabs > API Keys."
@@ -212,6 +305,12 @@ async function charger(evt) {
 }
 
 $("#form-cle").addEventListener("submit", charger);
+$("#generer").addEventListener("click", generer);
+$("#modele").addEventListener("change", majModele);
+$("#texte").addEventListener("input", majCompteur);
+$("#voix").addEventListener("change", () => { marquerCarteChoisie(); $("#retour-tts").hidden = true; });
+["stabilite", "similarite", "style", "vitesse"].forEach((id) => $("#" + id).addEventListener("input", (e) =>
+  ($("#v-" + id).textContent = (+e.target.value).toFixed(2))));
 ["#recherche", "#filtre-langue", "#filtre-genre", "#filtre-api"].forEach((s) =>
   $(s).addEventListener("input", afficher));
 
