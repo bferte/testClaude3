@@ -52,6 +52,14 @@ header { display: flex; flex-wrap: wrap; align-items: baseline; justify-content:
 h1 { font: 700 clamp(24px, 3vw, 32px)/1.1 var(--font-display); margin: 0; letter-spacing: -0.01em; text-wrap: balance; }
 h1 small { font: 500 15px var(--font-body); color: var(--muted); display: block; margin-top: 6px; letter-spacing: 0; }
 h2 { font: 700 13px/1.2 var(--font-body); text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin: 0; }
+.logo { height: 44px; width: auto; }
+header h1 { flex: 1 1 320px; }
+.outils3d { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.outils3d .btn { padding: 5px 9px; }
+.outils3d label { display: flex; align-items: center; gap: 6px; }
+.outils3d select { width: auto; padding: 4px 6px; }
+#vue3d { height: 380px; border-radius: 4px; background: var(--bg); cursor: grab; }
+#vue3d:active { cursor: grabbing; }
 .tag { font: 500 12px var(--font-data); color: var(--warn); border: 1px solid var(--warn); border-radius: 3px; padding: 2px 6px; }
 
 .layout { display: grid; grid-template-columns: minmax(300px, 380px) minmax(0, 1fr); gap: 20px; align-items: start; }
@@ -126,9 +134,12 @@ tr[data-id] { cursor: pointer; }
 footer { font-size: 12px; color: var(--muted); max-width: 75ch; }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
 </style>
+<!-- Charte de l'enseigne : redéfinit les variables ci-dessus (voir chartes/LISEZMOI.md). -->
+<link rel="stylesheet" href="charte.css">
 
 <div class="wrap">
   <header>
+    <img id="logo" class="logo" src="logo.svg" alt="" hidden onload="this.hidden = false">
     <h1>Calibre &amp; Épaisseur
       <small>Épaisseur au bord d'un verre taillé selon l'ordonnance, l'indice, la géométrie, la monture et les mesures</small></h1>
     <span class="tag" id="tagExemple">Exemple pré-rempli</span>
@@ -219,6 +230,21 @@ footer { font-size: 12px; color: var(--muted); max-width: 75ch; }
         <p class="err" id="err" hidden></p>
       </section>
 
+      <section class="card" aria-labelledby="t5">
+        <h2 id="t5">Vue 3D</h2>
+        <div class="outils3d">
+          <button class="btn" type="button" data-vue="troisQuarts">3/4</button>
+          <button class="btn" type="button" data-vue="face">Face</button>
+          <button class="btn" type="button" data-vue="profil">Profil</button>
+          <button class="btn" type="button" data-vue="dessus">Dessus</button>
+          <button class="btn" type="button" data-vue="arriere">Côté œil</button>
+          <label>Épaisseurs <select id="exag3d"><option value="1">réelles</option><option value="2">×2</option><option value="3">×3</option></select></label>
+          <label class="check"><input id="cercle3d" type="checkbox" checked> Cercle</label>
+        </div>
+        <canvas id="vue3d" aria-label="Verres en 3D, à faire tourner au doigt ou à la souris"></canvas>
+        <p class="hint" id="info3d">Glisser pour tourner, molette ou pincement pour zoomer. Couleur selon l'épaisseur, comme la vue de face. En vue de dessus, la face avant est vers le bas.</p>
+      </section>
+
       <section class="card" aria-labelledby="t2">
         <h2 id="t2">Découpes du verre par le centre optique</h2>
         <div class="coupes">
@@ -262,7 +288,9 @@ footer { font-size: 12px; color: var(--muted); max-width: 75ch; }
   </div>
 </div>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script src="calcul.js"></script>
+<script src="vue3d.js"></script>
 <script>
 (function () {
   "use strict";
@@ -570,6 +598,20 @@ footer { font-size: 12px; color: var(--muted); max-width: 75ch; }
     }
   }
 
+  // ------------------------------------------------------------ 3D
+  let vue3d = null;
+  function rendre3D(c) {
+    try {
+      vue3d = vue3d || window.Vue3D.creer($("vue3d"));
+      vue3d.maj(dernier, { rampe: (t) => rampe(c, t), cadre: c.frame, exag: +$("exag3d").value, voirCercle: $("cercle3d").checked });
+    } catch (e) {
+      $("info3d").textContent = "Vue 3D indisponible : " + e.message;
+    }
+  }
+  document.querySelectorAll("[data-vue]").forEach((b) => b.addEventListener("click", () => vue3d && vue3d.vue(b.dataset.vue)));
+  $("exag3d").addEventListener("change", () => dernier && rendre3D(couleurs()));
+  $("cercle3d").addEventListener("change", () => dernier && rendre3D(couleurs()));
+
   // ------------------------------------------------------------ Calcul + rendu
   let dernier = null;
   function calculer() {
@@ -596,6 +638,7 @@ footer { font-size: 12px; color: var(--muted); max-width: 75ch; }
     dessinerFace(dernier, c, tMin, tMax);
     dessinerCoupes(dernier, c);
     dessinerDetails(dernier, c);
+    rendre3D(c);
     document.querySelectorAll(".avecCercl").forEach((el) => { el.hidden = !dernier.cercl; });
     $("t4").textContent = dernier.cercl ? "Le bord dans le cercle : haut, bas, nasal, temporal" : "Zoom sur le bord : haut, bas, nasal, temporal";
     if (dernier.cercl) {

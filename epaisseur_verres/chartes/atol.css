@@ -1,0 +1,33 @@
+/*
+ * Charte « Atol » — GABARIT À COMPLÉTER avec les valeurs officielles du kit de marque
+ * (service marketing / centrale). Aucune valeur ci-dessous n'est officielle : chaque
+ * ligne marquée À RENSEIGNER doit recevoir le code exact (hex) de la charte.
+ *
+ * Mise en service : copier ce fichier dans ../charte.css et déposer le logo officiel
+ * sous ../logo.svg (ou logo.png en adaptant index.html).
+ */
+
+/* Polices : si la charte impose une police maison, déclarer ses fichiers ici, ex. :
+@font-face { font-family: "PoliceMarque"; src: url("polices/marque-regular.woff2") format("woff2"); font-weight: 400; }
+@font-face { font-family: "PoliceMarque"; src: url("polices/marque-bold.woff2") format("woff2"); font-weight: 700; }
+*/
+
+:root {
+  /* --accent: #______;      À RENSEIGNER couleur principale de la marque          */
+  /* --accent-ink: #ffffff;  texte posé sur la couleur principale                  */
+  /* --ink: #______;         À RENSEIGNER couleur de texte                         */
+  /* --bg: #______;          À RENSEIGNER fond de page                             */
+  /* --panel: #ffffff;       fond des cartes                                       */
+  /* --line: #______;        filets                                                */
+  /* --frame: #______;       couleur des montures dans les schémas                 */
+  /* --ramp-0 / --ramp-1 / --ramp-2 : dégradé fin -> épais (garder un fort contraste) */
+  /* --font-display: "PoliceMarque", system-ui, sans-serif;                        */
+  /* --font-body: "PoliceMarque", system-ui, sans-serif;                           */
+}
+
+/* Thème sombre : mêmes variables, déclinaison sombre si la charte en prévoit une. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    /* --accent: #______; --bg: #______; --panel: #______; --ink: #______; */
+  }
+}

@@ -12,7 +12,8 @@ Estime l'épaisseur au bord (et au centre) des deux verres **taillés dans la mo
   la face avant → débord du verre **devant et derrière le cercle** sur tout le contour ;
 - la **prise de mesure** : demi-écarts pupillaires et hauteurs OD/OG (décentrement du centre optique).
 
-Résultats : vue de face des verres colorée par épaisseur, bord le plus épais et sa position (temporal, bas…),
+Résultats : vue de face des verres colorée par épaisseur, **vue 3D** orientable (verres + cercle, épaisseurs
+réelles ou exagérées), bord le plus épais et sa position (temporal, bas…),
 centre, poids estimé, découpes horizontale et verticale de chaque verre avec le cercle, zoom du bord en haut, en bas, côté nasal
 et côté temporal (débord devant/derrière le cercle) et biseau conseillé pour que rien ne dépasse devant, décentrement, diamètre de palet minimal, **comparatif de tous les
 indices** et phrase d'argumentaire prête à dire au client (« 30 % plus fin, 6 g de moins »).
@@ -21,6 +22,13 @@ indices** et phrase d'argumentaire prête à dire au client (« 30 % plus fin, 6
 
 Ouvrir `index.html` dans un navigateur (double-clic, aucune installation, fonctionne hors ligne hormis les
 polices). Aucune donnée ne quitte le poste.
+
+## Charte graphique
+
+Couleurs, polices et logo se règlent sans toucher au code : voir [`chartes/LISEZMOI.md`](chartes/LISEZMOI.md).
+`chartes/atol.css` est un gabarit à compléter avec les valeurs officielles du kit de marque.
+
+La vue 3D utilise three.js (chargé depuis cdnjs) : une connexion internet est nécessaire pour l'afficher.
 
 ## Modèle de calcul (`calcul.js`)
 
