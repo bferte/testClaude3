@@ -1,0 +1,915 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AS3.2 Audio – Propositions</title>
+<style>
+:root{
+  --navy:#143a6b; --navy-2:#1f4f8c; --navy-soft:#e8eef7;
+  --bg:#f5f4f2; --card:#ffffff; --line:#e3e1dc; --line-2:#d3d7de;
+  --ink:#1b2a41; --ink-2:#4a5a72; --ink-3:#7c8799;
+  --orange:#ef9416; --orange-soft:#fdf0dc; --orange-ink:#a85f00;
+  --green:#1d9a68; --green-soft:#e1f3ea; --green-ink:#137149;
+  --blue:#2f6fd6; --blue-soft:#e3ecfb; --blue-ink:#1d4f9f;
+  --red:#c8412f;
+  --radius:10px;
+  --shadow:0 1px 2px rgba(20,58,107,.06),0 2px 8px rgba(20,58,107,.05);
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font:14px/1.45 "Segoe UI",system-ui,-apple-system,Roboto,"Helvetica Neue",Arial,sans-serif;-webkit-font-smoothing:antialiased}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+
+/* ---------- Barre application ---------- */
+.appbar{background:var(--navy);color:#fff;display:flex;align-items:center;gap:18px;padding:0 20px;height:52px}
+.logo{display:flex;align-items:baseline;gap:8px;font-weight:700;letter-spacing:.2px}
+.logo b{font-size:22px;letter-spacing:-.5px}
+.logo span{font-size:12px;opacity:.75;font-weight:500}
+.appbar .mod{background:rgba(255,255,255,.14);padding:3px 10px;border-radius:20px;font-size:12px}
+.appbar .sp{flex:1}
+.appbar .user{font-size:12px;opacity:.85}
+
+/* ---------- Bandeau client ---------- */
+.clientbar{background:#fff;border-bottom:1px solid var(--line);padding:10px 20px;display:flex;flex-wrap:wrap;gap:8px 28px;align-items:center}
+.cb-item{display:flex;flex-direction:column;font-size:12px;color:var(--ink-3)}
+.cb-item strong{color:var(--ink);font-size:14px}
+.cb-item input,.cb-item select{border:1px solid var(--line-2);border-radius:6px;padding:3px 6px;font-size:13px;background:#fff;width:auto}
+.cb-item input[type=number]{width:72px}
+
+/* ---------- Stepper ---------- */
+.stepper{display:flex;gap:6px;padding:14px 20px 0;max-width:1400px;margin:0 auto}
+.step{flex:1;display:flex;align-items:center;gap:10px;border:1px solid var(--line-2);background:#fff;border-radius:8px;padding:9px 14px;text-align:left;color:var(--ink-2)}
+.step .n{width:24px;height:24px;border-radius:50%;display:grid;place-items:center;background:var(--navy-soft);color:var(--navy);font-weight:700;font-size:12px;flex:none}
+.step .t{font-weight:600;color:var(--ink)}
+.step .s{font-size:12px;color:var(--ink-3)}
+.step[aria-selected=true]{border-color:var(--navy);box-shadow:inset 0 -3px 0 var(--navy)}
+.step[aria-selected=true] .n{background:var(--navy);color:#fff}
+.step.done .n{background:var(--green);color:#fff}
+
+main{max-width:1400px;margin:0 auto;padding:16px 20px 90px}
+.view{display:none}.view.active{display:block}
+h1{font-size:22px;margin:0;color:var(--navy);font-weight:700}
+h2{font-size:15px;margin:0 0 8px;color:var(--navy)}
+.pagehead{display:flex;align-items:center;gap:14px;flex-wrap:wrap;padding-bottom:12px;border-bottom:1px solid var(--line-2);margin-bottom:14px}
+.pagehead .client{padding-left:14px;border-left:1px solid var(--line-2);color:var(--ink-2);font-size:13px}
+.pagehead .client b{color:var(--navy)}
+.pagehead .sp{flex:1}
+
+/* ---------- Boutons ---------- */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border-radius:7px;border:1px solid var(--navy);background:#fff;color:var(--navy);padding:8px 14px;font-weight:600;font-size:13px;white-space:nowrap}
+.btn:hover{background:var(--navy-soft)}
+.btn.primary{background:var(--navy);color:#fff}
+.btn.primary:hover{background:var(--navy-2)}
+.btn.ghost{border-color:transparent;background:transparent}
+.btn.sm{padding:5px 10px;font-size:12px}
+.btn.icon{padding:7px}
+.btn.green{background:var(--green);border-color:var(--green);color:#fff}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn svg{width:16px;height:16px;flex:none}
+
+/* ---------- Écran 1 : composition ---------- */
+.compose-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px;align-items:start}
+.pcard{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);border-top:4px solid var(--c,var(--navy));display:flex;flex-direction:column}
+.pcard-h{display:flex;align-items:center;gap:8px;padding:12px 14px 8px}
+.pcard-h h2{margin:0;flex:1;font-size:16px}
+.pcard-b{padding:0 14px 12px}
+.field{margin-top:12px}
+.field>label,.field>.lbl{display:block;font-size:12px;font-weight:600;color:var(--ink-2);margin-bottom:5px;text-transform:uppercase;letter-spacing:.3px}
+select.dev{width:100%;border:1px solid var(--line-2);border-radius:7px;padding:8px;background:#fff;font-weight:600}
+.devinfo{margin-top:8px;display:flex;gap:6px;flex-wrap:wrap}
+.tag{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;padding:3px 9px;border-radius:20px;background:#eef1f5;color:var(--ink-2);white-space:nowrap}
+.tag.cl1{background:var(--green-soft);color:var(--green-ink);font-weight:600}
+.tag.cl2{background:var(--blue-soft);color:var(--blue-ink);font-weight:600}
+.seg{display:flex;flex-wrap:wrap;gap:6px}
+.chip{border:1px solid var(--line-2);background:#fff;border-radius:7px;padding:6px 10px;font-size:12.5px;display:inline-flex;gap:6px;align-items:center;text-align:left;line-height:1.25}
+.chip small{color:var(--ink-3);font-size:11.5px}
+.chip[aria-pressed=true]{border-color:var(--navy);background:var(--navy-soft);color:var(--navy);font-weight:600}
+.chip[aria-pressed=true] small{color:var(--navy)}
+.chip:disabled{opacity:.4;cursor:not-allowed}
+.chip .ck{width:14px;height:14px;border:1.5px solid var(--line-2);border-radius:3px;flex:none;display:grid;place-items:center;background:#fff}
+.chip[aria-pressed=true] .ck{background:var(--navy);border-color:var(--navy)}
+.chip[aria-pressed=true] .ck::after{content:"";width:7px;height:4px;border:2px solid #fff;border-top:0;border-right:0;transform:rotate(-45deg) translate(1px,-1px)}
+.hint{font-size:11.5px;color:var(--ink-3);margin-top:4px}
+.pcard-f{margin-top:auto;border-top:1px solid var(--line);background:#fafbfc;border-radius:0 0 var(--radius) var(--radius);padding:10px 14px;display:grid;grid-template-columns:1fr 1fr 1fr 1.2fr;gap:6px;font-size:11.5px;color:var(--ink-3)}
+.pcard-f b{display:block;font-size:14px;color:var(--ink)}
+.pcard-f .rac b{font-size:18px;color:var(--c,var(--navy))}
+.addcard{border:2px dashed var(--line-2);border-radius:var(--radius);min-height:220px;display:grid;place-items:center;background:transparent;color:var(--navy);font-weight:600}
+.addcard:hover{background:#fff}
+.flash{animation:flash .5s}
+@keyframes flash{from{background:#fff6d6}to{background:transparent}}
+
+.bottombar{position:fixed;left:0;right:0;bottom:0;background:#fff;border-top:1px solid var(--line-2);padding:10px 20px;display:flex;justify-content:flex-end;gap:10px;align-items:center;z-index:5}
+.bottombar .info{margin-right:auto;font-size:12.5px;color:var(--ink-2)}
+
+/* ---------- Écran 2 : présentation ---------- */
+.toolbar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:14px}
+.switch{display:inline-flex;align-items:center;gap:10px;cursor:pointer;color:var(--ink-2)}
+.switch input{appearance:none;width:36px;height:20px;border-radius:20px;background:#cfd5de;position:relative;margin:0;cursor:pointer;transition:.15s}
+.switch input::after{content:"";position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background:#fff;transition:.15s;box-shadow:0 1px 2px rgba(0,0,0,.2)}
+.switch input:checked{background:var(--navy)}
+.switch input:checked::after{left:18px}
+.toolbar .sp{flex:1}
+.paymodes{display:inline-flex;align-items:center;gap:8px;color:var(--ink-2);font-size:13px}
+.paymodes .grp{display:inline-flex;border:1px solid var(--line-2);border-radius:7px;overflow:hidden;background:#fff}
+.paymodes button{border:0;background:#fff;padding:7px 14px;font-weight:600;font-size:12.5px;color:var(--ink);border-left:1px solid var(--line-2)}
+.paymodes button:first-child{border-left:0}
+.paymodes button[aria-pressed=true]{background:var(--navy);color:#fff}
+
+.cmp-wrap{overflow-x:auto;padding-bottom:6px}
+.cmp{display:grid;column-gap:20px;justify-content:safe center}
+.cell{background:var(--card);padding:0 18px;border-left:1px solid var(--line);border-right:1px solid var(--line)}
+.cell.top{border-top:4px solid var(--c);border-radius:var(--radius) var(--radius) 0 0;padding-top:14px}
+.cell.bot{border-bottom:1px solid var(--line);border-radius:0 0 var(--radius) var(--radius);padding-bottom:16px}
+.cell.chosen{background:#fbfdff}
+.ptitle{display:flex;align-items:center;gap:8px}
+.ptitle h3{margin:0;font-size:18px;color:var(--navy);flex:1}
+.chosen-flag{background:var(--green);color:#fff;font-size:11px;font-weight:700;padding:3px 8px;border-radius:20px;display:inline-flex;gap:4px;align-items:center}
+.badge{margin-top:10px;text-align:center;font-size:12.5px;font-weight:600;padding:6px;border-radius:6px;background:var(--cs);color:var(--ci)}
+.prices{display:grid;grid-template-columns:auto 1fr;gap:14px;padding:14px 0 12px;border-bottom:1px solid var(--line)}
+.prices .tot{font-size:12px;color:var(--ink-3);padding-right:14px;border-right:1px solid var(--line)}
+.prices .tot b{display:block;font-size:14px;color:var(--ink);margin-top:3px}
+.prices .rac{font-size:12.5px;font-weight:600}
+.prices .rac .big{display:block;white-space:nowrap;font-size:clamp(22px,2.2vw,30px);line-height:1.1;font-weight:800;color:var(--c);margin:2px 0 6px;letter-spacing:-.5px}
+.prices .pec{font-size:12px;color:var(--ink-3);display:grid;grid-template-columns:1fr auto;gap:1px 10px}
+.prices .pec b{color:var(--ink);text-align:right}
+.payline{text-align:center;padding:10px 0;font-size:13px;color:var(--ink-2)}
+.payline b{color:var(--ink)} .payline em{font-style:normal;font-weight:700;color:var(--c)}
+.cta{padding-bottom:12px}
+.cta .btn{width:100%;padding:11px}
+.tags{display:flex;gap:6px;flex-wrap:wrap;padding-bottom:6px;min-height:30px}
+.sect{font-weight:700;color:var(--navy);padding:14px 0 6px;font-size:13.5px}
+.row{display:flex;align-items:center;gap:10px;padding:7px 0;border-top:1px dashed #eceae5;font-size:13px;min-height:40px}
+.row .ico{width:22px;height:22px;flex:none;display:grid;place-items:center;border-radius:50%;font-size:12px;font-weight:700}
+.row .ico.yes{background:var(--green-soft);color:var(--green-ink)}
+.row .ico.no{background:#f0f1f3;color:#a3abb7}
+.row .ico.inc{background:var(--blue-soft);color:var(--blue-ink)}
+.row .lab{flex:1;min-width:0}
+.row .lab small{display:block;color:var(--ink-3);font-size:11.5px}
+.row .val{font-weight:700;white-space:nowrap;text-align:right}
+.row.off .lab{color:#a3abb7}
+.row.off .val{color:#a3abb7;font-weight:500}
+.devrow{display:flex;gap:12px;align-items:center;padding:6px 0 10px}
+.devthumb{width:58px;height:42px;border:1px solid var(--line-2);border-radius:7px;display:grid;place-items:center;flex:none;color:var(--navy)}
+.devthumb svg{width:30px;height:30px}
+.devrow .lab{flex:1;font-size:13.5px}
+.devrow .lab small{display:block;color:var(--ink-3);font-size:11.5px}
+.devrow .val{font-weight:700;white-space:nowrap}
+.detail-t{display:flex;align-items:center;gap:6px;border:0;background:none;padding:10px 0 4px;color:var(--navy);font-weight:600;font-size:13px}
+.detail-t svg{transition:.15s;width:14px;height:14px}
+.detail-open .detail-t svg{transform:rotate(90deg)}
+.detail{display:none;font-size:12.5px;background:#f8f9fb;border-radius:7px;padding:8px 10px;margin:4px 0}
+.detail-open .detail{display:block}
+.detail table{width:100%;border-collapse:collapse}
+.detail td{padding:3px 0}
+.detail td:last-child{text-align:right;white-space:nowrap}
+.detail tr.sum td{border-top:1px solid var(--line-2);font-weight:700;padding-top:5px}
+.detail tr.neg td{color:var(--green-ink)}
+.legal{font-size:11.5px;color:var(--ink-3);margin-top:16px;max-width:900px}
+.retained{display:none;align-items:center;gap:12px;background:var(--green-soft);border:1px solid #b8e1cc;color:var(--green-ink);padding:10px 14px;border-radius:8px;margin-bottom:14px;font-size:13.5px}
+.retained.show{display:flex}
+.retained .sp{flex:1}
+.print-head{display:none}
+
+/* ---------- Écran 3 : email ---------- */
+.mail-grid{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,.95fr);gap:16px;align-items:start}
+.panel{background:#fff;border-radius:var(--radius);box-shadow:var(--shadow);padding:16px}
+.panel+.panel{margin-top:16px}
+.frow{display:grid;grid-template-columns:90px 1fr;align-items:center;gap:8px;margin-bottom:8px}
+.frow label{font-size:12.5px;color:var(--ink-2);font-weight:600}
+.frow input,.frow select{border:1px solid var(--line-2);border-radius:7px;padding:7px 9px;background:#fff;width:100%}
+textarea{width:100%;min-height:260px;border:1px solid var(--line-2);border-radius:7px;padding:10px;resize:vertical;line-height:1.5}
+.vars{display:flex;gap:6px;flex-wrap:wrap;margin:6px 0 2px;align-items:center;font-size:12px;color:var(--ink-3)}
+.vars button{border:1px dashed var(--line-2);background:#fafbfc;border-radius:5px;font-size:11.5px;padding:2px 7px;color:var(--navy);font-family:ui-monospace,Consolas,monospace}
+.att-group{margin-bottom:12px}
+.att-group h4{margin:0 0 6px;font-size:12px;text-transform:uppercase;letter-spacing:.3px;color:var(--ink-2)}
+.att{display:flex;align-items:center;gap:10px;padding:7px 9px;border:1px solid var(--line);border-radius:7px;margin-bottom:5px;cursor:pointer;background:#fff}
+.att:hover{border-color:var(--line-2)}
+.att input{width:16px;height:16px;accent-color:var(--navy);margin:0}
+.att .fi{width:26px;height:30px;border-radius:4px;background:#fdecea;color:var(--red);font-size:9px;font-weight:800;display:grid;place-items:center;flex:none}
+.att .fi.img{background:var(--blue-soft);color:var(--blue-ink)}
+.att .nm{flex:1;font-size:13px}
+.att .nm small{display:block;color:var(--ink-3);font-size:11.5px}
+.att.disabled{opacity:.55;cursor:not-allowed}
+.links{border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.links .lh{background:var(--navy-soft);padding:8px 12px;font-weight:700;color:var(--navy);font-size:13px;display:flex;align-items:center;gap:8px}
+.links .lh .sp{flex:1}
+.links .li{padding:9px 12px;border-top:1px solid var(--line);font-size:13px}
+.links .li b{display:block;margin-bottom:4px}
+.links .li a{color:var(--blue);text-decoration:none;margin-right:14px;font-size:12.5px;display:inline-flex;gap:4px;align-items:center}
+.links .li a:hover{text-decoration:underline}
+.preview{border:1px solid var(--line);border-radius:8px;overflow:hidden;background:#fff}
+.preview .ph{background:#f4f6f9;padding:10px 14px;font-size:12.5px;color:var(--ink-2);border-bottom:1px solid var(--line)}
+.preview .ph div{margin:1px 0}
+.preview .pb{padding:16px 18px;font-size:13.5px;white-space:pre-wrap;word-wrap:break-word}
+.preview .pmark{background:var(--navy);color:#fff;padding:12px 18px;font-weight:700;font-size:18px}
+.preview .pmark small{font-weight:400;font-size:11px;opacity:.8;margin-left:6px}
+.preview .patt{padding:0 18px 14px;display:flex;flex-wrap:wrap;gap:6px}
+.preview .pfoot{padding:10px 18px;border-top:1px solid var(--line);font-size:11px;color:var(--ink-3)}
+.hist{font-size:12.5px;color:var(--ink-2);margin:0;padding-left:18px}
+.toast{position:fixed;left:50%;bottom:76px;transform:translate(-50%,20px);background:var(--ink);color:#fff;padding:10px 16px;border-radius:8px;font-size:13px;opacity:0;pointer-events:none;transition:.2s;z-index:20;max-width:90vw}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+.note{font-size:12px;color:var(--ink-3)}
+.empty{padding:40px;text-align:center;color:var(--ink-3)}
+
+/* ---------- Responsive ---------- */
+@media (max-width:1100px){
+  .mail-grid{grid-template-columns:1fr}
+  .step .s{display:none}
+  .prices{grid-template-columns:1fr;gap:8px}
+  .prices .tot{border-right:0;padding-right:0;display:flex;justify-content:space-between}
+  .prices .tot b{margin:0}
+  .devthumb{display:none}
+}
+@media (max-width:760px){
+  main{padding:12px 12px 90px}
+  .clientbar{padding:8px 12px}
+  .stepper{padding:10px 12px 0}
+  .step{padding:8px}
+  .step .t{font-size:12.5px}
+  .appbar .user{display:none}
+  .pcard-f{grid-template-columns:1fr 1fr}
+  .bottombar .info{display:none}
+}
+
+/* ---------- Impression ---------- */
+@media print{
+  @page{size:A4 landscape;margin:10mm}
+  body{background:#fff;font-size:11.5px}
+  .appbar,.clientbar,.stepper,.bottombar,.no-print,.toast,.retained,.view:not(#v2){display:none!important}
+  #v2{display:block!important}
+  main{padding:0;max-width:none}
+  .print-head{display:flex;justify-content:space-between;align-items:flex-end;border-bottom:2px solid var(--navy);padding-bottom:8px;margin-bottom:10px}
+  .print-head .logo b{color:var(--navy)} .print-head .logo span{color:var(--ink-3)}
+  .cmp-wrap{overflow:visible}
+  .devthumb{display:none}
+  .prices{grid-template-columns:1fr;gap:6px}
+  .prices .tot{border-right:0;padding-right:0;display:flex;justify-content:space-between}
+  .cmp{grid-template-columns:repeat(var(--n),minmax(0,1fr))!important;column-gap:10px}
+  .cell{padding:0 10px}
+  .cell{border-color:#ccc}
+  .cell,.badge,.row .ico,.chosen-flag{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  .prices .rac .big{font-size:24px}
+  .row{min-height:30px;padding:4px 0}
+  .detail{display:block!important}
+  .detail-t{display:none}
+  .cta{display:none}
+}
+</style>
+</head>
+<body>
+
+<!-- Barre application AS3.2 -->
+<header class="appbar">
+  <div class="logo"><b>atol</b><span>AS3.2</span></div>
+  <span class="mod">Module Audio · Ventes</span>
+  <div class="sp"></div>
+  <span class="user">Magasin 0412 – Exemple-sur-Loire · Audioprothésiste : C. Durand</span>
+</header>
+
+<!-- Bandeau dossier client (fictif) -->
+<section class="clientbar" aria-label="Dossier client">
+  <div class="cb-item">Client<strong id="cbName">M. Jacques EXEMPLE</strong></div>
+  <div class="cb-item">Âge<strong>72 ans</strong></div>
+  <div class="cb-item">Prescription<strong>ORL – 12/10/2026</strong></div>
+  <div class="cb-item">Régime obligatoire<strong>Droits ouverts · base 400 €/oreille</strong></div>
+  <div class="cb-item">Mutuelle<strong>Mutuelle Fictive Santé+</strong></div>
+  <div class="cb-item"><label for="forfait">Forfait mutuelle classe II / oreille</label><input id="forfait" type="number" min="0" step="50" value="600"></div>
+  <div class="cb-item"><label for="oreilles">Appareillage</label>
+    <select id="oreilles">
+      <option value="2" selected>Binaural (2 oreilles)</option>
+      <option value="1">Monaural – oreille droite</option>
+      <option value="1">Monaural – oreille gauche</option>
+    </select>
+  </div>
+</section>
+
+<!-- Étapes -->
+<nav class="stepper" role="tablist" aria-label="Étapes">
+  <button class="step" role="tab" data-step="1" aria-selected="true"><span class="n">1</span><span><span class="t">Composer les propositions</span><br><span class="s">Appareils, options, prix</span></span></button>
+  <button class="step" role="tab" data-step="2" aria-selected="false"><span class="n">2</span><span><span class="t">Présentation client</span><br><span class="s">Comparatif à l'écran ou imprimé</span></span></button>
+  <button class="step" role="tab" data-step="3" aria-selected="false"><span class="n">3</span><span><span class="t">Envoi au client</span><br><span class="s">Email, pièces jointes, documentation</span></span></button>
+</nav>
+
+<main>
+  <!-- ============ ÉCRAN 1 ============ -->
+  <section class="view active" id="v1" role="tabpanel">
+    <div class="pagehead">
+      <h1>Composer les propositions</h1>
+      <span class="client">Client : <b class="clientName"></b></span>
+      <div class="sp"></div>
+      <span class="note">2 à 3 propositions · le prix se recalcule en direct</span>
+    </div>
+    <div class="compose-grid" id="composeGrid"></div>
+  </section>
+
+  <!-- ============ ÉCRAN 2 ============ -->
+  <section class="view" id="v2" role="tabpanel">
+    <div class="print-head">
+      <div class="logo"><b>atol</b><span>les opticiens · audition</span></div>
+      <div style="text-align:right;font-size:12px">Comparatif des propositions d'appareillage auditif<br><b class="clientName"></b> · <span id="printDate"></span> · Magasin 0412</div>
+    </div>
+    <div class="pagehead no-print">
+      <h1>Comparaison des propositions</h1>
+      <span class="client">Client : <b class="clientName"></b></span>
+      <div class="sp"></div>
+      <button class="btn" data-goto="1"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4z"/></svg>Modifier la sélection</button>
+      <button class="btn" id="btnPrint"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9V2h12v7M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>Imprimer</button>
+      <button class="btn primary" data-goto="3"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16v16H4z"/><path d="M4 6l8 7 8-7"/></svg>Envoyer par email</button>
+    </div>
+    <div class="retained no-print" id="retained"></div>
+    <div class="toolbar no-print">
+      <label class="switch"><input type="checkbox" id="diffOnly"> Afficher uniquement les différences</label>
+      <div class="sp"></div>
+      <div class="paymodes">Mode de paiement :
+        <div class="grp" id="payModes">
+          <button data-n="1" aria-pressed="true">Comptant</button>
+          <button data-n="3" aria-pressed="false">3 fois</button>
+          <button data-n="4" aria-pressed="false">4 fois</button>
+          <button data-n="10" aria-pressed="false">10 fois</button>
+        </div>
+      </div>
+    </div>
+    <div class="cmp-wrap"><div class="cmp" id="cmp"></div></div>
+    <p class="legal">Prix TTC par appareil, suivi et réglages inclus pendant toute la durée d'utilisation. Prise en charge régime obligatoire : 60 % de la base de remboursement de 400 € par oreille (patient de plus de 20 ans). Montants mutuelle estimés selon le contrat déclaré, sous réserve de l'accord de prise en charge. Classe I = offre 100 % Santé, sans reste à charge sur l'appareil. Les accessoires et extensions de garantie ne sont pas pris en charge. Un devis normalisé est remis pour chaque proposition. Données fictives – maquette.</p>
+  </section>
+
+  <!-- ============ ÉCRAN 3 ============ -->
+  <section class="view" id="v3" role="tabpanel">
+    <div class="pagehead">
+      <h1>Envoi au client</h1>
+      <span class="client">Client : <b class="clientName"></b></span>
+      <div class="sp"></div>
+      <button class="btn" data-goto="2">← Retour au comparatif</button>
+    </div>
+    <div class="mail-grid">
+      <div>
+        <div class="panel">
+          <h2>Message</h2>
+          <div class="frow"><label for="mTpl">Modèle</label>
+            <select id="mTpl">
+              <option value="props">Envoi des propositions (comparatif)</option>
+              <option value="choix">Confirmation de la proposition retenue</option>
+              <option value="relance">Relance à J+15 – propositions en attente</option>
+            </select></div>
+          <div class="frow"><label for="mTo">À</label><input id="mTo" type="email" value="jacques.exemple@exemple.fr"></div>
+          <div class="frow"><label for="mCc">Cc</label><input id="mCc" type="email" placeholder="ex. aidant, médecin ORL…"></div>
+          <div class="frow"><label for="mSubj">Objet</label><input id="mSubj"></div>
+          <textarea id="mBody" aria-label="Corps du message"></textarea>
+          <div class="vars">Insérer : <button data-v="{prenom}">{prenom}</button><button data-v="{nom}">{nom}</button><button data-v="{propositions}">{propositions}</button><button data-v="{magasin}">{magasin}</button><button data-v="{audio}">{audio}</button>
+            <span class="sp" style="flex:1"></span><button id="mReset" style="font-family:inherit;border-style:solid">↺ Réinitialiser le modèle</button></div>
+        </div>
+        <div class="panel">
+          <h2>Pièces jointes</h2>
+          <div id="attList"></div>
+        </div>
+      </div>
+      <div>
+        <div class="panel">
+          <h2>Documentation des appareils retenus</h2>
+          <label class="switch" style="margin-bottom:10px"><input type="checkbox" id="incLinks" checked> Insérer ce bloc de liens dans l'email</label>
+          <div id="linksBlock"></div>
+        </div>
+        <div class="panel">
+          <h2>Aperçu tel que reçu par le client</h2>
+          <div class="preview" id="preview"></div>
+        </div>
+        <div class="panel">
+          <h2>Historique des envois</h2>
+          <ul class="hist" id="hist"><li>Aucun envoi pour ce dossier.</li></ul>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<div class="bottombar" id="bottombar"></div>
+<div class="toast" id="toast" role="status"></div>
+
+<script>
+/* =========================================================
+   Données fictives
+   ========================================================= */
+const CLIENT = {civ:'M.', prenom:'Jacques', nom:'EXEMPLE', email:'jacques.exemple@exemple.fr'};
+const MAGASIN = {nom:'Atol Exemple-sur-Loire', audio:'Claire Durand, audioprothésiste D.E.', tel:'02 00 00 00 00'};
+const SS_PAR_OREILLE = 240;        // 60 % x 400 €
+const PLAFOND_AMO_AMC = 1700;      // contrat responsable, par oreille, classe II
+const PRIX_MAX_CLASSE1 = 950;      // 100 % Santé
+
+const CATALOG = [
+  {id:'A1', marque:'Marque A', modele:'Auria Essentiel 1', classe:'I',  type:'Contour', sous:'écouteur déporté', gamme:'Essentiel', prix:950,  canaux:12, bt:false, rech:'option', bruit:'Standard', acouph:false},
+  {id:'A2', marque:'Marque A', modele:'Auria Confort 3',   classe:'II', type:'Contour', sous:'écouteur déporté', gamme:'Confort',   prix:1490, canaux:20, bt:true,  rech:'option', bruit:'Avancé',   acouph:true},
+  {id:'A3', marque:'Marque A', modele:'Auria Premium 5',   classe:'II', type:'Contour', sous:'écouteur déporté', gamme:'Premium',   prix:1990, canaux:32, bt:true,  rech:'inclus', bruit:'IA directionnel', acouph:true},
+  {id:'A4', marque:'Marque A', modele:'Auria Discret ITC', classe:'II', type:'Intra',   sous:'intra-conduit',   gamme:'Confort',   prix:1650, canaux:20, bt:true,  rech:'option', bruit:'Avancé',   acouph:false},
+  {id:'B1', marque:'Marque B', modele:'Sonea 100',         classe:'I',  type:'Contour', sous:'classique',        gamme:'Essentiel', prix:890,  canaux:12, bt:false, rech:'non',    bruit:'Standard', acouph:false},
+  {id:'B2', marque:'Marque B', modele:'Sonea 300 R',       classe:'II', type:'Contour', sous:'écouteur déporté', gamme:'Confort',   prix:1390, canaux:16, bt:true,  rech:'option', bruit:'Avancé',   acouph:true},
+  {id:'B3', marque:'Marque B', modele:'Sonea Invisible',   classe:'II', type:'Intra',   sous:'intra profond (CIC)', gamme:'Premium', prix:2150, canaux:24, bt:false, rech:'non', bruit:'Avancé',   acouph:false},
+  {id:'C1', marque:'Marque C', modele:'Vexa Intra 1',      classe:'I',  type:'Intra',   sous:'intra-conque',     gamme:'Essentiel', prix:950,  canaux:12, bt:false, rech:'non',    bruit:'Standard', acouph:false},
+  {id:'C2', marque:'Marque C', modele:'Vexa Pro 7',        classe:'II', type:'Contour', sous:'écouteur déporté', gamme:'Premium',   prix:2290, canaux:48, bt:true,  rech:'inclus', bruit:'IA directionnel', acouph:true},
+];
+
+/* Options. ear:true => prix par appareil (x nb oreilles). cov:true => entre dans la base prise en charge (appareil) */
+const OPTIONS = {
+  alim:     {label:'Alimentation', type:'radio', choices:[
+              {v:'pile', l:'Piles', p:0},
+              {v:'rech', l:'Rechargeable (Li-ion)', p:150, ear:true, cov:true}]},
+  chargeur: {label:'Chargeur', type:'radio', needs:'rech', choices:[
+              {v:'std',    l:'Chargeur standard', p:0, note:'inclus'},
+              {v:'nomade', l:'Étui nomade avec batterie', p:99},
+              {v:'uv',     l:'Station séchage + UV', p:149},
+              {v:'none',   l:'Sans chargeur (déjà équipé)', p:-30}]},
+  garantie: {label:'Garantie', type:'radio', choices:[
+              {v:'4',   l:'4 ans constructeur', p:0, note:'incluse'},
+              {v:'5',   l:'Extension 5 ans', p:60, ear:true},
+              {v:'pvc', l:'4 ans + perte, vol, casse', p:95, ear:true}]},
+  acc:      {label:'Accessoires', type:'multi', choices:[
+              {v:'tel',  l:'Télécommande', p:79},
+              {v:'tv',   l:'Streamer TV', p:189},
+              {v:'mic',  l:'Micro déporté (réunion, restaurant)', p:249},
+              {v:'phone',l:'Clip téléphone fixe', p:149}]},
+  autres:   {label:'Autres options', type:'multi', choices:[
+              {v:'embout', l:'Embouts sur mesure', p:60, ear:true},
+              {v:'piles',  l:'Pack piles 1 an', p:45, needsNot:'rech'},
+              {v:'entr',   l:'Kit entretien + déshumidificateur', p:35},
+              {v:'acou',   l:'Programme acouphènes (générateur de bruit)', p:90, ear:true, needsDev:'acouph'},
+              {v:'app',    l:'Application smartphone + réglage à distance', p:0, needsDev:'bt', note:'incluse'},
+              {v:'pret',   l:'Appareil de prêt pendant réparation', p:40}]},
+};
+
+const SLOT_COLORS = [
+  {c:'var(--orange)', cs:'var(--orange-soft)', ci:'var(--orange-ink)'},
+  {c:'var(--blue)',   cs:'var(--blue-soft)',   ci:'var(--blue-ink)'},
+  {c:'var(--green)',  cs:'var(--green-soft)',  ci:'var(--green-ink)'},
+];
+
+/* =========================================================
+   État
+   ========================================================= */
+let uid = 3;
+const state = {
+  step:1, ears:2, forfait:600, payN:1, diffOnly:false, detailOpen:false, chosen:null,
+  props:[
+    {id:1, dev:'B1', alim:'pile', chargeur:'std', garantie:'4',   acc:[],           autres:['piles']},
+    {id:2, dev:'A2', alim:'rech', chargeur:'std', garantie:'5',   acc:['tv'],       autres:['app','entr']},
+    {id:3, dev:'C2', alim:'rech', chargeur:'nomade', garantie:'pvc', acc:['tv','mic'], autres:['app','embout','acou','entr']},
+  ],
+  mail:{tpl:'props', edited:false, att:{}, sent:[]},
+};
+
+/* =========================================================
+   Utilitaires
+   ========================================================= */
+const $ = s => document.querySelector(s);
+const $$ = s => [...document.querySelectorAll(s)];
+const eur = n => n.toLocaleString('fr-FR',{minimumFractionDigits:2,maximumFractionDigits:2}) + ' €';
+const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const dev = p => CATALOG.find(d => d.id === p.dev);
+const findChoice = (key, v) => OPTIONS[key].choices.find(c => c.v === v);
+const propName = p => 'Proposition ' + (state.props.indexOf(p) + 1);
+function toast(msg){const t=$('#toast');t.textContent=msg;t.classList.add('show');clearTimeout(t._h);t._h=setTimeout(()=>t.classList.remove('show'),2800)}
+
+/* Disponibilité d'une option pour une proposition */
+function available(p, key, ch){
+  const d = dev(p), o = OPTIONS[key];
+  if (key === 'alim' && ch.v === 'rech' && d.rech === 'non') return false;
+  if (key === 'alim' && ch.v === 'pile' && d.rech === 'inclus') return false;
+  if (o.needs === 'rech' && p.alim !== 'rech') return false;
+  if (ch.needsNot === 'rech' && p.alim === 'rech') return false;
+  if (ch.needsDev && !d[ch.needsDev]) return false;
+  return true;
+}
+/* Normalise une proposition après changement d'appareil/options */
+function normalize(p){
+  const d = dev(p);
+  if (d.rech === 'non') p.alim = 'pile';
+  if (d.rech === 'inclus') p.alim = 'rech';
+  p.acc = p.acc.filter(v => available(p,'acc',findChoice('acc',v)));
+  p.autres = p.autres.filter(v => available(p,'autres',findChoice('autres',v)));
+}
+
+/* =========================================================
+   Calcul du prix
+   ========================================================= */
+function compute(p){
+  const d = dev(p), n = state.ears;
+  const lines = [];   // {l, amount, cov}
+  lines.push({l:`${d.modele} × ${n}`, a:d.prix*n, cov:true, k:'dev'});
+  const add = (key, v) => {
+    const ch = findChoice(key, v); if (!ch || !available(p,key,ch)) return;
+    if (key === 'alim' && d.rech === 'inclus') return; // déjà dans le prix
+    if (!ch.p) return;
+    const a = ch.ear ? ch.p*n : ch.p;
+    lines.push({l: ch.l + (ch.ear && n>1 ? ` × ${n}` : ''), a, cov:!!ch.cov});
+  };
+  add('alim', p.alim);
+  if (p.alim === 'rech') add('chargeur', p.chargeur);
+  add('garantie', p.garantie);
+  p.acc.forEach(v => add('acc', v));
+  p.autres.forEach(v => add('autres', v));
+
+  const total = lines.reduce((s,x)=>s+x.a,0);
+  const covBase = lines.filter(x=>x.cov).reduce((s,x)=>s+x.a,0);
+  const ss = Math.min(SS_PAR_OREILLE*n, covBase);
+  let amc;
+  if (d.classe === 'I') amc = Math.max(0, Math.min(covBase, PRIX_MAX_CLASSE1*n) - ss);
+  else amc = Math.max(0, Math.min(state.forfait*n, covBase - ss, (PLAFOND_AMO_AMC - SS_PAR_OREILLE)*n));
+  const rac = Math.max(0, total - ss - amc);
+  return {lines, total, ss, amc, rac, hors: total - covBase};
+}
+
+/* =========================================================
+   ÉCRAN 1 : composition
+   ========================================================= */
+const ICON_EAR = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M7 9a5 5 0 0110 0c0 3-3 4-3 7a3 3 0 01-5 2"/><path d="M10 9a2 2 0 014 0c0 1.5-1.5 2-1.5 3"/></svg>';
+const ICON_INTRA = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><ellipse cx="12" cy="12" rx="5" ry="6"/><circle cx="12" cy="11" r="1.5"/></svg>';
+
+function devOptions(sel){
+  const brands = [...new Set(CATALOG.map(d=>d.marque))];
+  return brands.map(b => `<optgroup label="${b}">` + CATALOG.filter(d=>d.marque===b).map(d =>
+    `<option value="${d.id}" ${d.id===sel?'selected':''}>${d.modele} — Classe ${d.classe} · ${d.type} · ${eur(d.prix)}</option>`).join('') + '</optgroup>').join('');
+}
+function devTags(d){
+  return `<span class="tag ${d.classe==='I'?'cl1':'cl2'}">Classe ${d.classe}${d.classe==='I'?' · 100 % Santé':''}</span>
+    <span class="tag">${d.type} (${d.sous})</span><span class="tag">Gamme ${d.gamme}</span>
+    <span class="tag">${d.canaux} canaux</span>${d.bt?'<span class="tag">Bluetooth</span>':''}
+    <span class="tag">Rechargeable : ${d.rech==='inclus'?'de série':d.rech==='option'?'en option':'non'}</span>`;
+}
+function chipsFor(p, key){
+  const o = OPTIONS[key], n = state.ears;
+  return o.choices.map(ch => {
+    const ok = available(p,key,ch);
+    const on = o.type==='radio' ? p[key]===ch.v : p[key].includes(ch.v);
+    let price = ch.note ? ch.note : ch.p===0 ? '' : (ch.p>0?'+':'') + eur(ch.ear?ch.p:ch.p) + (ch.ear?' /app.':'');
+    if (key==='alim' && ch.v==='rech' && dev(p).rech==='inclus') price = 'de série';
+    return `<button class="chip" data-pid="${p.id}" data-key="${key}" data-v="${ch.v}" aria-pressed="${on&&ok}" ${ok?'':'disabled'}>${o.type==='multi'?'<span class="ck"></span>':''}<span>${ch.l}${price?`<br><small>${price}</small>`:''}</span></button>`;
+  }).join('');
+}
+function renderCompose(){
+  const g = $('#composeGrid');
+  g.innerHTML = state.props.map((p,i) => {
+    const d = dev(p), r = compute(p), col = SLOT_COLORS[i];
+    return `<article class="pcard" style="--c:${col.c}">
+      <div class="pcard-h"><h2>${propName(p)}</h2>
+        <button class="btn icon ghost" title="Dupliquer" data-dup="${p.id}" ${state.props.length>=3?'disabled':''}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="8" y="8" width="13" height="13" rx="2"/><path d="M16 8V5a2 2 0 00-2-2H5a2 2 0 00-2 2v9a2 2 0 002 2h3"/></svg></button>
+        <button class="btn icon ghost" title="Supprimer" data-del="${p.id}" ${state.props.length<=2?'disabled':''}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"/></svg></button>
+      </div>
+      <div class="pcard-b">
+        <div class="field"><label for="dev${p.id}">Appareil auditif</label>
+          <select class="dev" id="dev${p.id}" data-pid="${p.id}">${devOptions(p.dev)}</select>
+          <div class="devinfo">${devTags(d)}</div></div>
+        ${['alim','chargeur','garantie','acc','autres'].map(k => `<div class="field"><span class="lbl">${OPTIONS[k].label}</span><div class="seg">${chipsFor(p,k)}</div>
+          ${k==='chargeur'&&p.alim!=='rech'?'<div class="hint">Disponible uniquement en version rechargeable.</div>':''}</div>`).join('')}
+      </div>
+      <div class="pcard-f" id="foot${p.id}">${footHTML(r)}</div>
+    </article>`;
+  }).join('') + (state.props.length<3 ? `<button class="addcard" id="addProp">+ Ajouter une proposition<br><span class="note">(3 maximum)</span></button>` : '');
+}
+function footHTML(r){
+  return `<div>Prix total<b>${eur(r.total)}</b></div><div>Rég. obligatoire<b>${eur(r.ss)}</b></div><div>Mutuelle (estim.)<b>${eur(r.amc)}</b></div><div class="rac">Reste à charge<b>${eur(r.rac)}</b></div>`;
+}
+
+/* =========================================================
+   ÉCRAN 2 : comparatif
+   ========================================================= */
+function badges(){
+  // économique = RAC le plus bas ; complète = le plus d'options/prix le plus haut ; équilibre = autre
+  const rs = state.props.map(p => ({p, r:compute(p)}));
+  const byRac = [...rs].sort((a,b)=>a.r.rac-b.r.rac);
+  const byTot = [...rs].sort((a,b)=>b.r.total-a.r.total);
+  const out = new Map();
+  out.set(byRac[0].p.id, {t:'La solution la plus économique', col:SLOT_COLORS[0]});
+  if (byTot[0].p.id !== byRac[0].p.id) out.set(byTot[0].p.id, {t:'Le confort d\'écoute le plus complet', col:SLOT_COLORS[2]});
+  rs.forEach(x => { if (!out.has(x.p.id)) out.set(x.p.id, {t:'Le meilleur équilibre prix / confort', col:SLOT_COLORS[1]}); });
+  return out;
+}
+function orderedProps(){ // ordre d'affichage : du moins cher au plus cher (reste à charge)
+  return [...state.props].sort((a,b)=>compute(a).rac-compute(b).rac);
+}
+function optRow(p, key, v, n){
+  const ch = findChoice(key, v), ok = available(p,key,ch);
+  const on = ok && (OPTIONS[key].type==='radio' ? p[key]===v : p[key].includes(v));
+  const incl = on && (ch.p===0 || (key==='alim' && dev(p).rech==='inclus'));
+  const val = !ok ? 'non concerné' : !on ? '—' : incl ? 'inclus' : eur(ch.ear?ch.p*n:ch.p);
+  return {html:`<div class="row ${on?'':'off'}"><span class="ico ${on?(incl?'inc':'yes'):'no'}">${on?'✓':'–'}</span><span class="lab">${ch.l}</span><span class="val">${val}</span></div>`, cmp:on?'1':'0'};
+}
+function buildRows(list){
+  const n = state.ears, bmap = badges();
+  const rows = [];
+  const R = (key, fn, diffable=false, cls='') => rows.push({key, diffable, cls, cells:list.map(fn)});
+
+  R('head', p => { const b=bmap.get(p.id); const ch = state.chosen===p.id;
+    return {html:`<div class="ptitle"><h3>${propName(p)}</h3>${ch?'<span class="chosen-flag">✓ Retenue</span>':''}</div><div class="badge" style="--cs:${b.col.cs};--ci:${b.col.ci}">${b.t}</div>`};}, false,'top');
+  R('price', p => { const r=compute(p);
+    return {html:`<div class="prices"><div class="tot">Prix total<b>${eur(r.total)}</b></div>
+      <div class="rac">Votre reste à charge<span class="big">${eur(r.rac)}</span>
+      <div class="pec"><span>Régime obligatoire</span><b>${eur(r.ss)}</b><span>Prise en charge mutuelle</span><b>${eur(r.amc)}</b></div></div></div>`};});
+  R('pay', p => { const r=compute(p), N=state.payN;
+    return {html:`<div class="payline">${N===1?'Paiement <b>comptant</b>':`soit <b>${N} x</b> <em>${eur(Math.round(r.rac/N*100)/100)}</em> / mois`}${r.rac===0?' · <b>0 € à régler</b>':''}</div>`};});
+  R('cta', p => ({html:`<div class="cta"><button class="btn ${state.chosen===p.id?'green':'primary'}" data-choose="${p.id}">${state.chosen===p.id?'✓ Proposition retenue':'Choisir cette proposition ›'}</button></div>`}));
+  R('tags', p => { const d=dev(p); const t=[];
+    if (d.classe==='I') t.push('100 % Santé'); if (p.alim==='rech') t.push('Rechargeable'); if (d.bt) t.push('Bluetooth');
+    if (p.acc.includes('tv')) t.push('TV sans fil'); if (p.garantie==='pvc') t.push('Perte / vol / casse');
+    return {html:`<div class="tags">${t.map(x=>`<span class="tag">${x}</span>`).join('')}</div>`};});
+
+  R('s-dev', () => ({html:`<div class="sect">Appareil${n>1?'s (× 2)':''}</div>`}));
+  R('dev', p => { const d=dev(p);
+    return {html:`<div class="devrow"><span class="devthumb">${d.type==='Intra'?ICON_INTRA:ICON_EAR}</span><span class="lab"><b>${d.marque} – ${d.modele}</b><small>${d.type} ${d.sous} · gamme ${d.gamme}</small></span><span class="val">${eur(d.prix)}<small style="display:block;font-weight:400;color:var(--ink-3);font-size:11px;text-align:right">/ appareil</small></span></div>`, cmp:d.id};}, true);
+  const plain = (key,label,fn) => R(key, p => { const v = fn(p, dev(p)); return {html:`<div class="row"><span class="lab"><small>${label}</small></span><span class="val">${v}</span></div>`, cmp:v}; }, true);
+  plain('classe','Classe', (p,d)=> d.classe==='I' ? '<span class="tag cl1">Classe I · 100 % Santé</span>' : '<span class="tag cl2">Classe II</span>');
+  plain('type','Type', (p,d)=> d.type==='Intra' ? 'Intra-auriculaire' : "Contour d'oreille");
+  plain('canaux','Canaux de traitement', (p,d)=> d.canaux);
+  plain('bruit','Réduction de bruit', (p,d)=> d.bruit);
+  plain('bt','Connexion smartphone / TV', (p,d)=> d.bt ? 'Bluetooth direct' : 'Via accessoire');
+
+  R('s-opt', () => ({html:`<div class="sect">Options et services</div>`}));
+  ['alim','chargeur','garantie'].forEach(k => {
+    R(k, p => { const ch=findChoice(k,p[k]), ok=available(p,k,ch); const incl = ch.p===0 || (k==='alim'&&dev(p).rech==='inclus');
+      const val = !ok ? '—' : incl ? (ch.note||'inclus') : eur(ch.ear?ch.p*n:ch.p);
+      return {html:`<div class="row ${ok?'':'off'}"><span class="ico ${ok?(incl?'inc':'yes'):'no'}">${ok?'✓':'–'}</span><span class="lab"><small>${OPTIONS[k].label}</small>${ok?ch.l:'Non concerné'}</span><span class="val">${val}</span></div>`, cmp:ok?ch.v:'x'}; }, true);
+  });
+  R('s-acc', () => ({html:`<div class="sect">Accessoires</div>`}));
+  OPTIONS.acc.choices.forEach(ch => R('acc-'+ch.v, p => optRow(p,'acc',ch.v,n), true));
+  R('s-aut', () => ({html:`<div class="sect">Autres options</div>`}));
+  OPTIONS.autres.choices.forEach(ch => R('aut-'+ch.v, p => optRow(p,'autres',ch.v,n), true));
+  R('suivi', () => ({html:`<div class="row"><span class="ico inc">✓</span><span class="lab">Suivi, contrôles et réglages<small>pendant toute la durée de vie de l'appareil</small></span><span class="val">inclus</span></div>`, cmp:'1'}), true);
+  R('essai', () => ({html:`<div class="row"><span class="ico inc">✓</span><span class="lab">Essai à domicile avant achat</span><span class="val">30 jours</span></div>`, cmp:'1'}), true);
+
+  R('detail', p => { const r=compute(p);
+    return {html:`<button class="detail-t" data-detail><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 6l6 6-6 6"/></svg>Voir le détail du prix</button>
+      <div class="detail"><table>${r.lines.map(x=>`<tr><td>${x.l}${x.cov?'':' <span class="note">(non pris en charge)</span>'}</td><td>${eur(x.a)}</td></tr>`).join('')}
+      <tr class="sum"><td>Prix total TTC</td><td>${eur(r.total)}</td></tr>
+      <tr class="neg"><td>– Régime obligatoire</td><td>${eur(r.ss)}</td></tr>
+      <tr class="neg"><td>– Mutuelle (estimation)</td><td>${eur(r.amc)}</td></tr>
+      <tr class="sum"><td>Reste à charge</td><td>${eur(r.rac)}</td></tr></table></div>`};}, false, 'bot');
+  return rows;
+}
+function renderCompare(){
+  const list = orderedProps(), bmap = badges();
+  const cmp = $('#cmp');
+  const colW = list.length===2 ? 'minmax(260px,400px)' : 'minmax(250px,1fr)';
+  cmp.style.gridTemplateColumns = `repeat(${list.length}, ${colW})`;
+  cmp.style.setProperty('--n', list.length);
+  cmp.className = 'cmp' + (state.detailOpen ? ' detail-open' : '');
+  let rows = buildRows(list).map(row => {
+    const vals = row.cells.map(c=>c.cmp);
+    return {...row, same: row.diffable && vals.every(v=>v===vals[0])};
+  });
+  if (state.diffOnly) {
+    rows = rows.filter(r => !r.same);
+    // retire les titres de section devenus vides
+    rows = rows.filter((r,i) => !r.key.startsWith('s-') || (rows[i+1] && rows[i+1].diffable));
+  }
+  let html = '';
+  rows.forEach(row => {
+    row.cells.forEach((c,i) => {
+      const p = list[i], col = bmap.get(p.id).col;
+      html += `<div class="cell ${row.cls} ${state.chosen===p.id?'chosen':''}" style="--c:${col.c};--cs:${col.cs};--ci:${col.ci}">${c.html}</div>`;
+    });
+  });
+  cmp.innerHTML = html;
+  // bandeau proposition retenue
+  const ret = $('#retained');
+  const ch = state.props.find(p=>p.id===state.chosen);
+  ret.classList.toggle('show', !!ch);
+  if (ch) { const r=compute(ch); ret.innerHTML = `<b>✓ ${propName(ch)} retenue</b> — ${dev(ch).marque} ${dev(ch).modele} · reste à charge ${eur(r.rac)}<span class="sp"></span>
+    <button class="btn sm" id="btnDevis">Générer le devis normalisé</button><button class="btn sm primary" data-goto="3">Envoyer la confirmation</button><button class="btn sm ghost" id="btnUnchoose">Annuler</button>`; }
+  $('#printDate').textContent = new Date().toLocaleDateString('fr-FR');
+}
+
+/* =========================================================
+   ÉCRAN 3 : email
+   ========================================================= */
+const TEMPLATES = {
+  props:{subj:'Vos propositions d\'appareillage auditif – {magasin}', body:
+`Bonjour {civ} {nom},
+
+Suite à notre rendez-vous, vous trouverez ci-dessous le récapitulatif des propositions d'appareillage que nous avons étudiées ensemble :
+
+{propositions}
+
+Le comparatif détaillé et les devis normalisés sont joints à ce message. Les montants de prise en charge mutuelle sont des estimations, que nous confirmerons dès réception de l'accord de votre complémentaire.
+
+Vous pouvez essayer l'appareil de votre choix pendant 30 jours avant de vous décider. N'hésitez pas à me contacter pour toute question ou pour fixer votre rendez-vous d'adaptation.
+
+Bien cordialement,
+{audio}
+{magasin} – {tel}`},
+  choix:{subj:'Confirmation de votre appareillage auditif – {magasin}', body:
+`Bonjour {civ} {nom},
+
+Merci pour votre confiance. Vous avez retenu la proposition suivante :
+
+{propositions}
+
+Vous trouverez en pièces jointes vos documents ainsi que la documentation de vos appareils. Nous vous attendons pour la remise et les premiers réglages ; pensez à apporter vos questions sur l'utilisation au quotidien.
+
+Bien cordialement,
+{audio}
+{magasin} – {tel}`},
+  relance:{subj:'Votre projet d\'appareillage auditif – {magasin}', body:
+`Bonjour {civ} {nom},
+
+Il y a quelques jours, nous avons étudié ensemble plusieurs solutions pour améliorer votre audition. Pour rappel :
+
+{propositions}
+
+Souhaitez-vous démarrer votre essai gratuit de 30 jours ? Je reste à votre disposition pour en parler ou revoir une proposition.
+
+Bien cordialement,
+{audio}
+{magasin} – {tel}`},
+};
+function mailProps(){
+  if (state.mail.tpl==='choix' && state.chosen) return state.props.filter(p=>p.id===state.chosen);
+  return orderedProps();
+}
+function propsText(){
+  return mailProps().map(p => { const d=dev(p), r=compute(p);
+    return `• ${propName(p)} : ${d.marque} ${d.modele} (classe ${d.classe}, ${d.type.toLowerCase()}${p.alim==='rech'?', rechargeable':''})
+   Prix total ${eur(r.total)} – reste à charge estimé ${eur(r.rac)}`; }).join('\n');
+}
+function fill(s){
+  return s.replace(/\{civ\}/g,CLIENT.civ).replace(/\{prenom\}/g,CLIENT.prenom).replace(/\{nom\}/g,CLIENT.nom.charAt(0)+CLIENT.nom.slice(1).toLowerCase())
+    .replace(/\{magasin\}/g,MAGASIN.nom).replace(/\{audio\}/g,MAGASIN.audio).replace(/\{tel\}/g,MAGASIN.tel).replace(/\{propositions\}/g,propsText());
+}
+function applyTemplate(force){
+  if (state.mail.edited && !force) return;
+  const t = TEMPLATES[state.mail.tpl];
+  $('#mSubj').value = fill(t.subj);
+  $('#mBody').value = fill(t.body);
+  state.mail.edited = false;
+}
+function attachments(){
+  const chosen = !!state.chosen;
+  const devs = [...new Map(mailProps().map(p=>[dev(p).id,dev(p)])).values()];
+  return [
+    {g:'Documents du dossier', items:[
+      {id:'cmp', l:'Comparatif des propositions', s:'PDF · 1 page', def:true},
+      {id:'devis', l:'Devis normalisé'+(mailProps().length>1?'s ('+mailProps().length+')':''), s:'PDF · obligatoire avant vente', def:true},
+      {id:'fact', l:'Facture', s: chosen?'PDF · générée à la vente':'Disponible après la vente', dis:!chosen, def:false},
+      {id:'quit', l:'Quittance', s: chosen?'PDF · après encaissement':'Disponible après la vente', dis:!chosen, def:false},
+    ]},
+    {g:'Documentation des appareils', items: devs.flatMap(d => [
+      {id:'ft-'+d.id, l:`Fiche technique – ${d.marque} ${d.modele}`, s:'PDF · 2 pages', def:true},
+      {id:'nt-'+d.id, l:`Notice d'utilisation – ${d.modele}`, s:'PDF · 24 pages', def:false},
+    ])},
+    {g:'Supports Atol', items:[
+      {id:'fly1', l:'Flyer « Bien entendre avec Atol »', s:'PDF · 1 page', def:true, img:true},
+      {id:'fly2', l:'Flyer accessoires connectés', s:'PDF · 1 page', def:false, img:true},
+      {id:'fly3', l:'Guide d\'entretien de vos appareils', s:'PDF · 4 pages', def:false, img:true},
+      {id:'fly4', l:'Informations 100 % Santé audition', s:'PDF · 2 pages', def:false, img:true},
+    ]},
+  ];
+}
+function renderAtt(){
+  const groups = attachments();
+  groups.forEach(g=>g.items.forEach(it=>{ if(!(it.id in state.mail.att)) state.mail.att[it.id]=it.def; if(it.dis) state.mail.att[it.id]=false; }));
+  $('#attList').innerHTML = groups.map(g => `<div class="att-group"><h4>${g.g}</h4>${g.items.map(it =>
+    `<label class="att ${it.dis?'disabled':''}"><input type="checkbox" data-att="${it.id}" ${state.mail.att[it.id]?'checked':''} ${it.dis?'disabled':''}><span class="fi ${it.img?'img':''}">PDF</span><span class="nm">${it.l}<small>${it.s}</small></span></label>`).join('')}</div>`).join('');
+}
+function docLinks(){
+  const devs = [...new Map(mailProps().map(p=>[dev(p).id,dev(p)])).values()];
+  return devs.map(d => { const slug = d.modele.toLowerCase().replace(/[^a-z0-9]+/g,'-');
+    const host = 'docs.' + d.marque.toLowerCase().replace(' ','-') + '.exemple';
+    return {d, links:[
+      {l:'Fiche produit', u:`https://${host}/${slug}`},
+      {l:'Notice', u:`https://${host}/${slug}/notice.pdf`},
+      {l:'Vidéos de prise en main', u:`https://${host}/${slug}/videos`},
+      ...(d.bt?[{l:'Application & appairage', u:`https://${host}/${slug}/app`}]:[]),
+    ]}; });
+}
+function renderLinks(){
+  const L = docLinks();
+  $('#linksBlock').innerHTML = `<div class="links"><div class="lh">Documentation de vos appareils<span class="sp"></span><span class="note">${L.length} appareil(s)</span></div>${L.map(x =>
+    `<div class="li"><b>${x.d.marque} – ${x.d.modele}</b>${x.links.map(k=>`<a href="#" title="${k.u}" onclick="return false">↗ ${k.l}</a>`).join('')}</div>`).join('')}</div>
+    <p class="note" style="margin:8px 0 0">Liens issus du catalogue fournisseur (adresses fictives). ${state.mail.tpl==='choix'&&state.chosen?'Limités à l\'appareil retenu.':'Tous les appareils proposés.'}</p>`;
+}
+function renderPreview(){
+  const sel = attachments().flatMap(g=>g.items).filter(it=>state.mail.att[it.id]);
+  const L = $('#incLinks').checked ? docLinks() : [];
+  $('#preview').innerHTML = `<div class="ph"><div><b>De :</b> ${esc(MAGASIN.nom)} &lt;audition.0412@atol.exemple&gt;</div><div><b>À :</b> ${esc($('#mTo').value)}${$('#mCc').value?' · <b>Cc :</b> '+esc($('#mCc').value):''}</div><div><b>Objet :</b> ${esc($('#mSubj').value)}</div></div>
+    <div class="pmark">atol<small>les opticiens · audition</small></div>
+    <div class="pb">${esc($('#mBody').value)}</div>
+    ${L.length?`<div style="padding:0 18px 14px"><div class="links"><div class="lh">📘 Documentation de vos appareils</div>${L.map(x=>`<div class="li"><b>${x.d.marque} – ${x.d.modele}</b>${x.links.map(k=>`<a href="#" onclick="return false">${k.l}</a>`).join('')}</div>`).join('')}</div></div>`:''}
+    <div class="patt">${sel.map(it=>`<span class="tag">📎 ${esc(it.l)}</span>`).join('') || '<span class="note">Aucune pièce jointe</span>'}</div>
+    <div class="pfoot">${esc(MAGASIN.nom)} · ${MAGASIN.tel} · Vous recevez cet email suite à votre rendez-vous en magasin.</div>`;
+}
+function renderMail(){
+  $('#mTpl').value = state.mail.tpl;
+  applyTemplate(false);
+  renderAtt(); renderLinks(); renderPreview();
+}
+
+/* =========================================================
+   Barre du bas + navigation
+   ========================================================= */
+function renderBottom(){
+  const b = $('#bottombar');
+  if (state.step===1) {
+    const s = orderedProps().map(p=>`${propName(p)} : <b>${eur(compute(p).rac)}</b>`).join(' · ');
+    b.innerHTML = `<span class="info">Reste à charge – ${s}</span><button class="btn primary" data-goto="2">Présenter au client ›</button>`;
+  } else if (state.step===2) {
+    b.innerHTML = `<span class="info">Astuce : activez « Afficher uniquement les différences » pour simplifier l'échange.</span><button class="btn" data-goto="1">‹ Modifier</button><button class="btn" id="btnPrint2">Imprimer</button><button class="btn primary" data-goto="3">Envoyer par email ›</button>`;
+  } else {
+    const n = attachments().flatMap(g=>g.items).filter(it=>state.mail.att[it.id]).length;
+    b.innerHTML = `<span class="info">${n} pièce(s) jointe(s) · envoi tracé dans le dossier client</span><button class="btn" data-goto="2">‹ Comparatif</button><button class="btn primary" id="btnSend">Envoyer l'email</button>`;
+  }
+}
+function go(step){
+  state.step = step;
+  $$('.step').forEach(s => { const n=+s.dataset.step; s.setAttribute('aria-selected', n===step); s.classList.toggle('done', n<step); });
+  $$('.view').forEach(v => v.classList.toggle('active', v.id==='v'+step));
+  render();
+  window.scrollTo({top:0});
+}
+function render(){
+  $$('.clientName').forEach(e=>e.textContent = `${CLIENT.civ} ${CLIENT.prenom} ${CLIENT.nom}`);
+  if (state.step===1) renderCompose();
+  if (state.step===2) renderCompare();
+  if (state.step===3) renderMail();
+  renderBottom();
+}
+function refreshCompose(pid){
+  // re-rendu complet (léger) puis petit flash sur le pied de la carte modifiée
+  renderCompose(); renderBottom();
+  const f = $('#foot'+pid); if (f) { f.classList.remove('flash'); void f.offsetWidth; f.classList.add('flash'); }
+}
+
+/* =========================================================
+   Événements
+   ========================================================= */
+document.addEventListener('click', e => {
+  const t = e.target.closest('button, [data-goto]'); if (!t) return;
+  if (t.dataset.goto) return go(+t.dataset.goto);
+  if (t.classList.contains('step')) return go(+t.dataset.step);
+
+  if (t.classList.contains('chip')) {
+    const p = state.props.find(x=>x.id==t.dataset.pid), key=t.dataset.key, v=t.dataset.v;
+    if (OPTIONS[key].type==='radio') p[key]=v;
+    else p[key] = p[key].includes(v) ? p[key].filter(x=>x!==v) : [...p[key], v];
+    normalize(p); return refreshCompose(p.id);
+  }
+  if (t.dataset.dup) {
+    const src = state.props.find(x=>x.id==t.dataset.dup);
+    state.props.push(JSON.parse(JSON.stringify({...src, id:++uid}))); state.mail.edited=false; return render();
+  }
+  if (t.dataset.del) {
+    state.props = state.props.filter(x=>x.id!=t.dataset.del);
+    if (state.chosen==t.dataset.del) state.chosen=null; state.mail.edited=false; return render();
+  }
+  if (t.id==='addProp') { state.props.push({id:++uid, dev:'A1', alim:'pile', chargeur:'std', garantie:'4', acc:[], autres:[]}); state.mail.edited=false; return render(); }
+
+  if (t.dataset.choose) {
+    const id = +t.dataset.choose;
+    state.chosen = state.chosen===id ? null : id;
+    state.mail.tpl = state.chosen ? 'choix' : 'props'; state.mail.edited=false;
+    renderCompare(); renderBottom();
+    if (state.chosen) toast(`${propName(state.props.find(p=>p.id===id))} retenue – le modèle d'email de confirmation est prêt.`);
+    return;
+  }
+  if (t.id==='btnUnchoose') { state.chosen=null; state.mail.tpl='props'; state.mail.edited=false; return renderCompare(); }
+  if (t.id==='btnDevis') return toast('Devis normalisé généré et rattaché au dossier (simulation).');
+  if (t.hasAttribute('data-detail')) { state.detailOpen=!state.detailOpen; return renderCompare(); }
+  if (t.id==='btnPrint' || t.id==='btnPrint2') { if (state.step!==2) go(2); return setTimeout(()=>window.print(), 50); }
+
+  if (t.parentElement && t.parentElement.id==='payModes') {
+    state.payN = +t.dataset.n; $$('#payModes button').forEach(b=>b.setAttribute('aria-pressed', b===t)); return renderCompare();
+  }
+  if (t.dataset.v && t.closest('.vars')) {
+    const ta=$('#mBody'), s=ta.selectionStart, v=t.dataset.v;
+    ta.value = ta.value.slice(0,s)+v+ta.value.slice(ta.selectionEnd); ta.focus(); ta.selectionStart=ta.selectionEnd=s+v.length;
+    state.mail.edited=true; return renderPreview();
+  }
+  if (t.id==='mReset') { applyTemplate(true); return renderPreview(); }
+  if (t.id==='btnSend') {
+    const to = $('#mTo').value.trim();
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(to)) { $('#mTo').focus(); return toast('Adresse email du client invalide.'); }
+    const n = attachments().flatMap(g=>g.items).filter(it=>state.mail.att[it.id]).length;
+    state.mail.sent.unshift(`${new Date().toLocaleString('fr-FR',{dateStyle:'short',timeStyle:'short'})} – « ${$('#mSubj').value} » à ${to} (${n} PJ)`);
+    $('#hist').innerHTML = state.mail.sent.map(s=>`<li>${esc(s)}</li>`).join('');
+    return toast(`Email envoyé à ${to} (simulation) – tracé dans le dossier client.`);
+  }
+});
+document.addEventListener('change', e => {
+  const t = e.target;
+  if (t.classList.contains('dev')) { const p=state.props.find(x=>x.id==t.dataset.pid); p.dev=t.value; normalize(p); state.mail.edited=false; return refreshCompose(p.id); }
+  if (t.id==='diffOnly') { state.diffOnly=t.checked; return renderCompare(); }
+  if (t.id==='oreilles') { state.ears=+t.value; state.mail.edited=false; return render(); }
+  if (t.id==='mTpl') { state.mail.tpl=t.value; state.mail.edited=false; renderMail(); return renderBottom(); }
+  if (t.dataset.att) { state.mail.att[t.dataset.att]=t.checked; renderPreview(); return renderBottom(); }
+  if (t.id==='incLinks') return renderPreview();
+});
+document.addEventListener('input', e => {
+  const t = e.target;
+  if (t.id==='forfait') { state.forfait=Math.max(0,+t.value||0); state.mail.edited=false; return render(); }
+  if (['mBody','mSubj'].includes(t.id)) { state.mail.edited=true; return renderPreview(); }
+  if (['mTo','mCc'].includes(t.id)) return renderPreview();
+});
+
+state.props.forEach(normalize);
+go(1);
+</script>
+</body>
+</html>
