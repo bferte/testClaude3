@@ -1,33 +1,68 @@
 /*
- * Charte « Atol » — GABARIT À COMPLÉTER avec les valeurs officielles du kit de marque
- * (service marketing / centrale). Aucune valeur ci-dessous n'est officielle : chaque
- * ligne marquée À RENSEIGNER doit recevoir le code exact (hex) de la charte.
- *
- * Mise en service : copier ce fichier dans ../charte.css et déposer le logo officiel
- * sous ../logo.svg (ou logo.png en adaptant index.html).
+ * Charte Atol — reprise de l'artefact « AS3PRO · RA et Gestion des devis » (thème v15) :
+ * marine #133a6c / #1b2d51, bleu ciel #c4e2f9, bleu moyen #7eb1e0, bleu gris #90aed4,
+ * fond #eef2f6, crème #f7f5f2, typo Poppins, bandeau graphique sous l'en-tête,
+ * boutons en pilule, cartes arrondies 12 px. Charte claire uniquement (comme l'original).
  */
-
-/* Polices : si la charte impose une police maison, déclarer ses fichiers ici, ex. :
-@font-face { font-family: "PoliceMarque"; src: url("polices/marque-regular.woff2") format("woff2"); font-weight: 400; }
-@font-face { font-family: "PoliceMarque"; src: url("polices/marque-bold.woff2") format("woff2"); font-weight: 700; }
-*/
-
-:root {
-  /* --accent: #______;      À RENSEIGNER couleur principale de la marque          */
-  /* --accent-ink: #ffffff;  texte posé sur la couleur principale                  */
-  /* --ink: #______;         À RENSEIGNER couleur de texte                         */
-  /* --bg: #______;          À RENSEIGNER fond de page                             */
-  /* --panel: #ffffff;       fond des cartes                                       */
-  /* --line: #______;        filets                                                */
-  /* --frame: #______;       couleur des montures dans les schémas                 */
-  /* --ramp-0 / --ramp-1 / --ramp-2 : dégradé fin -> épais (garder un fort contraste) */
-  /* --font-display: "PoliceMarque", system-ui, sans-serif;                        */
-  /* --font-body: "PoliceMarque", system-ui, sans-serif;                           */
+:root, :root:not([data-theme="light"]), :root[data-theme="dark"] {
+  --bg: #eef2f6;
+  --panel: #ffffff;
+  --ink: #1b2d51;
+  --muted: #66727f;
+  --line: #dde5ee;
+  --accent: #133a6c;
+  --accent-ink: #ffffff;
+  --warn: #c8323c;
+  --good: #00754f;
+  --ramp-0: #eef6fd;   /* fin */
+  --ramp-1: #7eb1e0;
+  --ramp-2: #1f4f8c;   /* épais */
+  --frame: #1b2d51;
+  --sky: #c4e2f9;
+  --sky-2: #e8f3fc;
+  --cream: #f7f5f2;
+  --font-display: "Poppins", "Segoe UI", system-ui, sans-serif;
+  --font-body: "Poppins", "Segoe UI", system-ui, sans-serif;
+  --font-data: "Poppins", "Segoe UI", system-ui, sans-serif;
+  --band: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='600' height='14' viewBox='0 0 600 14' preserveAspectRatio='none'%3E%3Crect width='600' height='14' fill='%231b2d51'/%3E%3Crect width='55' height='14' fill='%2390aed4'/%3E%3Crect x='190' width='150' height='14' fill='%237eb1e0'/%3E%3Cpath d='M218 0h88l-6 14h-76z' fill='%231b2d51'/%3E%3Crect x='465' width='75' height='14' fill='%237eb1e0'/%3E%3Crect x='555' width='45' height='14' fill='%23c6e2f7'/%3E%3C/svg%3E");
+  color-scheme: light;
 }
+body { -webkit-font-smoothing: antialiased; font-size: 14px; }
+::selection { background: var(--sky); color: var(--ink); }
 
-/* Thème sombre : mêmes variables, déclinaison sombre si la charte en prévoit une. */
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    /* --accent: #______; --bg: #______; --panel: #______; --ink: #______; */
-  }
+/* En-tête : pastille, titre marine, bandeau graphique de la charte */
+header { position: relative; padding-bottom: 26px; align-items: center; }
+header::after {
+  content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 14px;
+  background: var(--band) repeat-x; background-size: 600px 14px; border-radius: 3px;
 }
+header h1 { color: var(--ink); font-weight: 700; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; }
+header h1::before {
+  content: "CE"; width: 44px; height: 44px; border-radius: 50%; background: #1b2d51; color: #fff;
+  display: grid; place-items: center; font-size: 15px; font-weight: 800; box-shadow: inset 0 -4px 0 #7eb1e0; flex: none;
+}
+header h1 small { flex-basis: 100%; font-weight: 400; }
+.tag { color: var(--ink); border: 1px solid var(--line); background: var(--panel); border-radius: 999px; padding: 5px 12px; font: 500 11px var(--font-body); }
+
+/* Cartes, champs, boutons */
+fieldset, .card { border-radius: 12px; border-color: var(--line); box-shadow: 0 1px 2px rgba(27, 45, 81, .04); }
+legend, h2 { color: var(--ink); font-weight: 600; letter-spacing: .04em; font-size: 11px; }
+input, select { border-radius: 10px; background: #fff; border-color: var(--line); font-weight: 500; }
+input:focus-visible, select:focus-visible, button:focus-visible { outline: none; border-color: #7eb1e0; box-shadow: 0 0 0 3px rgba(126, 177, 224, .3); }
+.btn { border-radius: 999px; background: var(--accent); color: #fff; border-color: var(--accent); font-weight: 600; padding: 7px 14px; }
+.btn:hover { background: #1b2d51; border-color: #1b2d51; color: #fff; }
+.outils3d .btn { background: #fff; color: var(--ink); border-color: #c9d6e3; }
+.outils3d .btn:hover { background: var(--sky-2); color: var(--ink); border-color: #7eb1e0; }
+.eye { color: var(--accent); font-weight: 700; }
+
+/* Phrase d'argumentaire : encart bleu ciel comme les cartes « taux » de la charte */
+.pitch { background: var(--sky); border-radius: 12px; padding: 14px 18px; color: var(--ink); font-weight: 600; }
+.pitch b { color: var(--accent); }
+
+/* Résumés par œil et tableau */
+.eyestats { border-top-color: #7eb1e0; }
+dd { font-weight: 600; }
+th { color: var(--muted); font-weight: 600; letter-spacing: .04em; }
+tr.sel td { background: var(--sky-2); }
+.details h3 { border-top-color: #7eb1e0; }
+#vue3d { background: var(--cream); }
