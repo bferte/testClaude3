@@ -94,6 +94,19 @@ figcaption b { color: var(--ink); }
 @media (max-width: 700px) { .details .oeil { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 .details figcaption { font: 12px/1.45 var(--font-data); color: var(--ink); }
 .details figcaption .ok { color: var(--good); }
+.formes-bloc { display: grid; gap: 6px; }
+.formes-bloc .lab { font-size: 13px; color: var(--muted); }
+.formes { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.forme-tuile {
+  display: grid; justify-items: center; gap: 2px; padding: 8px 4px 6px; cursor: pointer;
+  background: var(--panel); color: var(--ink); border: 1px solid var(--line); border-radius: 10px;
+  font: 500 11.5px/1.2 var(--font-body); text-align: center;
+}
+.forme-tuile svg { width: 56px; height: 40px; overflow: visible; }
+.forme-tuile path { fill: color-mix(in srgb, var(--accent) 10%, transparent); stroke: var(--frame); stroke-width: 2.2; stroke-linejoin: round; }
+.forme-tuile:hover { border-color: var(--ramp-1); }
+.forme-tuile[aria-checked="true"] { border: 2px solid var(--accent); padding: 7px 3px 5px; background: color-mix(in srgb, var(--accent) 8%, var(--panel)); font-weight: 700; }
+.forme-tuile[aria-checked="true"] path { fill: color-mix(in srgb, var(--accent) 22%, transparent); }
 .hint { font-size: 12px; color: var(--muted); margin: 0; }
 .file { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
 .btn { font: 700 13px var(--font-body); border: 1px solid var(--accent); color: var(--accent); background: transparent; border-radius: 4px; padding: 7px 10px; cursor: pointer; }
@@ -177,10 +190,12 @@ footer { font-size: 12px; color: var(--muted); max-width: 75ch; }
 
       <fieldset>
         <legend>Monture</legend>
-        <div class="grid2">
-          <label>Forme <select id="forme"></select></label>
-          <label>Montage <select id="montage"></select></label>
+        <div class="formes-bloc">
+          <span class="lab" id="formeLab">Forme</span>
+          <div class="formes" id="formes" role="radiogroup" aria-labelledby="formeLab"></div>
+          <select id="forme" hidden aria-hidden="true" tabindex="-1"></select>
         </div>
+        <label>Montage <select id="montage"></select></label>
         <div class="grid3">
           <label>Calibre A <input id="A" type="number" step="0.5" min="30" max="70" value="54"></label>
           <label>Hauteur B <input id="B" type="number" step="0.5" min="20" max="60" value="40"></label>
@@ -304,6 +319,43 @@ footer { font-size: 12px; color: var(--muted); max-width: 75ch; }
   $("materiau").value = "1.60";
   for (const [k, v] of Object.entries(E.FORMES)) $("forme").add(new Option(v, k));
   $("forme").value = "rectangle";
+
+  // Vignettes des formes (verre droit vu de face, côté nasal à droite), aux proportions A x B saisies.
+  function cheminForme(pts) {
+    const b = E.boite(pts);
+    const k = Math.min(52 / b.A, 36 / b.B);
+    return pts.map(([u, v], i) => `${i ? "L" : "M"}${(28 + u * k).toFixed(1)} ${(20 - v * k).toFixed(1)}`).join("") + "Z";
+  }
+  function dessinerFormes() {
+    const A = num("A") > 0 ? num("A") : 52, B = num("B") > 0 ? num("B") : 40;
+    const choix = $("forme").value;
+    const liste = [...$("forme").options].map((o) => [o.value, o.text]);
+    $("formes").innerHTML = liste.map(([k, nom]) => {
+      const pts = k === "trace" && trace ? trace.contour : E.contourForme(k, A, B, 72);
+      return `<button type="button" class="forme-tuile" role="radio" aria-checked="${k === choix}" data-forme="${k}" tabindex="${k === choix ? 0 : -1}">
+        <svg viewBox="0 0 56 40" aria-hidden="true"><path d="${cheminForme(pts)}"/></svg><span>${nom}</span></button>`;
+    }).join("");
+  }
+  function choisirForme(k) {
+    $("forme").value = k;
+    $("tagExemple").hidden = true;
+    dessinerFormes();
+    $("formes").querySelector(`[data-forme="${k}"]`)?.focus();
+    calculer();
+  }
+  $("formes").addEventListener("click", (e) => {
+    const b = e.target.closest("[data-forme]");
+    if (b) choisirForme(b.dataset.forme);
+  });
+  $("formes").addEventListener("keydown", (e) => {
+    const sens = { ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1 }[e.key];
+    if (!sens) return;
+    e.preventDefault();
+    const cles = [...$("forme").options].map((o) => o.value);
+    const i = cles.indexOf($("forme").value);
+    choisirForme(cles[(i + sens + cles.length) % cles.length]);
+  });
+  for (const id of ["A", "B"]) $(id).addEventListener("input", dessinerFormes);
   for (const [k, v] of Object.entries(E.MONTAGES)) $("montage").add(new Option(v.nom, k));
   $("montage").addEventListener("change", () => {
     $("eMin").value = E.MONTAGES[$("montage").value].eMin.toFixed(1);
@@ -331,6 +383,7 @@ footer { font-size: 12px; color: var(--muted); max-width: 75ch; }
       if (![...$("forme").options].some((o) => o.value === "trace")) $("forme").add(new Option("Tracé importé", "trace"));
       $("forme").value = "trace";
       $("A").value = t.A.toFixed(1); $("B").value = t.B.toFixed(1);
+      dessinerFormes();
       if (t.DBL) $("DBL").value = t.DBL;
       $("omaInfo").textContent = `Tracé « ${f.name} » : ${t.contour.length} points, A ${fmt(t.A)} × B ${fmt(t.B)} mm.`;
       calculer();
@@ -729,6 +782,7 @@ footer { font-size: 12px; color: var(--muted); max-width: 75ch; }
   mq.addEventListener?.("change", rendre);
   new MutationObserver(rendre).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
   if (document.fonts?.ready) document.fonts.ready.then(rendre);
+  dessinerFormes();
   calculer();
 })();
 </script>
