@@ -21,6 +21,10 @@ LIMITE_CARACTERES = 5000
 class ErreurElevenLabs(Exception):
     """Erreur renvoyée par l'API (clé invalide, quota dépassé, etc.)."""
 
+    def __init__(self, message: str, statut: int | None = None):
+        super().__init__(message)
+        self.statut = statut
+
 
 @dataclass
 class Voix:
@@ -39,6 +43,18 @@ class Voix:
 class Modele:
     id: str
     nom: str
+
+
+# Voix par défaut utilisables avec un compte gratuit (vérifié), proposées quand la clé n'a pas les permissions voices_read / models_read.
+VOIX_STANDARD = [Voix(i, n, "premade") for i, n in [
+    ("EXAVITQu4vr4xnSDxMaL", "Sarah"), ("JBFqnCBsd6RMkjVDRZzb", "George"),
+    ("Xb7hH8MSUJpSbSDYk0k2", "Alice"), ("pFZP5JQG7iQjIQuC4Bku", "Lily"),
+    ("XrExE9yKIg1WjnnlVkGX", "Matilda"), ("onwK4e9ZLuTAKqWW03F9", "Daniel"),
+    ("nPczCjzI2devNBz1zQrb", "Brian"), ("IKne3meq5aSn9XLyUdCD", "Charlie")]]
+MODELES_STANDARD = [Modele("eleven_multilingual_v2", "Eleven Multilingual v2"),
+                    Modele("eleven_v3", "Eleven v3"),
+                    Modele("eleven_flash_v2_5", "Eleven Flash v2.5"),
+                    Modele("eleven_turbo_v2_5", "Eleven Turbo v2.5")]
 
 
 def cle_par_defaut() -> str:
@@ -60,7 +76,7 @@ class ClientElevenLabs:
         except requests.RequestException as exc:
             raise ErreurElevenLabs(f"Impossible de joindre ElevenLabs : {exc}") from exc
         if not reponse.ok:
-            raise ErreurElevenLabs(_message_erreur(reponse))
+            raise ErreurElevenLabs(_message_erreur(reponse), reponse.status_code)
         return reponse
 
     # --------------------------------------------------------------- endpoints

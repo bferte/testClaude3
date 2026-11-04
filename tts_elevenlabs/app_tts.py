@@ -6,17 +6,30 @@ from datetime import datetime
 import streamlit as st
 
 from elevenlabs_client import (FORMATS_SORTIE, LIMITE_CARACTERES, ClientElevenLabs,
-                               ErreurElevenLabs, cle_par_defaut)
+                               ErreurElevenLabs, MODELES_STANDARD, VOIX_STANDARD,
+                               Voix, cle_par_defaut)
 
 st.set_page_config(page_title="Text to speech ElevenLabs", page_icon="🔊")
 etat = st.session_state
 etat.setdefault("historique", [])
 
 
+def _ou_liste_standard(appel, standard):
+    """Liste du compte, ou liste standard si la clé n'a pas la permission de lecture (401/403)."""
+    try:
+        return appel(), False
+    except ErreurElevenLabs as exc:
+        if exc.statut in (401, 403) and "permission" in str(exc).lower():
+            return list(standard), True
+        raise
+
+
 @st.cache_data(ttl=600, show_spinner=False)
 def charger_catalogue(cle: str):
     client = ClientElevenLabs(cle)
-    return client.voix(), client.modeles()
+    voix, voix_std = _ou_liste_standard(client.voix, VOIX_STANDARD)
+    modeles, modeles_std = _ou_liste_standard(client.modeles, MODELES_STANDARD)
+    return voix, modeles, voix_std or modeles_std
 
 
 # ----------------------------------------------------------------- Barre latérale
@@ -29,17 +42,24 @@ with st.sidebar:
         st.info("Saisissez votre clé API pour commencer.")
         st.stop()
     try:
-        voix, modeles = charger_catalogue(cle)
+        voix, modeles, listes_standard = charger_catalogue(cle)
     except ErreurElevenLabs as exc:
         st.error(str(exc))
         st.stop()
-    st.success(f"Connecté : {len(voix)} voix disponibles.")
+    if listes_standard:
+        st.info("Clé à permissions restreintes : voix et modèles standard proposés. "
+                "Ajoutez « Voices : read » à la clé pour voir les voix de votre compte.")
+    else:
+        st.success(f"Connecté : {len(voix)} voix disponibles.")
 
     st.header("Réglages")
     if not voix:
         st.warning("Aucune voix sur ce compte.")
         st.stop()
     voix_choisie = st.selectbox("Voix", voix, format_func=lambda v: v.libelle)
+    id_perso = st.text_input("…ou ID d'une autre voix", help="ID copié depuis la Voice Library d'ElevenLabs.")
+    if id_perso.strip():
+        voix_choisie = Voix(id_perso.strip(), id_perso.strip())
     ids_modeles = [m.id for m in modeles] or ["eleven_multilingual_v2"]
     noms_modeles = {m.id: m.nom for m in modeles}
     defaut = ids_modeles.index("eleven_multilingual_v2") if "eleven_multilingual_v2" in ids_modeles else 0

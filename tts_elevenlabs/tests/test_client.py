@@ -71,3 +71,10 @@ def test_erreur_reseau():
     session.request.side_effect = requests.ConnectionError("hors ligne")
     with pytest.raises(ErreurElevenLabs, match="joindre"):
         client.modeles()
+
+
+def test_statut_conserve_dans_l_erreur():
+    client, _ = client_avec(reponse(401, {"detail": {"message": "missing the permission voices_read"}}))
+    with pytest.raises(ErreurElevenLabs) as exc:
+        client.voix()
+    assert exc.value.statut == 401
