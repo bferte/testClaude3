@@ -127,3 +127,16 @@ test("cerclage : verre fin entièrement logé dans un cercle épais", () => {
   const d = E.debordCerclage(r, { profondeur: 5, biseauMode: "pct", biseau: 33 });
   assert.ok(d.devantMax.mm < 0 && d.derriereMax.mm < 0);
 });
+
+test("quatre bords : haut/bas/nasal/temporal cohérents avec les coupes", () => {
+  // Négatif décentré en nasal et vers le haut : temporal plus épais que nasal, bas plus épais que haut.
+  const r = verre({ sph: -5, A: 52, B: 40, forme: "rectangle", demiEcart: 30, hauteur: 23 });
+  const b = Object.fromEntries(E.quatreBords(r).map((x) => [x.nom, x]));
+  assert.ok(b.temporal.e > b.nasal.e);
+  assert.ok(b.bas.e > b.haut.e);
+  const v = E.coupe(r, "v");
+  assert.ok(Math.abs(v[0].arriere - v[0].avant - b.bas.e) < 1e-9);
+  // avec cerclage : débords calculés à chaque bord
+  const c = E.quatreBords(r, { profondeur: 4, biseauMode: "pct", biseau: 50 });
+  for (const x of c) assert.ok(Math.abs(x.devant - (x.e - 4) / 2) < 1e-9);
+});

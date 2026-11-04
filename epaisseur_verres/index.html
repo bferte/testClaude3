@@ -75,6 +75,17 @@ input:focus-visible, select:focus-visible, button:focus-visible { outline: 2px s
 label.check { display: flex; align-items: center; gap: 8px; color: var(--ink); font-size: 14px; }
 label.check input { width: auto; accent-color: var(--accent); }
 .sw { display: inline-block; width: 14px; height: 10px; border-radius: 2px; vertical-align: middle; }
+.coupes { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap: 14px 18px; }
+@media (max-width: 560px) { .coupes { grid-template-columns: minmax(0, 1fr); } }
+figure { margin: 0; display: grid; gap: 6px; min-width: 0; align-content: start; }
+figcaption { font-size: 13px; color: var(--muted); }
+figcaption b { color: var(--ink); }
+.details { display: grid; gap: 16px; }
+.details .oeil { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+.details h3 { margin: 0; grid-column: 1 / -1; font: 700 15px var(--font-display); border-top: 2px solid var(--accent); padding-top: 8px; }
+@media (max-width: 700px) { .details .oeil { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.details figcaption { font: 12px/1.45 var(--font-data); color: var(--ink); }
+.details figcaption .ok { color: var(--good); }
 .hint { font-size: 12px; color: var(--muted); margin: 0; }
 .file { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
 .btn { font: 700 13px var(--font-body); border: 1px solid var(--accent); color: var(--accent); background: transparent; border-radius: 4px; padding: 7px 10px; cursor: pointer; }
@@ -209,21 +220,26 @@ footer { font-size: 12px; color: var(--muted); max-width: 75ch; }
       </section>
 
       <section class="card" aria-labelledby="t2">
-        <h2 id="t2">Coupe horizontale par le centre optique</h2>
-        <canvas id="coupe" height="200" aria-label="Profil des verres en coupe horizontale"></canvas>
-        <p class="hint">Vue de dessus, face avant en haut. Épaisseurs exagérées ×3, courbures à l'échelle. Temporal à l'extérieur, nasal au centre.</p>
+        <h2 id="t2">Découpes du verre par le centre optique</h2>
+        <div class="coupes">
+          <figure><figcaption>OD · coupe horizontale, vue de dessus</figcaption><canvas id="cpODh"></canvas></figure>
+          <figure><figcaption>OD · coupe verticale, vue de profil</figcaption><canvas id="cpODv"></canvas></figure>
+          <figure><figcaption>OG · coupe horizontale, vue de dessus</figcaption><canvas id="cpOGh"></canvas></figure>
+          <figure><figcaption>OG · coupe verticale, vue de profil</figcaption><canvas id="cpOGv"></canvas></figure>
+        </div>
+        <p class="hint">Face avant du verre en haut (coupe horizontale) ou à gauche (coupe verticale). Épaisseurs exagérées ×3, courbures à l'échelle.<span class="avecCercl"> En gris : le cercle de la monture.</span></p>
       </section>
 
-      <section class="card" id="carteCercl" aria-labelledby="t4">
-        <h2 id="t4">Le verre dans le cercle, tour complet</h2>
-        <canvas id="cercl" height="240" aria-label="Bord du verre déroulé sur tout le contour, comparé au cercle de la monture"></canvas>
-        <div class="legend">
-          <span><span class="sw" id="swCercle"></span> cercle</span>
+      <section class="card" aria-labelledby="t4">
+        <h2 id="t4">Zoom sur le bord : haut, bas, nasal, temporal</h2>
+        <div id="details" class="details"></div>
+        <div class="legend avecCercl">
+          <span><span class="sw" id="swCercle"></span> cercle (rainure au milieu)</span>
           <span><span class="sw" id="swVerre"></span> verre logé</span>
-          <span><span class="sw" id="swDebord"></span> dépasse du cercle</span>
-          <span>· épaisseurs à l'échelle, contour déroulé depuis le côté nasal</span>
+          <span><span class="sw" id="swDebord"></span> verre qui dépasse</span>
         </div>
-        <p class="hint" id="cerclSug"></p>
+        <p class="hint">Bord du verre vu en tranche, à l'échelle réelle et à la même échelle pour les 8 zooms : face avant en haut, face arrière (côté œil) en bas, cercle à droite.</p>
+        <p class="hint avecCercl" id="cerclSug"></p>
       </section>
 
       <section class="card" aria-labelledby="t3">
@@ -402,136 +418,156 @@ footer { font-size: 12px; color: var(--muted); max-width: 75ch; }
     ctx.lineWidth = Math.max(2, 1.6 * k / 4); ctx.strokeStyle = c.frame; ctx.stroke();
   }
 
-  function dessinerCoupe(res, c) {
-    const cv = $("coupe");
-    const { A, DBL } = res.p;
+  const EXAG = 3;
+  const police = () => getComputedStyle(document.body).getPropertyValue("--font-data");
+
+  /**
+   * Une découpe d'un verre. sens 'h' : vue de dessus, face avant en haut, temporal/nasal aux
+   * extrémités (côté temporal à gauche pour l'OD comme sur la vue de face). sens 'v' : vue de
+   * profil, face avant à gauche, haut en haut. k = px par mm, commun à toutes les découpes.
+   */
+  function dessinerTranche(cv, r, sens, c, k, cercl) {
+    const pts = E.coupe(r, sens);
     const w = cv.clientWidth;
-    const exag = 3;
-    const coupes = [res.od, res.og].map((r) => ({ r, pts: E.coupeHorizontale(r) }));
-    // Courbure à l'échelle réelle, épaisseur exagérée : y = flèche avant + exag × épaisseur.
-    const yAvant = (p) => p.avant, yArriere = (p) => p.avant + exag * (p.arriere - p.avant);
+    if (!pts.length) { preparerCanvas(cv, 40); return; }
+    const D = cercl ? cercl.profondeur : 0, larg = 2.2;
+    // profondeur (z) : face avant = flèche réelle, épaisseur exagérée
+    const zA = (p) => p.avant, zR = (p) => p.avant + EXAG * (p.arriere - p.avant);
+    const bouts = [pts[0], pts[pts.length - 1]];
+    const rimZ = (p) => { const e = p.arriere - p.avant, b = E.positionBiseau(e, cercl); return [p.avant + EXAG * (b - D / 2), p.avant + EXAG * (b + D / 2)]; };
     let zMin = Infinity, zMax = -Infinity;
-    for (const { pts } of coupes) for (const p of pts) { zMin = Math.min(zMin, yAvant(p)); zMax = Math.max(zMax, yArriere(p)); }
-    const largeurMm = 2 * A + DBL + 12;
-    const k = w / largeurMm;
-    if (res.cercl) {
-      for (const { pts } of coupes) for (const p of [pts[0], pts[pts.length - 1]]) {
-        if (!p) continue;
-        const b = E.positionBiseau(p.arriere - p.avant, res.cercl), D = res.cercl.profondeur;
-        zMin = Math.min(zMin, p.avant + exag * (b - D / 2));
-        zMax = Math.max(zMax, p.avant + exag * (b + D / 2));
+    for (const p of pts) { zMin = Math.min(zMin, zA(p)); zMax = Math.max(zMax, zR(p)); }
+    if (cercl) for (const p of bouts) { const [a, b] = rimZ(p); zMin = Math.min(zMin, a); zMax = Math.max(zMax, b); }
+    const s0 = pts[0].s, s1 = pts[pts.length - 1].s, ext = cercl ? larg : 0;
+    const horiz = sens !== "v";
+    const inverse = horiz && r.oeil === "OG"; // OG : nasal à gauche, temporal à droite
+    const lab = 18;
+    let hauteur, P;
+    if (horiz) {
+      const kx = Math.min(k, (w - 4) / (s1 - s0 + 2 * ext));
+      hauteur = Math.round((zMax - zMin) * kx + 2 * lab + 8);
+      const x0 = (w - (s1 - s0) * kx) / 2;
+      P = (sv, z) => [inverse ? x0 + (s1 - sv) * kx : x0 + (sv - s0) * kx, lab + (z - zMin) * kx];
+      k = kx;
+    } else {
+      hauteur = Math.round((s1 - s0 + 2 * ext) * k + 2 * lab + 4);
+      const x0 = (w - (zMax - zMin) * k) / 2;
+      P = (sv, z) => [x0 + (z - zMin) * k, lab + (s1 + ext - sv) * k];
+    }
+    const { ctx } = preparerCanvas(cv, hauteur);
+    ctx.beginPath();
+    pts.forEach((p, i) => { const [x, y] = P(p.s, zA(p)); i ? ctx.lineTo(x, y) : ctx.moveTo(x, y); });
+    for (let i = pts.length - 1; i >= 0; i--) { const [x, y] = P(pts[i].s, zR(pts[i])); ctx.lineTo(x, y); }
+    ctx.closePath();
+    ctx.fillStyle = rampe(c, 0.35); ctx.globalAlpha = 0.9; ctx.fill(); ctx.globalAlpha = 1;
+    ctx.strokeStyle = c.ink; ctx.lineWidth = 1.2; ctx.stroke();
+    if (cercl) {
+      for (const [p, dir] of [[bouts[0], -1], [bouts[1], 1]]) {
+        const [za, zb] = rimZ(p);
+        const [xa, ya] = P(p.s - dir * 0.4, za), [xb, yb] = P(p.s + dir * larg, zb);
+        ctx.fillStyle = c.frame; ctx.globalAlpha = 0.8;
+        ctx.fillRect(Math.min(xa, xb), Math.min(ya, yb), Math.abs(xb - xa), Math.abs(yb - ya));
+        ctx.globalAlpha = 1;
       }
     }
-    const hauteur = Math.round((zMax - zMin) * k + 60);
-    const { ctx } = preparerCanvas(cv, hauteur);
-    const cx = w / 2;
-    const y0 = 26 - zMin * k;
-    ctx.font = `500 12px ${getComputedStyle(document.body).getPropertyValue("--font-data")}`;
-    for (const { r, pts } of coupes) {
-      if (!pts.length) continue;
-      const X = (u) => cx + (r.oeil === "OD" ? -(A + DBL) / 2 + u : (A + DBL) / 2 - u) * k;
-      ctx.beginPath();
-      pts.forEach((p, i) => { const x = X(p.u), y = y0 + yAvant(p) * k; i ? ctx.lineTo(x, y) : ctx.moveTo(x, y); });
-      for (let i = pts.length - 1; i >= 0; i--) ctx.lineTo(X(pts[i].u), y0 + yArriere(pts[i]) * k);
-      ctx.closePath();
-      ctx.fillStyle = rampe(c, 0.35); ctx.globalAlpha = 0.85; ctx.fill(); ctx.globalAlpha = 1;
-      ctx.strokeStyle = c.ink; ctx.lineWidth = 1.2; ctx.stroke();
-      const etiquette = (p, alignDroite) => {
-        const e = p.arriere - p.avant;
-        const x = X(p.u), y = y0 + yArriere(p) * k + 16;
-        ctx.fillStyle = c.ink; ctx.textAlign = alignDroite ? "right" : "left";
-        ctx.fillText(fmt(e), Math.min(w - 2, Math.max(2, x)), Math.min(hauteur - 4, y));
-      };
-      const gauche = r.oeil === "OD" ? pts[0] : pts[pts.length - 1];
-      const droite = r.oeil === "OD" ? pts[pts.length - 1] : pts[0];
-      etiquette(gauche, false); etiquette(droite, true);
-      if (res.cercl) {
-        // Cercle de la monture au bord du verre (même exagération ×3 dans la profondeur).
-        const D = res.cercl.profondeur, larg = 2.2 * k;
-        for (const [p, versExt] of [[gauche, -1], [droite, 1]]) {
-          const e = p.arriere - p.avant;
-          const b = E.positionBiseau(e, res.cercl);
-          const x = X(p.u);
-          const yH = y0 + (p.avant + exag * (b - D / 2)) * k, yB = y0 + (p.avant + exag * (b + D / 2)) * k;
-          ctx.fillStyle = c.frame; ctx.globalAlpha = 0.75;
-          ctx.fillRect(versExt < 0 ? x - larg : x - 0.5 * k, yH, larg + 0.5 * k, yB - yH);
-          ctx.globalAlpha = 1;
-        }
+    // étiquettes des extrémités
+    ctx.font = `500 12px ${police()}`; ctx.fillStyle = c.ink;
+    const noms = horiz ? ["temporal", "nasal"] : ["bas", "haut"];
+    bouts.forEach((p, i) => {
+      const txt = `${noms[i]} ${fmt(p.arriere - p.avant)} mm`;
+      if (horiz) {
+        const gauche = (i === 0) !== inverse;
+        const xb = P(p.s, 0)[0], tw = ctx.measureText(txt).width;
+        const x = gauche ? Math.max(2, xb - 10) : Math.min(w - 2, xb + 10);
+        ctx.textAlign = gauche ? "left" : "right";
+        ctx.fillText(txt, gauche ? Math.min(x, w / 2 - tw - 4) : Math.max(x, w / 2 + tw + 4), hauteur - 5);
+      } else {
+        ctx.textAlign = "center";
+        ctx.fillText(txt, w / 2, i === 0 ? hauteur - 4 : 13);
       }
-      ctx.textAlign = "center"; ctx.fillStyle = c.muted;
-      ctx.fillText(`${r.oeil} centre ${fmt(r.centre)}`, X(r.decentrement.horizontal), 16);
+    });
+    ctx.textAlign = "left";
+    if (horiz) {
+      const [xc] = P(pts[Math.round(pts.length / 2)].s, 0);
+      ctx.fillStyle = c.muted; ctx.textAlign = "center";
+      ctx.fillText(`centre ${fmt(r.centre)} mm`, Math.min(w - 60, Math.max(60, xc)), 13);
       ctx.textAlign = "left";
     }
   }
 
-  function dessinerCerclage(res, c) {
-    const cv = $("cercl");
-    const w = cv.clientWidth;
-    const D = res.cercl.profondeur;
-    const verres = [res.od, res.og];
-    let haut = -D / 2, bas = D / 2;
-    for (const r of verres) for (const p of r.cercl.points) { haut = Math.min(haut, -p.biseau); bas = Math.max(bas, p.e - p.biseau); }
-    const marge = 46, gaucheTxt = 64, droiteTxt = 6, plotW = w - gaucheTxt - droiteTxt;
-    const s = Math.min(16, 150 / (bas - haut)); // px par mm, épaisseurs à l'échelle commune OD/OG
-    const hPanneau = (bas - haut) * s + marge;
-    const { ctx } = preparerCanvas(cv, Math.round(hPanneau * 2 + 8));
-    const police = getComputedStyle(document.body).getPropertyValue("--font-data");
-    ctx.font = `500 11px ${police}`;
-    verres.forEach((r, k) => {
-      const y0 = k * (hPanneau + 8) + 18 - haut * s; // y écran de la rainure (milieu du cercle)
-      const pts = r.cercl.points, n = pts.length;
-      const X = (i) => gaucheTxt + (plotW * i) / n;
-      const Y = (z) => y0 + z * s;
-      // cercle
-      ctx.fillStyle = c.frame; ctx.globalAlpha = 0.16;
-      ctx.fillRect(X(0), Y(-D / 2), plotW, D * s); ctx.globalAlpha = 1;
-      ctx.strokeStyle = c.frame; ctx.lineWidth = 1.2;
-      ctx.beginPath(); ctx.moveTo(X(0), Y(-D / 2)); ctx.lineTo(X(n), Y(-D / 2)); ctx.moveTo(X(0), Y(D / 2)); ctx.lineTo(X(n), Y(D / 2)); ctx.stroke();
-      // verre
-      const chemin = () => {
+  function dessinerCoupes(res, c) {
+    const ext = res.cercl ? 4.4 : 0;
+    const kRef = Math.min(
+      Math.min(...["cpODh", "cpOGh"].map((id) => $(id).clientWidth)) / (res.p.A + ext + 2),
+      230 / (res.p.B + ext)); // même échelle pour les 4 découpes, hauteur raisonnable
+    for (const r of [res.od, res.og]) {
+      dessinerTranche($("cp" + r.oeil + "h"), r, "h", c, kRef, res.cercl);
+      dessinerTranche($("cp" + r.oeil + "v"), r, "v", c, kRef, res.cercl);
+    }
+  }
+
+  /** Zooms du bord (haut, bas, nasal, temporal) pour les deux yeux, à une échelle commune. */
+  function dessinerDetails(res, c) {
+    const cercl = res.cercl;
+    const yeux = [res.od, res.og].map((r) => ({ r, bords: E.quatreBords(r, cercl) }));
+    const libelle = { haut: "Haut", bas: "Bas", nasal: "Nasal", temporal: "Temporal" };
+    const txtDebord = (mm, cote) => mm > 0.05
+      ? `${cote} : <span class="loss">dépasse ${fmt(mm)} mm</span>`
+      : `${cote} : <span class="ok">${mm > -0.05 ? "affleure" : "logé, retrait " + fmt(-mm) + " mm"}</span>`;
+    $("details").innerHTML = yeux.map(({ r, bords }) => `<div class="oeil"><h3>${r.oeil}</h3>${bords.map((b) => `
+      <figure><canvas data-oeil="${r.oeil}" data-bord="${b.nom}"></canvas>
+      <figcaption><b>${libelle[b.nom]}</b> · bord ${fmt(b.e)} mm${cercl ? `<br>${txtDebord(b.devant, "devant")}<br>${txtDebord(b.derriere, "derrière")}` : ""}</figcaption></figure>`).join("")}</div>`).join("");
+    // échelle commune : sommet du biseau (ou milieu du bord) aligné à la même hauteur
+    const centreZ = (b) => (cercl ? b.biseau : b.e / 2);
+    let haut = 0, bas = 0;
+    for (const { bords } of yeux) for (const b of bords) {
+      haut = Math.max(haut, centreZ(b), cercl ? b.profondeur / 2 : 0);
+      bas = Math.max(bas, b.e - centreZ(b), cercl ? b.profondeur / 2 : 0);
+    }
+    const cvs = [...$("details").querySelectorAll("canvas")];
+    const wCell = Math.min(...cvs.map((cv) => cv.clientWidth));
+    const sc = Math.min(24, 150 / (haut + bas), wCell / 7); // px par mm
+    const hauteur = Math.round((haut + bas) * sc + 16);
+    for (const cv of cvs) {
+      const r = cv.dataset.oeil === "OD" ? res.od : res.og;
+      const b = yeux.find((y) => y.r === r).bords.find((x) => x.nom === cv.dataset.bord);
+      const { ctx, w } = preparerCanvas(cv, hauteur);
+      const yG = 8 + haut * sc;                       // y du sommet du biseau
+      const Y = (z) => yG + (z - centreZ(b)) * sc;    // z : profondeur depuis la face avant du bord
+      const xTip = cercl ? w - 3 * sc : w - 6;        // pointe du biseau
+      const bev = 0.8 * sc;
+      const tipZ = cercl ? b.biseau : b.e / 2;
+      const verre = () => {
         ctx.beginPath();
-        for (let i = 0; i <= n; i++) { const p = pts[i % n]; i ? ctx.lineTo(X(i), Y(-p.biseau)) : ctx.moveTo(X(i), Y(-p.biseau)); }
-        for (let i = n; i >= 0; i--) { const p = pts[i % n]; ctx.lineTo(X(i), Y(p.e - p.biseau)); }
-        ctx.closePath();
+        ctx.moveTo(0, Y(0)); ctx.lineTo(xTip - bev, Y(0)); ctx.lineTo(xTip, Y(tipZ));
+        ctx.lineTo(xTip - bev, Y(b.e)); ctx.lineTo(0, Y(b.e)); ctx.closePath();
       };
-      chemin(); ctx.fillStyle = rampe(c, 0.35); ctx.globalAlpha = 0.9; ctx.fill(); ctx.globalAlpha = 1;
-      ctx.save(); // parties hors du cercle
-      ctx.beginPath(); ctx.rect(X(0), Y(haut) - 2, plotW, Y(-D / 2) - Y(haut) + 2); ctx.rect(X(0), Y(D / 2), plotW, Y(bas) - Y(D / 2) + 2); ctx.clip();
-      chemin(); ctx.fillStyle = c.warn; ctx.globalAlpha = 0.85; ctx.fill(); ctx.globalAlpha = 1;
-      ctx.restore();
-      chemin(); ctx.strokeStyle = c.ink; ctx.lineWidth = 1; ctx.stroke();
-      // repères de position sur le contour
-      const angle = (i) => { const [u, v] = r._contour[i]; return ((Math.atan2(v / r.calibre.B, u / r.calibre.A) * 180) / Math.PI + 360) % 360; };
-      ctx.fillStyle = c.muted; ctx.textAlign = "center";
-      for (const [a, nom] of [[0, "nasal"], [90, "haut"], [180, "temporal"], [270, "bas"]]) {
-        let iBest = 0, dBest = 999;
-        for (let i = 0; i < n; i++) { const d = Math.abs(((angle(i) - a + 540) % 360) - 180); if (d < dBest) { dBest = d; iBest = i; } }
-        const x = X(iBest);
-        ctx.fillRect(x - 0.5, Y(bas) + 2, 1, 4);
-        ctx.textAlign = iBest === 0 ? "left" : "center";
-        ctx.fillText(nom, x, Y(bas) + 17);
+      if (cercl) {
+        const D = b.profondeur, xIn = xTip - 0.7 * sc;
+        ctx.fillStyle = c.frame; ctx.globalAlpha = 0.8;
+        ctx.fillRect(xIn, Y(b.biseau - D / 2), w - xIn, D * sc); ctx.globalAlpha = 1;
+        ctx.fillStyle = c.panel; // rainure en V
+        ctx.beginPath(); ctx.moveTo(xIn, Y(b.biseau - 0.7)); ctx.lineTo(xTip + 1, Y(b.biseau)); ctx.lineTo(xIn, Y(b.biseau + 0.7)); ctx.closePath(); ctx.fill();
       }
-      ctx.textAlign = "left";
-      ctx.fillStyle = c.ink; ctx.font = `700 12px ${police}`;
-      ctx.fillText(r.oeil, 0, Y(0) + 4);
-      ctx.font = `500 11px ${police}`; ctx.fillStyle = c.muted;
-      ctx.fillText("devant", 0, Y(haut) + 8);
-      ctx.fillText("derrière", 0, Y(bas) - 2);
-      // valeurs extrêmes
-      const marque = (cle, z, dessus) => {
-        const m = cle === "devant" ? r.cercl.devantMax : r.cercl.derriereMax;
-        if (m.mm <= 0.05) return;
-        const i = pts.findIndex((p) => Math.abs(p[cle] - m.mm) < 1e-9);
-        const txt = `+${fmt(m.mm)} mm`;
-        const tw = ctx.measureText(txt).width;
-        let x = Math.min(Math.max(X(i) - tw / 2, gaucheTxt), w - tw - 2);
-        const y = dessus ? Y(z(pts[i])) + 13 : Y(z(pts[i])) - 5;
-        ctx.fillStyle = c.panel; ctx.fillRect(x - 2, y - 10, tw + 4, 13);
-        ctx.fillStyle = c.warn; ctx.fillText(txt, x, y);
-      };
-      marque("devant", (p) => -p.biseau, true);
-      marque("derriere", (p) => p.e - p.biseau, false);
-    });
+      verre(); ctx.fillStyle = rampe(c, 0.35); ctx.fill();
+      if (cercl) {
+        const D = b.profondeur;
+        ctx.save();
+        ctx.beginPath();
+        ctx.rect(0, 0, w, Y(b.biseau - D / 2)); ctx.rect(0, Y(b.biseau + D / 2), w, hauteur);
+        ctx.clip(); verre(); ctx.fillStyle = c.warn; ctx.fill();
+        ctx.restore();
+        ctx.setLineDash([3, 3]); ctx.strokeStyle = c.frame; ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(0, Y(b.biseau - D / 2)); ctx.lineTo(xTip, Y(b.biseau - D / 2));
+        ctx.moveTo(0, Y(b.biseau + D / 2)); ctx.lineTo(xTip, Y(b.biseau + D / 2));
+        ctx.stroke(); ctx.setLineDash([]);
+      }
+      verre(); ctx.strokeStyle = c.ink; ctx.lineWidth = 1.2; ctx.stroke();
+      ctx.font = `500 10px ${police()}`; ctx.fillStyle = c.muted;
+      ctx.fillText("avant", 2, Math.max(10, Y(0) - 3));
+      ctx.fillText("arrière", 2, Math.min(hauteur - 2, Y(b.e) + 11));
+    }
   }
 
   // ------------------------------------------------------------ Calcul + rendu
@@ -558,11 +594,12 @@ footer { font-size: 12px; color: var(--muted); max-width: 75ch; }
     const tMin = Math.min(od.centre, og.centre, od.bordMin.e, og.bordMin.e);
     const tMax = Math.max(od.bordMax.e, og.bordMax.e, od.centre, og.centre);
     dessinerFace(dernier, c, tMin, tMax);
-    dessinerCoupe(dernier, c);
-    $("carteCercl").hidden = !dernier.cercl;
+    dessinerCoupes(dernier, c);
+    dessinerDetails(dernier, c);
+    document.querySelectorAll(".avecCercl").forEach((el) => { el.hidden = !dernier.cercl; });
+    $("t4").textContent = dernier.cercl ? "Le bord dans le cercle : haut, bas, nasal, temporal" : "Zoom sur le bord : haut, bas, nasal, temporal";
     if (dernier.cercl) {
-      dessinerCerclage(dernier, c);
-      $("swCercle").style.background = c.frame; $("swCercle").style.opacity = 0.35;
+      $("swCercle").style.background = c.frame; $("swCercle").style.opacity = 0.8;
       $("swVerre").style.background = rampe(c, 0.35);
       $("swDebord").style.background = c.warn;
       const sug = [od, og].map((r) => r.cercl.suggestion);

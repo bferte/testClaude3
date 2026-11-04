@@ -301,25 +301,52 @@
    * Coupe horizontale passant par le centre optique : profils des faces avant et
    * arrière (en mm) le long de la largeur de la forme, pour le schéma.
    */
-  function coupeHorizontale(res, nPts = 80) {
+  function coupe(res, sens = "h", nPts = 80) {
+    // sens 'h' : droite horizontale v = ocV (s = u, temporal -> nasal)
+    // sens 'v' : droite verticale u = ocU (s = v, bas -> haut)
     const c = res._contour;
-    const ocV = res.decentrement.vertical;
-    // intersections du contour avec la droite v = ocV
+    const h = sens !== "v";
+    const fixe = h ? res.decentrement.vertical : res.decentrement.horizontal;
+    const [iF, iS] = h ? [1, 0] : [0, 1];
     const xs = [];
     for (let i = 0, j = c.length - 1; i < c.length; j = i++) {
-      const [ui, vi] = c[i], [uj, vj] = c[j];
-      if (vi > ocV !== vj > ocV) xs.push(ui + ((ocV - vi) * (uj - ui)) / (vj - vi));
+      const fi = c[i][iF], fj = c[j][iF], si = c[i][iS], sj = c[j][iS];
+      if (fi > fixe !== fj > fixe) xs.push(si + ((fixe - fi) * (sj - si)) / (fj - fi));
     }
     if (xs.length < 2) return [];
-    const u0 = Math.min(...xs), u1 = Math.max(...xs);
+    const s0 = Math.min(...xs), s1 = Math.max(...xs);
     const out = [];
     for (let k = 0; k <= nPts; k++) {
-      const u = u0 + ((u1 - u0) * k) / nPts;
-      const [X, Y] = res._versOC([u, ocV]);
+      const sc = s0 + ((s1 - s0) * k) / nPts;
+      const [X, Y] = res._versOC(h ? [sc, fixe] : [fixe, sc]);
       const f = res._geo.faces(X, Y);
-      out.push({ u, avant: f.avant, arriere: res.centre + f.arriere });
+      out.push({ s: sc, u: h ? sc : fixe, avant: f.avant, arriere: res.centre + f.arriere });
     }
     return out;
+  }
+
+  /** Coupe horizontale par le centre optique (compatibilité). */
+  function coupeHorizontale(res, nPts = 80) {
+    return coupe(res, "h", nPts);
+  }
+
+  /**
+   * Bords du verre aux quatre extrémités des coupes passant par le centre optique
+   * (haut, bas, nasal, temporal), avec le débord dans le cercle si opts est fourni.
+   */
+  function quatreBords(res, opts) {
+    const h = coupe(res, "h", 2), v = coupe(res, "v", 2);
+    const bord = (nom, p) => {
+      const e = p.arriere - p.avant;
+      const o = { nom, e };
+      if (opts) {
+        const D = Math.max(0, +opts.profondeur || 0), b = positionBiseau(e, opts);
+        Object.assign(o, { biseau: b, profondeur: D, devant: b - D / 2, derriere: e - b - D / 2 });
+      }
+      return o;
+    };
+    if (!h.length || !v.length) return [];
+    return [bord("haut", v[v.length - 1]), bord("bas", v[0]), bord("nasal", h[h.length - 1]), bord("temporal", h[0])];
   }
 
   /**
@@ -387,7 +414,9 @@
     lireOMA,
     baseConseillee,
     calculerVerre,
+    coupe,
     coupeHorizontale,
+    quatreBords,
     epaisseurEn,
     positionBiseau,
     debordCerclage,
