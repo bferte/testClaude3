@@ -103,3 +103,27 @@ test("comparaison des matériaux", () => {
   assert.equal(res.length, E.MATERIAUX.length);
   assert.ok(res.every((r) => !r.erreur));
 });
+
+test("cerclage : biseau en % et en mm, débords devant/derrière", () => {
+  const r = verre({ sph: -6, A: 52, B: 40, forme: "rectangle", demiEcart: 30 });
+  const emax = r.bordMax.e;
+  // Biseau à 50 % dans un cercle de 4 mm : débord symétrique (e - 4) / 2.
+  const mi = E.debordCerclage(r, { profondeur: 4, biseauMode: "pct", biseau: 50 });
+  assert.ok(Math.abs(mi.devantMax.mm - (emax - 4) / 2) < 1e-9);
+  assert.ok(Math.abs(mi.derriereMax.mm - (emax - 4) / 2) < 1e-9);
+  assert.equal(mi.devantMax.zone, r.bordMax.zone);
+  // Biseau à 1 mm de l'avant : rien devant (1 - 2 < 0), tout l'excédent derrière.
+  const av = E.debordCerclage(r, { profondeur: 4, biseauMode: "mm", biseau: 1 });
+  assert.ok(Math.abs(av.devantMax.mm - -1) < 1e-9);
+  assert.ok(Math.abs(av.derriereMax.mm - (emax - 1 - 2)) < 1e-9);
+  // Suggestion : biseau à D/2 de l'avant -> face avant alignée sur le cercle.
+  const sug = E.debordCerclage(r, { profondeur: 4, biseauMode: "mm", biseau: av.suggestion.biseauMm });
+  assert.ok(Math.abs(sug.devantMax.mm) < 1e-9);
+  assert.ok(Math.abs(sug.derriereMax.mm - av.suggestion.derriereMax) < 1e-9);
+});
+
+test("cerclage : verre fin entièrement logé dans un cercle épais", () => {
+  const r = verre({ sph: -1, materiau: "1.67" });
+  const d = E.debordCerclage(r, { profondeur: 5, biseauMode: "pct", biseau: 33 });
+  assert.ok(d.devantMax.mm < 0 && d.derriereMax.mm < 0);
+});

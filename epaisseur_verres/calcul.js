@@ -35,6 +35,12 @@
     perce: { nom: "Percé", eMin: 2.0 },
   };
 
+  // Profondeur usuelle d'un cercle (épaisseur de la monture d'avant en arrière).
+  const CERCLAGES = {
+    plastique: { nom: "Plastique (acétate)", profondeur: 4.5 },
+    metal: { nom: "Métal", profondeur: 2.5 },
+  };
+
   const FORMES = {
     ronde: "Ronde / ovale",
     rectangle: "Rectangle",
@@ -284,6 +290,7 @@
       volume,
       decentrement: { horizontal: ocU, vertical: ocV },
       diametreMini,
+      calibre: { A: p.A, B: p.B },
       _geo: geo,
       _versOC: versOC,
       _contour: p.contour,
@@ -315,6 +322,44 @@
     return out;
   }
 
+  /**
+   * Position du sommet du biseau, en mm depuis la face avant du bord du verre.
+   * opts = { biseauMode: 'pct' | 'mm', biseau } : pourcentage de l'épaisseur du bord
+   * (33 = un tiers avant / deux tiers arrière) ou distance fixe depuis la face avant.
+   */
+  function positionBiseau(e, opts) {
+    const v = Math.max(0, +opts.biseau || 0);
+    return opts.biseauMode === "mm" ? Math.min(v, e) : (e * Math.min(v, 100)) / 100;
+  }
+
+  /**
+   * Débord du verre devant et derrière le cercle d'une monture cerclée.
+   * Le sommet du biseau est logé dans la rainure, supposée au milieu de la profondeur
+   * du cercle. opts = { profondeur (mm), biseauMode, biseau }.
+   * Valeurs positives = le verre dépasse ; négatives = il est en retrait du cercle.
+   */
+  function debordCerclage(res, opts) {
+    const D = Math.max(0, +opts.profondeur || 0);
+    const { A, B } = res.calibre;
+    const points = res.bords.map((e, i) => {
+      const b = positionBiseau(e, opts);
+      const [u, v] = res._contour[i];
+      return { e, biseau: b, devant: b - D / 2, derriere: e - b - D / 2, zone: zone(u, v, A, B) };
+    });
+    const pire = (cle) => points.reduce((m, p) => (p[cle] > m[cle] ? p : m), points[0]);
+    const devant = pire("devant"), derriere = pire("derriere");
+    // Biseau qui aligne partout la face avant du verre sur l'avant du cercle (rien ne dépasse devant).
+    const biseauAligneAvant = D / 2;
+    const emax = Math.max(...res.bords);
+    return {
+      profondeur: D,
+      points,
+      devantMax: { mm: devant.devant, zone: devant.zone },
+      derriereMax: { mm: derriere.derriere, zone: derriere.zone },
+      suggestion: { biseauMm: biseauAligneAvant, derriereMax: emax - Math.min(biseauAligneAvant, emax) - D / 2 },
+    };
+  }
+
   /** Épaisseur (mm) en un point (u, v) du repère boxing du verre calculé. */
   function epaisseurEn(res, u, v) {
     const [X, Y] = res._versOC([u, v]);
@@ -335,6 +380,7 @@
   return {
     MATERIAUX,
     MONTAGES,
+    CERCLAGES,
     FORMES,
     materiau,
     contourForme,
@@ -343,6 +389,8 @@
     calculerVerre,
     coupeHorizontale,
     epaisseurEn,
+    positionBiseau,
+    debordCerclage,
     dansPolygone,
     comparerMateriaux,
     boite,

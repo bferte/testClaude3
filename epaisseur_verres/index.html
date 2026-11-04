@@ -72,6 +72,9 @@ input, select {
 }
 select { font-family: var(--font-body); }
 input:focus-visible, select:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+label.check { display: flex; align-items: center; gap: 8px; color: var(--ink); font-size: 14px; }
+label.check input { width: auto; accent-color: var(--accent); }
+.sw { display: inline-block; width: 14px; height: 10px; border-radius: 2px; vertical-align: middle; }
 .hint { font-size: 12px; color: var(--muted); margin: 0; }
 .file { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
 .btn { font: 700 13px var(--font-body); border: 1px solid var(--accent); color: var(--accent); background: transparent; border-radius: 4px; padding: 7px 10px; cursor: pointer; }
@@ -172,6 +175,18 @@ footer { font-size: 12px; color: var(--muted); max-width: 75ch; }
       </fieldset>
 
       <fieldset>
+        <legend>Cerclage (option)</legend>
+        <label class="check"><input id="cerclOn" type="checkbox" checked> Voir comment le verre dépasse du cercle</label>
+        <div class="grid2" id="cerclChamps">
+          <label>Matière du cercle <select id="cerclMat"></select></label>
+          <label>Profondeur du cercle (mm) <input id="cerclProf" type="number" step="0.1" min="0.5" max="12" value="4.5"></label>
+          <label>Position du biseau <select id="biseauMode"><option value="pct">% depuis l'avant</option><option value="mm">mm depuis l'avant</option></select></label>
+          <label>Biseau <input id="biseau" type="number" step="1" min="0" max="100" value="33"></label>
+        </div>
+        <p class="hint">Profondeur = épaisseur de la monture d'avant en arrière au niveau du cercle. Rainure supposée au milieu du cercle. 33 % = un tiers devant, deux tiers derrière.</p>
+      </fieldset>
+
+      <fieldset>
         <legend>Prise de mesure</legend>
         <div class="grid2">
           <label>½ écart OD (mm) <input id="odPD" type="number" step="0.5" value="31.5"></label>
@@ -197,6 +212,18 @@ footer { font-size: 12px; color: var(--muted); max-width: 75ch; }
         <h2 id="t2">Coupe horizontale par le centre optique</h2>
         <canvas id="coupe" height="200" aria-label="Profil des verres en coupe horizontale"></canvas>
         <p class="hint">Vue de dessus, face avant en haut. Épaisseurs exagérées ×3, courbures à l'échelle. Temporal à l'extérieur, nasal au centre.</p>
+      </section>
+
+      <section class="card" id="carteCercl" aria-labelledby="t4">
+        <h2 id="t4">Le verre dans le cercle, tour complet</h2>
+        <canvas id="cercl" height="240" aria-label="Bord du verre déroulé sur tout le contour, comparé au cercle de la monture"></canvas>
+        <div class="legend">
+          <span><span class="sw" id="swCercle"></span> cercle</span>
+          <span><span class="sw" id="swVerre"></span> verre logé</span>
+          <span><span class="sw" id="swDebord"></span> dépasse du cercle</span>
+          <span>· épaisseurs à l'échelle, contour déroulé depuis le côté nasal</span>
+        </div>
+        <p class="hint" id="cerclSug"></p>
       </section>
 
       <section class="card" aria-labelledby="t3">
@@ -234,7 +261,19 @@ footer { font-size: 12px; color: var(--muted); max-width: 75ch; }
   for (const [k, v] of Object.entries(E.FORMES)) $("forme").add(new Option(v, k));
   $("forme").value = "rectangle";
   for (const [k, v] of Object.entries(E.MONTAGES)) $("montage").add(new Option(v.nom, k));
-  $("montage").addEventListener("change", () => { $("eMin").value = E.MONTAGES[$("montage").value].eMin.toFixed(1); calculer(); });
+  $("montage").addEventListener("change", () => {
+    $("eMin").value = E.MONTAGES[$("montage").value].eMin.toFixed(1);
+    $("cerclOn").checked = $("montage").value === "cercle";
+    calculer();
+  });
+  for (const [k, v] of Object.entries(E.CERCLAGES)) $("cerclMat").add(new Option(`${v.nom} · ${String(v.profondeur).replace(".", ",")} mm`, k));
+  $("cerclMat").addEventListener("change", () => { $("cerclProf").value = E.CERCLAGES[$("cerclMat").value].profondeur.toFixed(1); });
+  $("biseauMode").addEventListener("change", () => {
+    const mm = $("biseauMode").value === "mm";
+    $("biseau").value = mm ? "1.0" : "33";
+    $("biseau").step = mm ? "0.1" : "1";
+    $("biseau").max = mm ? "10" : "100";
+  });
 
   // Import d'un tracé OMA
   let trace = null;
@@ -286,7 +325,12 @@ footer { font-size: 12px; color: var(--muted); max-width: 75ch; }
     const og = { ...commun, oeil: "OG", sph: num("ogSph") || 0, cyl: num("ogCyl") || 0, axe: num("ogAxe") || 0, demiEcart: num("ogPD"), hauteur: num("ogH") };
     for (const [k, v] of Object.entries({ "calibre A": A, "hauteur B": B, "pont": DBL, "½ écart OD": od.demiEcart, "½ écart OG": og.demiEcart, "hauteur OD": od.hauteur, "hauteur OG": og.hauteur }))
       if (!(v > 0)) throw new Error(`Renseigner ${k} (en mm).`);
-    return { od, og };
+    const cercl = $("cerclOn").checked
+      ? { profondeur: num("cerclProf"), biseauMode: $("biseauMode").value, biseau: num("biseau") }
+      : null;
+    if (cercl && !(cercl.profondeur > 0)) throw new Error("Renseigner la profondeur du cercle (en mm).");
+    if (cercl && !(cercl.biseau >= 0)) throw new Error("Renseigner la position du biseau.");
+    return { od, og, cercl };
   }
 
   // ------------------------------------------------------------ Dessin vue de face
@@ -370,6 +414,14 @@ footer { font-size: 12px; color: var(--muted); max-width: 75ch; }
     for (const { pts } of coupes) for (const p of pts) { zMin = Math.min(zMin, yAvant(p)); zMax = Math.max(zMax, yArriere(p)); }
     const largeurMm = 2 * A + DBL + 12;
     const k = w / largeurMm;
+    if (res.cercl) {
+      for (const { pts } of coupes) for (const p of [pts[0], pts[pts.length - 1]]) {
+        if (!p) continue;
+        const b = E.positionBiseau(p.arriere - p.avant, res.cercl), D = res.cercl.profondeur;
+        zMin = Math.min(zMin, p.avant + exag * (b - D / 2));
+        zMax = Math.max(zMax, p.avant + exag * (b + D / 2));
+      }
+    }
     const hauteur = Math.round((zMax - zMin) * k + 60);
     const { ctx } = preparerCanvas(cv, hauteur);
     const cx = w / 2;
@@ -393,10 +445,93 @@ footer { font-size: 12px; color: var(--muted); max-width: 75ch; }
       const gauche = r.oeil === "OD" ? pts[0] : pts[pts.length - 1];
       const droite = r.oeil === "OD" ? pts[pts.length - 1] : pts[0];
       etiquette(gauche, false); etiquette(droite, true);
+      if (res.cercl) {
+        // Cercle de la monture au bord du verre (même exagération ×3 dans la profondeur).
+        const D = res.cercl.profondeur, larg = 2.2 * k;
+        for (const [p, versExt] of [[gauche, -1], [droite, 1]]) {
+          const e = p.arriere - p.avant;
+          const b = E.positionBiseau(e, res.cercl);
+          const x = X(p.u);
+          const yH = y0 + (p.avant + exag * (b - D / 2)) * k, yB = y0 + (p.avant + exag * (b + D / 2)) * k;
+          ctx.fillStyle = c.frame; ctx.globalAlpha = 0.75;
+          ctx.fillRect(versExt < 0 ? x - larg : x - 0.5 * k, yH, larg + 0.5 * k, yB - yH);
+          ctx.globalAlpha = 1;
+        }
+      }
       ctx.textAlign = "center"; ctx.fillStyle = c.muted;
       ctx.fillText(`${r.oeil} centre ${fmt(r.centre)}`, X(r.decentrement.horizontal), 16);
       ctx.textAlign = "left";
     }
+  }
+
+  function dessinerCerclage(res, c) {
+    const cv = $("cercl");
+    const w = cv.clientWidth;
+    const D = res.cercl.profondeur;
+    const verres = [res.od, res.og];
+    let haut = -D / 2, bas = D / 2;
+    for (const r of verres) for (const p of r.cercl.points) { haut = Math.min(haut, -p.biseau); bas = Math.max(bas, p.e - p.biseau); }
+    const marge = 46, gaucheTxt = 64, droiteTxt = 6, plotW = w - gaucheTxt - droiteTxt;
+    const s = Math.min(16, 150 / (bas - haut)); // px par mm, épaisseurs à l'échelle commune OD/OG
+    const hPanneau = (bas - haut) * s + marge;
+    const { ctx } = preparerCanvas(cv, Math.round(hPanneau * 2 + 8));
+    const police = getComputedStyle(document.body).getPropertyValue("--font-data");
+    ctx.font = `500 11px ${police}`;
+    verres.forEach((r, k) => {
+      const y0 = k * (hPanneau + 8) + 18 - haut * s; // y écran de la rainure (milieu du cercle)
+      const pts = r.cercl.points, n = pts.length;
+      const X = (i) => gaucheTxt + (plotW * i) / n;
+      const Y = (z) => y0 + z * s;
+      // cercle
+      ctx.fillStyle = c.frame; ctx.globalAlpha = 0.16;
+      ctx.fillRect(X(0), Y(-D / 2), plotW, D * s); ctx.globalAlpha = 1;
+      ctx.strokeStyle = c.frame; ctx.lineWidth = 1.2;
+      ctx.beginPath(); ctx.moveTo(X(0), Y(-D / 2)); ctx.lineTo(X(n), Y(-D / 2)); ctx.moveTo(X(0), Y(D / 2)); ctx.lineTo(X(n), Y(D / 2)); ctx.stroke();
+      // verre
+      const chemin = () => {
+        ctx.beginPath();
+        for (let i = 0; i <= n; i++) { const p = pts[i % n]; i ? ctx.lineTo(X(i), Y(-p.biseau)) : ctx.moveTo(X(i), Y(-p.biseau)); }
+        for (let i = n; i >= 0; i--) { const p = pts[i % n]; ctx.lineTo(X(i), Y(p.e - p.biseau)); }
+        ctx.closePath();
+      };
+      chemin(); ctx.fillStyle = rampe(c, 0.35); ctx.globalAlpha = 0.9; ctx.fill(); ctx.globalAlpha = 1;
+      ctx.save(); // parties hors du cercle
+      ctx.beginPath(); ctx.rect(X(0), Y(haut) - 2, plotW, Y(-D / 2) - Y(haut) + 2); ctx.rect(X(0), Y(D / 2), plotW, Y(bas) - Y(D / 2) + 2); ctx.clip();
+      chemin(); ctx.fillStyle = c.warn; ctx.globalAlpha = 0.85; ctx.fill(); ctx.globalAlpha = 1;
+      ctx.restore();
+      chemin(); ctx.strokeStyle = c.ink; ctx.lineWidth = 1; ctx.stroke();
+      // repères de position sur le contour
+      const angle = (i) => { const [u, v] = r._contour[i]; return ((Math.atan2(v / r.calibre.B, u / r.calibre.A) * 180) / Math.PI + 360) % 360; };
+      ctx.fillStyle = c.muted; ctx.textAlign = "center";
+      for (const [a, nom] of [[0, "nasal"], [90, "haut"], [180, "temporal"], [270, "bas"]]) {
+        let iBest = 0, dBest = 999;
+        for (let i = 0; i < n; i++) { const d = Math.abs(((angle(i) - a + 540) % 360) - 180); if (d < dBest) { dBest = d; iBest = i; } }
+        const x = X(iBest);
+        ctx.fillRect(x - 0.5, Y(bas) + 2, 1, 4);
+        ctx.textAlign = iBest === 0 ? "left" : "center";
+        ctx.fillText(nom, x, Y(bas) + 17);
+      }
+      ctx.textAlign = "left";
+      ctx.fillStyle = c.ink; ctx.font = `700 12px ${police}`;
+      ctx.fillText(r.oeil, 0, Y(0) + 4);
+      ctx.font = `500 11px ${police}`; ctx.fillStyle = c.muted;
+      ctx.fillText("devant", 0, Y(haut) + 8);
+      ctx.fillText("derrière", 0, Y(bas) - 2);
+      // valeurs extrêmes
+      const marque = (cle, z, dessus) => {
+        const m = cle === "devant" ? r.cercl.devantMax : r.cercl.derriereMax;
+        if (m.mm <= 0.05) return;
+        const i = pts.findIndex((p) => Math.abs(p[cle] - m.mm) < 1e-9);
+        const txt = `+${fmt(m.mm)} mm`;
+        const tw = ctx.measureText(txt).width;
+        let x = Math.min(Math.max(X(i) - tw / 2, gaucheTxt), w - tw - 2);
+        const y = dessus ? Y(z(pts[i])) + 13 : Y(z(pts[i])) - 5;
+        ctx.fillStyle = c.panel; ctx.fillRect(x - 2, y - 10, tw + 4, 13);
+        ctx.fillStyle = c.warn; ctx.fillText(txt, x, y);
+      };
+      marque("devant", (p) => -p.biseau, true);
+      marque("derriere", (p) => p.e - p.biseau, false);
+    });
   }
 
   // ------------------------------------------------------------ Calcul + rendu
@@ -407,7 +542,8 @@ footer { font-size: 12px; color: var(--muted); max-width: 75ch; }
     try {
       p = lireParams();
       const od = E.calculerVerre(p.od), og = E.calculerVerre(p.og);
-      dernier = { od, og, p: { A: p.od.A, B: p.od.B, DBL: p.od.DBL }, params: p };
+      if (p.cercl) { od.cercl = E.debordCerclage(od, p.cercl); og.cercl = E.debordCerclage(og, p.cercl); }
+      dernier = { od, og, p: { A: p.od.A, B: p.od.B, DBL: p.od.DBL }, params: p, cercl: p.cercl };
     } catch (e) {
       $("err").textContent = e.message; $("err").hidden = false;
       return;
@@ -423,10 +559,22 @@ footer { font-size: 12px; color: var(--muted); max-width: 75ch; }
     const tMax = Math.max(od.bordMax.e, og.bordMax.e, od.centre, og.centre);
     dessinerFace(dernier, c, tMin, tMax);
     dessinerCoupe(dernier, c);
+    $("carteCercl").hidden = !dernier.cercl;
+    if (dernier.cercl) {
+      dessinerCerclage(dernier, c);
+      $("swCercle").style.background = c.frame; $("swCercle").style.opacity = 0.35;
+      $("swVerre").style.background = rampe(c, 0.35);
+      $("swDebord").style.background = c.warn;
+      const sug = [od, og].map((r) => r.cercl.suggestion);
+      const derr = Math.max(...sug.map((x) => x.derriereMax));
+      $("cerclSug").textContent = `Pour que rien ne dépasse devant, placer le biseau à ${fmt(sug[0].biseauMm)} mm de la face avant : `
+        + (derr > 0.05 ? `le verre dépassera alors jusqu'à ${fmt(derr)} mm derrière le cercle.` : "le verre reste alors entièrement logé dans le cercle.");
+    }
     $("legBar").style.background = `linear-gradient(90deg, ${rampe(c, 0)}, ${rampe(c, 0.5)}, ${rampe(c, 1)})`;
     $("legMin").textContent = fmt(tMin) + " mm";
     $("legMax").textContent = fmt(tMax) + " mm";
 
+    const debord = (m) => (m.mm > 0.05 ? `<span class="loss">${fmt(m.mm)} mm</span> · ${m.zone}` : (m.mm > -0.05 ? "non (affleure)" : `non (retrait ${fmt(-m.mm)} mm)`));
     $("stats").innerHTML = [od, og].map((r) => {
       const dh = r.decentrement.horizontal, dv = r.decentrement.vertical;
       const alertes = [];
@@ -443,6 +591,8 @@ footer { font-size: 12px; color: var(--muted); max-width: 75ch; }
           <dt>Poids estimé</dt><dd>${fmt(r.poids)} g</dd>
           <dt>Décentrement</dt><dd>${dh >= 0 ? "nasal" : "temporal"} ${fmt(Math.abs(dh))} · ${dv >= 0 ? "haut" : "bas"} ${fmt(Math.abs(dv))} mm</dd>
           <dt>Ø palet mini</dt><dd>${fmt(r.diametreMini, 0)} mm</dd>
+          ${r.cercl ? `<dt>Dépasse devant</dt><dd>${debord(r.cercl.devantMax)}</dd>
+          <dt>Dépasse derrière</dt><dd>${debord(r.cercl.derriereMax)}</dd>` : ""}
         </dl>
         ${alertes.map((a) => `<p class="alert">${a}</p>`).join("")}
       </div>`;
