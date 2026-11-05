@@ -5,7 +5,8 @@ Estime l'épaisseur au bord (et au centre) des deux verres **taillés dans la mo
 - l'**ordonnance** OD/OG (sphère, cylindre, axe TABO) ;
 - l'**indice / matériau** (1.50, Trivex 1.53, polycarbonate 1.59, 1.60, 1.67, 1.74) ;
 - la **géométrie** du verre (sphérique ou asphérique, base avant automatique ou imposée, centre mini) et le
-  **précalibrage** (oui : bord mini tenu sur la forme ; non : tenu sur tout le palet rond, Ø auto ou imposé) ;
+  **précalibrage** (oui : bord mini tenu sur la forme ; non : tenu sur tout le palet rond) et le **diamètre du
+  palet** (auto = plus petit Ø usuel couvrant la forme décentrée, ou imposé ; alerte s'il est trop petit) ;
 - la **monture** : forme type (ronde, rectangle, carrée, pantos, aviateur, papillon) ou **tracé réel OMA/VCA**
   importé du traceur, calibre A × B, pont, type de montage (cerclé, nylor, percé → bord mini) ;
 - en option pour les montures **cerclées** : matière du cercle (plastique ≈ 4,5 mm, métal ≈ 2,5 mm de

@@ -151,6 +151,10 @@ test("précalibrage : sans lui, un positif est plus épais au centre ; un négat
   // palet imposé plus grand -> encore plus épais
   const grand = verre({ ...p, precalibrage: false, diametrePalet: 75 });
   assert.ok(grand.centre > sans.centre);
+  // diamètre toujours renseigné, alerte s'il ne couvre pas la forme
+  assert.equal(avec.palet.diametre, E.diametrePaletStandard(avec.diametreMini));
+  assert.equal(avec.palet.tropPetit, false);
+  assert.equal(verre({ ...p, diametrePalet: 55 }).palet.tropPetit, true);
   const neg = { sph: -4, A: 50, B: 36, forme: "rectangle" };
   assert.ok(Math.abs(verre({ ...neg, precalibrage: false }).bordMax.e - verre(neg).bordMax.e) < 1e-9);
 });

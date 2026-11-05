@@ -259,7 +259,9 @@
     // Sans précalibrage : il doit aussi l'être sur tout le pourtour du palet rond,
     // centré sur le centre optique, ce qui épaissit le centre des verres positifs.
     const precalibrage = p.precalibrage !== false;
-    const diametrePalet = precalibrage ? null : (p.diametrePalet > 0 ? +p.diametrePalet : diametrePaletStandard(diametreMini));
+    // Diamètre commandé : imposé, ou plus petit diamètre usuel couvrant la forme décentrée.
+    const diametreImpose = p.diametrePalet > 0;
+    const diametrePalet = diametreImpose ? +p.diametrePalet : diametrePaletStandard(diametreMini);
     const eMinPalet = p.eMinPalet > 0 ? +p.eMinPalet : 0.8;
     const cerclePalet = precalibrage ? [] : Array.from({ length: 72 }, (_, i) => {
       const a = (2 * Math.PI * i) / 72;
@@ -317,7 +319,10 @@
       volume,
       decentrement: { horizontal: ocU, vertical: ocV },
       diametreMini,
-      palet: { precalibrage, diametre: diametrePalet, eMin: eMinPalet, bord: bordPalet },
+      palet: {
+        precalibrage, diametre: diametrePalet, impose: diametreImpose, eMin: eMinPalet, bord: bordPalet,
+        tropPetit: diametrePalet < diametreMini, // le palet ne couvre pas la forme décentrée
+      },
       calibre: { A: p.A, B: p.B },
       _geo: geo,
       _versOC: versOC,
