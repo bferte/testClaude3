@@ -50,7 +50,15 @@
     papillon: "Papillon (cat-eye)",
   };
 
-  const N_REF_BASE = 1.53; // les bases sont exprimées à l'indice d'outil 1.53
+  const N_REF_BASE = 1.53;
+
+  // Diamètres de palets usuels (mm), pour le surfaçage sans précalibrage.
+  const DIAMETRES_PALET = [55, 60, 65, 70, 75, 80];
+
+  /** Plus petit palet usuel qui couvre la forme décentrée. */
+  function diametrePaletStandard(diametreMini) {
+    return DIAMETRES_PALET.find((d) => d >= diametreMini) || Math.ceil(diametreMini / 5) * 5;
+  } // les bases sont exprimées à l'indice d'outil 1.53
 
   function materiau(id) {
     const m = MATERIAUX.find((x) => x.id === String(id));
@@ -247,13 +255,32 @@
     for (const [X, Y] of rel) rMax = Math.max(rMax, Math.hypot(X, Y));
     const diametreMini = 2 * rMax + 2; // marge de taillage 1 mm
 
-    let tc = tcMin, geo, gs;
+    // Précalibrage (par défaut) : le bord mini est garanti sur la forme taillée.
+    // Sans précalibrage : il doit aussi l'être sur tout le pourtour du palet rond,
+    // centré sur le centre optique, ce qui épaissit le centre des verres positifs.
+    const precalibrage = p.precalibrage !== false;
+    const diametrePalet = precalibrage ? null : (p.diametrePalet > 0 ? +p.diametrePalet : diametrePaletStandard(diametreMini));
+    const eMinPalet = p.eMinPalet > 0 ? +p.eMinPalet : 0.8;
+    const cerclePalet = precalibrage ? [] : Array.from({ length: 72 }, (_, i) => {
+      const a = (2 * Math.PI * i) / 72;
+      return [(diametrePalet / 2) * Math.cos(a), (diametrePalet / 2) * Math.sin(a)];
+    });
+
+    let tc = tcMin, geo, gs, bordPalet = null;
     for (let it = 0; it < 4; it++) {
       geo = geometrieVerre({ sph, cyl, axe, n: mat.n, base, conique, tc });
       gs = rel.map(([X, Y]) => geo.g(X, Y));
       if (gs.some((x) => !Number.isFinite(x)))
         throw new Error("Courbure impossible pour cette taille de verre : diminuer la base ou le calibre.");
       tc = Math.max(tcMin, eMin - Math.min(...gs));
+      if (!precalibrage) {
+        const gp = cerclePalet.map(([X, Y]) => geo.g(X, Y));
+        if (gp.some((x) => !Number.isFinite(x)))
+          throw new Error(`Courbure impossible sur un palet de Ø${diametrePalet} mm : diminuer la base ou le diamètre.`);
+        const gpMin = Math.min(...gp);
+        tc = Math.max(tc, eMinPalet - gpMin);
+        bordPalet = { min: tc + gpMin, max: tc + Math.max(...gp) };
+      }
     }
     const bords = gs.map((g) => tc + g);
     let iMax = 0, iMin = 0;
@@ -290,6 +317,7 @@
       volume,
       decentrement: { horizontal: ocU, vertical: ocV },
       diametreMini,
+      palet: { precalibrage, diametre: diametrePalet, eMin: eMinPalet, bord: bordPalet },
       calibre: { A: p.A, B: p.B },
       _geo: geo,
       _versOC: versOC,
@@ -413,6 +441,8 @@
     contourForme,
     lireOMA,
     baseConseillee,
+    DIAMETRES_PALET,
+    diametrePaletStandard,
     calculerVerre,
     coupe,
     coupeHorizontale,

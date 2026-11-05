@@ -184,8 +184,12 @@ footer { font-size: 12px; color: var(--muted); max-width: 75ch; }
           </label>
           <label>Base avant (D, 1.53) <input id="base" type="number" step="0.25" min="0.5" max="10" placeholder="auto"></label>
           <label>Centre mini (mm) <input id="tcMin" type="number" step="0.1" min="0.8" placeholder="auto"></label>
+          <label>Précalibrage
+            <select id="precal"><option value="oui">Oui, sur la forme</option><option value="non">Non, palet rond</option></select>
+          </label>
+          <label id="paletLab" hidden>Ø palet (mm) <input id="palet" type="number" step="5" min="50" max="85" placeholder="auto"></label>
         </div>
-        <p class="hint">Laisser « auto » : base selon la règle de Vogel, centre mini usuel du matériau.</p>
+        <p class="hint">Laisser « auto » : base selon la règle de Vogel, centre mini usuel du matériau. Le précalibrage amincit surtout les verres positifs ; sans lui, le bord mini (0,8 mm) est tenu sur tout le palet.</p>
       </fieldset>
 
       <fieldset>
@@ -364,6 +368,7 @@ footer { font-size: 12px; color: var(--muted); max-width: 75ch; }
   });
   for (const [k, v] of Object.entries(E.CERCLAGES)) $("cerclMat").add(new Option(`${v.nom} · ${String(v.profondeur).replace(".", ",")} mm`, k));
   $("cerclMat").addEventListener("change", () => { $("cerclProf").value = E.CERCLAGES[$("cerclMat").value].profondeur.toFixed(1); });
+  $("precal").addEventListener("change", () => { $("paletLab").hidden = $("precal").value === "oui"; });
   $("biseauMode").addEventListener("change", () => {
     const mm = $("biseauMode").value === "mm";
     $("biseau").value = mm ? "1.0" : "33";
@@ -416,6 +421,7 @@ footer { font-size: 12px; color: var(--muted); max-width: 75ch; }
     const commun = {
       materiau: $("materiau").value, geometrie: $("geometrie").value,
       base: num("base") || undefined, tcMin: num("tcMin") || undefined, eMin: num("eMin") || 1,
+      precalibrage: $("precal").value === "oui", diametrePalet: num("palet") || undefined,
       contour, A, B, DBL,
     };
     const od = { ...commun, oeil: "OD", sph: num("odSph") || 0, cyl: num("odCyl") || 0, axe: num("odAxe") || 0, demiEcart: num("odPD"), hauteur: num("odH") };
@@ -713,6 +719,16 @@ footer { font-size: 12px; color: var(--muted); max-width: 75ch; }
       const alertes = [];
       if (r.equivalentSpherique < -3 && dh > 4) alertes.push(`Décentrement de ${fmt(dh)} mm : monture large pour l'écart, le bord temporal s'épaissit.`);
       if (r.equivalentSpherique > 2 && dh > 4) alertes.push(`Décentrement de ${fmt(dh)} mm : diamètre de palet plus grand, centre plus épais.`);
+      const infos = [];
+      if (r.equivalentSpherique > 0) {
+        try {
+          const autre = E.calculerVerre({ ...(r.oeil === "OD" ? params.od : params.og), precalibrage: !r.palet.precalibrage });
+          const ecart = Math.abs(autre.centre - r.centre);
+          if (ecart >= 0.05) infos.push(r.palet.precalibrage
+            ? `Précalibrage : ${fmt(ecart)} mm de moins au centre et ${fmt(autre.poids - r.poids)} g de moins que sur palet rond Ø${autre.palet.diametre}.`
+            : `Avec précalibrage, le centre passerait à ${fmt(autre.centre)} mm (${fmt(ecart)} mm de moins).`);
+        } catch (e) { /* palet impossible : rien à comparer */ }
+      }
       if (r.diametreMini > 75) alertes.push(`Diamètre utile ${fmt(r.diametreMini, 0)} mm : vérifier la disponibilité du palet.`);
       return `<div class="eyestats">
         <h3>${r.oeil} <span>${fmt(r.equivalentSpherique, 2)} D éq. sph · base ${fmt(r.base, 2)}</span></h3>
@@ -724,9 +740,11 @@ footer { font-size: 12px; color: var(--muted); max-width: 75ch; }
           <dt>Poids estimé</dt><dd>${fmt(r.poids)} g</dd>
           <dt>Décentrement</dt><dd>${dh >= 0 ? "nasal" : "temporal"} ${fmt(Math.abs(dh))} · ${dv >= 0 ? "haut" : "bas"} ${fmt(Math.abs(dv))} mm</dd>
           <dt>Ø palet mini</dt><dd>${fmt(r.diametreMini, 0)} mm</dd>
+          <dt>Surfaçage</dt><dd>${r.palet.precalibrage ? "précalibré sur la forme" : `palet Ø${fmt(r.palet.diametre, 0)} · bord ${fmt(r.palet.bord.min)} mm`}</dd>
           ${r.cercl ? `<dt>Dépasse devant</dt><dd>${debord(r.cercl.devantMax)}</dd>
           <dt>Dépasse derrière</dt><dd>${debord(r.cercl.derriereMax)}</dd>` : ""}
         </dl>
+        ${infos.map((a) => `<p class="hint">${a}</p>`).join("")}
         ${alertes.map((a) => `<p class="alert">${a}</p>`).join("")}
       </div>`;
     }).join("");

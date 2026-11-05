@@ -140,3 +140,17 @@ test("quatre bords : haut/bas/nasal/temporal cohérents avec les coupes", () => 
   const c = E.quatreBords(r, { profondeur: 4, biseauMode: "pct", biseau: 50 });
   for (const x of c) assert.ok(Math.abs(x.devant - (x.e - 4) / 2) < 1e-9);
 });
+
+test("précalibrage : sans lui, un positif est plus épais au centre ; un négatif ne change pas", () => {
+  const p = { sph: 4, A: 50, B: 36, forme: "rectangle", demiEcart: 31, hauteur: 18 };
+  const avec = verre(p), sans = verre({ ...p, precalibrage: false });
+  assert.ok(sans.centre > avec.centre + 0.5, `${sans.centre} vs ${avec.centre}`);
+  assert.equal(sans.palet.diametre, E.diametrePaletStandard(avec.diametreMini));
+  assert.ok(Math.abs(sans.palet.bord.min - 0.8) < 1e-6); // bord mini atteint sur le palet
+  assert.ok(sans.bordMin.e > avec.bordMin.e); // le bord taillé s'épaissit aussi
+  // palet imposé plus grand -> encore plus épais
+  const grand = verre({ ...p, precalibrage: false, diametrePalet: 75 });
+  assert.ok(grand.centre > sans.centre);
+  const neg = { sph: -4, A: 50, B: 36, forme: "rectangle" };
+  assert.ok(Math.abs(verre({ ...neg, precalibrage: false }).bordMax.e - verre(neg).bordMax.e) < 1e-9);
+});

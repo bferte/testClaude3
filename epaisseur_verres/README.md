@@ -4,7 +4,8 @@ Estime l'épaisseur au bord (et au centre) des deux verres **taillés dans la mo
 
 - l'**ordonnance** OD/OG (sphère, cylindre, axe TABO) ;
 - l'**indice / matériau** (1.50, Trivex 1.53, polycarbonate 1.59, 1.60, 1.67, 1.74) ;
-- la **géométrie** du verre (sphérique ou asphérique, base avant automatique ou imposée, centre mini) ;
+- la **géométrie** du verre (sphérique ou asphérique, base avant automatique ou imposée, centre mini) et le
+  **précalibrage** (oui : bord mini tenu sur la forme ; non : tenu sur tout le palet rond, Ø auto ou imposé) ;
 - la **monture** : forme type (ronde, rectangle, carrée, pantos, aviateur, papillon) ou **tracé réel OMA/VCA**
   importé du traceur, calibre A × B, pont, type de montage (cerclé, nylor, percé → bord mini) ;
 - en option pour les montures **cerclées** : matière du cercle (plastique ≈ 4,5 mm, métal ≈ 2,5 mm de
@@ -38,7 +39,8 @@ La vue 3D utilise three.js (chargé depuis cdnjs) : une connexion internet est n
   méridien, avec correction d'épaisseur (lentille épaisse).
 - Épaisseur en tout point = centre + flèche arrière − flèche avant, évaluée autour du centre optique décentré.
 - Épaisseur centre = max(centre mini du matériau, valeur garantissant le bord mini sur **la forme**)
-  → surfaçage optimisé forme, comme le font les laboratoires.
+  → surfaçage précalibré sur la forme. Sans précalibrage, le bord mini (0,8 mm) doit aussi être tenu sur le
+  pourtour du palet rond centré sur le centre optique (plus petit Ø usuel 55–80 couvrant la forme, ou imposé).
 - Cerclage : le sommet du biseau est logé dans la rainure, supposée au milieu de la profondeur du cercle ;
   débord devant = biseau − profondeur/2, débord derrière = bord − biseau − profondeur/2.
 - Poids = intégration de l'épaisseur sur la surface de la forme × densité du matériau.
